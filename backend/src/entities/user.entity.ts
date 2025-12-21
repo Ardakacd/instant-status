@@ -1,0 +1,49 @@
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToOne,
+  OneToMany,
+} from "typeorm";
+import { Status } from "./status.entity";
+import { Connection } from "./connection.entity";
+import { InviteCode } from "./invite-code.entity";
+import { DeviceToken } from "./device-token.entity";
+
+@Entity("users")
+export class User {
+  @PrimaryGeneratedColumn("uuid")
+  id: string;
+
+  @Column({ type: "varchar", length: 128, unique: true, nullable: false })
+  firebase_uid: string;
+
+  @Column({ type: "varchar", length: 255, unique: true, nullable: true })
+  email: string | null;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  first_name: string | null;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  last_name: string | null;
+  
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
+
+  @OneToOne(() => Status, (status) => status.user)
+  status: Status;
+
+  @OneToMany(() => Connection, (connection) => connection.user)
+  connections: Connection[];
+
+  @OneToMany(() => InviteCode, (inviteCode) => inviteCode.owner)
+  inviteCodes: InviteCode[];
+
+  @OneToMany(() => DeviceToken, (deviceToken) => deviceToken.user)
+  deviceTokens: DeviceToken[];
+}
