@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+  Logger,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { User } from "../entities/user.entity";
@@ -6,6 +11,8 @@ import { Status, StatusState } from "../entities/status.entity";
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -14,17 +21,41 @@ export class UserService {
   ) {}
 
   async findById(id: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { id } });
+    try {
+      return await this.userRepository.findOne({ where: { id } });
+    } catch (error: any) {
+      this.logger.error(
+        `Error finding user by ID: ${error.message}`,
+        error.stack
+      );
+      throw new InternalServerErrorException("Failed to find user");
+    }
   }
 
   async findByFirebaseUid(firebaseUid: string): Promise<User | null> {
-    return this.userRepository.findOne({
-      where: { firebase_uid: firebaseUid },
-    });
+    try {
+      return await this.userRepository.findOne({
+        where: { firebase_uid: firebaseUid },
+      });
+    } catch (error: any) {
+      this.logger.error(
+        `Error finding user by Firebase UID: ${error.message}`,
+        error.stack
+      );
+      throw new InternalServerErrorException("Failed to find user");
+    }
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } });
+    try {
+      return await this.userRepository.findOne({ where: { email } });
+    } catch (error: any) {
+      this.logger.error(
+        `Error finding user by email: ${error.message}`,
+        error.stack
+      );
+      throw new InternalServerErrorException("Failed to find user");
+    }
   }
 
   async create(data: {
@@ -33,26 +64,51 @@ export class UserService {
     first_name: string | null;
     last_name: string | null;
   }): Promise<User> {
-    const user = this.userRepository.create(data);
-    const savedUser = await this.userRepository.save(user);
+    try {
+      const user = this.userRepository.create(data);
+      const savedUser = await this.userRepository.save(user);
 
-    // Create default status
-    const status = this.statusRepository.create({
-      user_id: savedUser.id,
-      state: StatusState.OFFLINE,
-    });
-    await this.statusRepository.save(status);
+      // Create default status
+      const status = this.statusRepository.create({
+        user_id: savedUser.id,
+        state: StatusState.OFFLINE,
+      });
+      await this.statusRepository.save(status);
 
-    return savedUser;
+      return savedUser;
+    } catch (error: any) {
+      // Handle unique constraint violations
+      if (error.code === "23505") {
+        this.logger.warn(
+          `Attempted to create duplicate user: ${data.firebase_uid}`
+        );
+        throw new InternalServerErrorException("User already exists");
+      }
+      this.logger.error(`Error creating user: ${error.message}`, error.stack);
+      throw new InternalServerErrorException("Failed to create user");
+    }
   }
 
   async update(id: string, data: Partial<User>): Promise<User> {
-    const user = await this.findById(id);
-    if (!user) {
-      throw new NotFoundException("User not found");
-    }
+    try {
+      const user = await this.findById(id);
+      if (!user) {
+        throw new NotFoundException("User not found");
+      }
 
-    Object.assign(user, data);
-    return this.userRepository.save(user);
+      Object.assign(user, data);
+      return await this.userRepository.save(user);
+    } catch (error: any) {
+      // Re-throw NotFoundException as-is
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      // Re-throw InternalServerErrorException from findById
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      this.logger.error(`Error updating user: ${error.message}`, error.stack);
+      throw new InternalServerErrorException("Failed to update user");
+    }
   }
 }

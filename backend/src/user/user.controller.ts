@@ -5,6 +5,7 @@ import {
   Body,
   UseGuards,
   Request,
+  UnauthorizedException,
 } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { AuthGuard } from "../auth/auth.guard";
@@ -23,7 +24,14 @@ export class UserController {
 
   @Get("me")
   async getMe(@Request() req) {
+    // User comes from AuthGuard, so it's guaranteed to exist
     const user = await this.userService.findById(req.user.id);
+
+    if (!user) {
+      // This shouldn't happen, but handle it gracefully
+      throw new UnauthorizedException("User not found");
+    }
+
     return {
       id: user.id,
       firebase_uid: user.firebase_uid,
