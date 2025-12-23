@@ -60,8 +60,11 @@ export class AuthController {
   @Post("refresh-token")
   @UseGuards(AuthGuard)
   async refreshToken(@Request() req) {
+    // User comes from AuthGuard, so it's guaranteed to exist
+    // But we still fetch fresh data from database
     const user = await this.userService.findById(req.user.id);
 
+    // This shouldn't happen since user comes from token, but handle it gracefully
     if (!user) {
       throw new UnauthorizedException("User not found");
     }
