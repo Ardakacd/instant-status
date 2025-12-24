@@ -7,7 +7,7 @@ import {
   Auth,
   UserCredential,
 } from "firebase/auth";
-import { auth } from "../config/firebase";
+import { auth, mapSignInError, mapSignupError } from "../config/firebase";
 import api, { resetAuthReady } from "../config/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as AuthSession from "expo-auth-session";
@@ -28,28 +28,35 @@ export class AuthService {
   }
 
   private async handleAuthSuccess(userCredential: UserCredential) {
-    const idToken = await userCredential.user.getIdToken();
+    try {
+      const idToken = await userCredential.user.getIdToken();
 
-    // Store token
-    await AsyncStorage.setItem("firebase_token", idToken);
-    await AsyncStorage.setItem("firebase_uid", userCredential.user.uid);
+      // Store token
+      await AsyncStorage.setItem("firebase_token", idToken);
+      await AsyncStorage.setItem("firebase_uid", userCredential.user.uid);
 
-    // Verify with backend
-    const response = await api.post("/auth/firebase-token-verify", {
-      idToken,
-    });
+      // Verify with backend
+      const response = await api.post("/auth/firebase-token-verify", {
+        idToken,
+      });
 
-    await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
-    await AsyncStorage.setItem(
-      "onboarding",
-      JSON.stringify(response.data.onboarding)
-    );
+      await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
+      await AsyncStorage.setItem(
+        "onboarding",
+        JSON.stringify(response.data.onboarding)
+      );
 
-    return {
-      user: response.data.user,
-      token: idToken,
-      onboarding: response.data.onboarding,
-    };
+      return {
+        user: response.data.user,
+        token: idToken,
+        onboarding: response.data.onboarding,
+      };
+    } catch (error: any) {
+      // Clean up stored data if backend verification fails
+      await AsyncStorage.removeItem("firebase_token");
+      await AsyncStorage.removeItem("firebase_uid");
+      throw error; // Re-throw with message already extracted by interceptor
+    }
   }
 
   async signUp(email: string, password: string) {
@@ -62,7 +69,7 @@ export class AuthService {
       return this.handleAuthSuccess(userCredential);
     } catch (error: any) {
       console.error("Error signing up:", error);
-      throw new Error("Failed to sign up");
+      throw new Error(mapSignupError(error));
     }
   }
 
@@ -77,23 +84,22 @@ export class AuthService {
       return response;
     } catch (error: any) {
       console.error("Error signing in:", JSON.stringify(error, null, 2));
-      // Preserve the original Firebase error for error code checking
-      const firebaseError = {
-        code: error.code,
-        message: error.message || "Failed to sign in",
-        originalError: error,
-      };
-      throw firebaseError;
+      throw new Error(mapSignInError(error));
     }
   }
 
   async logout() {
-    await AsyncStorage.removeItem("firebase_token");
-    await AsyncStorage.removeItem("firebase_uid");
-    await AsyncStorage.removeItem("user");
-    await AsyncStorage.removeItem("onboarding");
-    await signOut(auth);
-    resetAuthReady(); // Reset auth ready state so it can be re-initialized on next login
+    try {
+      await AsyncStorage.removeItem("firebase_token");
+      await AsyncStorage.removeItem("firebase_uid");
+      await AsyncStorage.removeItem("user");
+      await AsyncStorage.removeItem("onboarding");
+      await signOut(auth);
+      resetAuthReady(); // Reset auth ready state so it can be re-initialized on next login
+    } catch (error: any) {
+      console.error("Error logging out:", error);
+      throw new Error("Failed to log out");
+    }
   }
 
   async getCurrentUser() {
