@@ -18,6 +18,14 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import * as Device from "expo-device";
 
+export type RootStackParamList = {
+  SignUp: undefined;
+  SignIn: undefined;
+  Onboarding: undefined;
+  Main: undefined;
+  Connect: undefined;
+};
+
 async function registerForPushNotifications() {
   let token: string | undefined;
 
@@ -50,7 +58,7 @@ async function registerForPushNotifications() {
   return token;
 }
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
