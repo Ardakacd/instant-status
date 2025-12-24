@@ -5,9 +5,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { InjectQueue } from "@nestjs/bullmq";
 import { Repository } from "typeorm";
-import { Queue } from "bullmq";
 import { Status, StatusState } from "../entities/status.entity";
 import { Connection } from "../entities/connection.entity";
 import { DeviceToken } from "../entities/device-token.entity";
@@ -28,9 +26,7 @@ export class StatusService {
     @InjectRepository(DeviceToken)
     private deviceTokenRepository: Repository<DeviceToken>,
     @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectQueue("status-expiration")
-    private statusExpirationQueue: Queue
+    private userRepository: Repository<User>
   ) {
     this.firebaseAdmin = getFirebaseAdmin();
   }
@@ -71,18 +67,6 @@ export class StatusService {
 
       const savedStatus = await this.statusRepository.save(status);
 
-      // Schedule expiration job if expires_at is set
-      if (expiresAt) {
-        const delay = expiresAt.getTime() - Date.now();
-        if (delay > 0) {
-          await this.statusExpirationQueue.add(
-            "expire-status",
-            { userId, statusId: savedStatus.user_id },
-            { delay }
-          );
-        }
-      }
-
       // Send push notifications to visible connections (don't fail if this fails)
       this.sendStatusUpdatePush(userId, state, note).catch((error) => {
         this.logger.warn(
@@ -104,11 +88,73 @@ export class StatusService {
     }
   }
 
+  /**
+   * Checks if a status is expired and corrects it if needed.
+   * Uses lazy evaluation - only checks expiration when status is accessed.
+   */
+  private checkAndCorrectExpiration(status: Status | null): Status | null {
+    if (!status) return null;
+
+    const now = new Date();
+    if (status.expires_at && status.expires_at <= now) {
+      // Status is expired - correct it
+      status.state = StatusState.OFFLINE;
+      status.expires_at = null;
+      // Persist the correction (fire and forget to avoid blocking)
+      this.statusRepository
+        .update(
+          { user_id: status.user_id },
+          { state: StatusState.OFFLINE, expires_at: null }
+        )
+        .catch((error) => {
+          this.logger.warn(
+            `Failed to persist expired status correction: ${error.message}`
+          );
+        });
+    }
+
+    return status;
+  }
+
+  /**
+   * Checks and corrects multiple expired statuses in bulk.
+   * Uses PostgreSQL NOW() for accurate timezone-aware comparison.
+   * More efficient than checking individually.
+   */
+  private async checkAndCorrectExpiredStatuses(
+    userIds: string[]
+  ): Promise<void> {
+    if (userIds.length === 0) return;
+
+    try {
+      // Use PostgreSQL NOW() to compare timestamps correctly across timezones
+      await this.statusRepository
+        .createQueryBuilder()
+        .update(Status)
+        .set({
+          state: StatusState.OFFLINE,
+          expires_at: null,
+        })
+        .where("user_id IN (:...userIds)", { userIds })
+        .andWhere("expires_at IS NOT NULL")
+        .andWhere("expires_at <= NOW()")
+        .execute();
+    } catch (error: any) {
+      this.logger.warn(
+        `Failed to bulk correct expired statuses: ${error.message}`
+      );
+      // Don't throw - this is a background correction
+    }
+  }
+
   async getUserStatus(userId: string) {
     try {
-      return await this.statusRepository.findOne({
+      const status = await this.statusRepository.findOne({
         where: { user_id: userId },
       });
+
+      // Apply lazy expiration check
+      return this.checkAndCorrectExpiration(status);
     } catch (error: any) {
       this.logger.error(
         `Error getting user status: ${error.message}`,
@@ -150,6 +196,9 @@ export class StatusService {
       });
 
       const friendIds = friendConnections.map((fc) => fc.friendId);
+
+      // Check and correct expired statuses in bulk before fetching
+      await this.checkAndCorrectExpiredStatuses(friendIds);
 
       // Get statuses for all friends
       const statuses = await this.statusRepository.find({
@@ -195,16 +244,20 @@ export class StatusService {
           };
         }
 
-        // Return actual status
+        // Apply lazy expiration check (status should already be corrected by bulk update,
+        // but check again to be safe)
+        const correctedStatus = this.checkAndCorrectExpiration(status);
+
+        // Return actual status (or OFFLINE if expired)
         return {
-          user_id: status.user_id,
-          first_name: status.user.first_name,
-          last_name: status.user.last_name,
+          user_id: correctedStatus.user_id,
+          first_name: correctedStatus.user.first_name,
+          last_name: correctedStatus.user.last_name,
           avatar_url: null, // TODO: Add avatar_url to User entity if needed
-          state: status.state,
-          note: status.note,
-          expires_at: status.expires_at,
-          updated_at: status.updated_at,
+          state: correctedStatus.state,
+          note: correctedStatus.note,
+          expires_at: correctedStatus.expires_at,
+          updated_at: correctedStatus.updated_at,
         };
       });
     } catch (error: any) {
