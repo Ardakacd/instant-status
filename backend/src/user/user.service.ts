@@ -111,4 +111,28 @@ export class UserService {
       throw new InternalServerErrorException("Failed to update user");
     }
   }
+
+  async delete(id: string): Promise<void> {
+    try {
+      const user = await this.findById(id);
+      if (!user) {
+        throw new NotFoundException("User not found");
+      }
+
+      // Cascade delete will handle all related records (statuses, connections, invite codes, device tokens)
+      await this.userRepository.remove(user);
+      this.logger.log(`User ${id} deleted successfully`);
+    } catch (error: any) {
+      // Re-throw NotFoundException as-is
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      // Re-throw InternalServerErrorException from findById
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      this.logger.error(`Error deleting user: ${error.message}`, error.stack);
+      throw new InternalServerErrorException("Failed to delete user");
+    }
+  }
 }
