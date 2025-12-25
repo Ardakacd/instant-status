@@ -100,11 +100,12 @@ export class StatusService {
       // Status is expired - correct it
       status.state = StatusState.OFFLINE;
       status.expires_at = null;
+      status.note = null;
       // Persist the correction (fire and forget to avoid blocking)
       this.statusRepository
         .update(
           { user_id: status.user_id },
-          { state: StatusState.OFFLINE, expires_at: null }
+          { state: StatusState.OFFLINE, expires_at: null, note: null }
         )
         .catch((error) => {
           this.logger.warn(
@@ -134,6 +135,7 @@ export class StatusService {
         .set({
           state: StatusState.OFFLINE,
           expires_at: null,
+          note: null,
         })
         .where("user_id IN (:...userIds)", { userIds })
         .andWhere("expires_at IS NOT NULL")
@@ -185,15 +187,21 @@ export class StatusService {
 
       // Map connections to friend info with visibility flag
       // Status is visible only if BOTH sides allow it: a_shows_status && b_shows_status
-      const friendConnections = connections.map((conn) => {
-        const friend = conn.user_id === userId ? conn.friend : conn.user;
-        const isVisible = conn.a_shows_status && conn.b_shows_status;
-        return {
-          friendId: friend.id,
-          friend: friend,
-          visibility: isVisible,
-        };
-      });
+      const friendConnections = connections
+        .map((conn) => {
+          const friend = conn.user_id === userId ? conn.friend : conn.user;
+          // Skip if friend is null (user was deleted but connection still exists)
+          if (!friend) {
+            return null;
+          }
+          const isVisible = conn.a_shows_status && conn.b_shows_status;
+          return {
+            friendId: friend.id,
+            friend: friend,
+            visibility: isVisible,
+          };
+        })
+        .filter((fc): fc is NonNullable<typeof fc> => fc !== null);
 
       const friendIds = friendConnections.map((fc) => fc.friendId);
 
@@ -207,8 +215,11 @@ export class StatusService {
       });
 
       // Create a map of friendId -> status for quick lookup
+      // Filter out statuses where user is null (user was deleted but status still exists)
       const statusMap = new Map(
-        statuses.map((status) => [status.user_id, status])
+        statuses
+          .filter((status) => status.user !== null)
+          .map((status) => [status.user_id, status])
       );
 
       // Return status for each friend connection
