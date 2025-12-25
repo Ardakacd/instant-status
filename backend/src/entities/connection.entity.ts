@@ -44,11 +44,11 @@ export class Connection {
   @CreateDateColumn()
   created_at: Date;
 
-  @ManyToOne(() => User, (user) => user.connections)
+  @ManyToOne(() => User, (user) => user.connections, { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
   user: User;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: "CASCADE" })
   @JoinColumn({ name: "friend_id" })
   friend: User;
 }
