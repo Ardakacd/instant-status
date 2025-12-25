@@ -29,14 +29,19 @@ export default function SignUpScreen({ navigation }: Props) {
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+    if (password.length < 8) {
+      Alert.alert("Error", "Password must be at least 8 characters");
       return;
     }
 
     setLoading(true);
     try {
       await signUp(email, password);
+      Alert.alert(
+        "Verification Email Sent",
+        "Please check your email and click the verification link to verify your account.",
+        [{ text: "OK" }]
+      );
     } catch (error: any) {
       const errorMessage =
         error.message || error.originalError?.message || "Failed to sign up";
@@ -73,7 +78,7 @@ export default function SignUpScreen({ navigation }: Props) {
       />
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder="Password (min 8 characters)"
         value={password}
         onChangeText={setPassword}
         secureTextEntry

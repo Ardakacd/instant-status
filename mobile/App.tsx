@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import LoginScreen from "./src/screens/LoginScreen";
 import SignUpScreen from "./src/screens/SignUpScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
+import EmailVerificationScreen from "./src/screens/EmailVerificationScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import FriendsScreen from "./src/screens/FriendsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
@@ -21,6 +22,7 @@ import * as Device from "expo-device";
 export type RootStackParamList = {
   SignUp: undefined;
   SignIn: undefined;
+  EmailVerification: undefined;
   Onboarding: undefined;
   Main: undefined;
   Connect: undefined;
@@ -52,7 +54,7 @@ async function registerForPushNotifications() {
     }
     token = (await Notifications.getExpoPushTokenAsync()).data;
   } else {
-    alert("Must use physical device for Push Notifications");
+    //alert("Must use physical device for Push Notifications");
   }
 
   return token;
@@ -111,7 +113,7 @@ function MainTabs() {
 }
 
 function AppNavigator() {
-  const { user, loading, onboarding } = useAuth();
+  const { user, loading, onboarding, emailVerified } = useAuth();
 
   useEffect(() => {
     // Register for push notifications
@@ -140,13 +142,26 @@ function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
-        initialRouteName={!user ? "SignUp" : onboarding ? "Onboarding" : "Main"}
+        initialRouteName={
+          !user
+            ? "SignUp"
+            : !emailVerified
+            ? "EmailVerification"
+            : onboarding
+            ? "Onboarding"
+            : "Main"
+        }
       >
         {!user ? (
           <>
             <Stack.Screen name="SignUp" component={SignUpScreen} />
             <Stack.Screen name="SignIn" component={LoginScreen} />
           </>
+        ) : !emailVerified ? (
+          <Stack.Screen
+            name="EmailVerification"
+            component={EmailVerificationScreen}
+          />
         ) : onboarding ? (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : (
