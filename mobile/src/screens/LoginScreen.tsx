@@ -7,10 +7,13 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Modal,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
+import { authService } from "../services/auth.service";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SignIn">;
 
@@ -21,6 +24,10 @@ export default function LoginScreen({ navigation }: Props) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [forgotPasswordModalVisible, setForgotPasswordModalVisible] =
+    useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [sendingReset, setSendingReset] = useState(false);
   const { signIn, signInWithGoogle } = useAuth();
 
   const handleSignIn = async () => {
@@ -32,6 +39,7 @@ export default function LoginScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await signIn(email, password);
+      // Email verification check is handled in AuthContext and navigation
     } catch (error: any) {
       const errorMessage =
         error.message || error.originalError?.message || "Failed to sign in";
@@ -49,6 +57,43 @@ export default function LoginScreen({ navigation }: Props) {
       Alert.alert("Error", error.message || "Failed to sign in with Google");
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleForgotPassword = () => {
+    setResetEmail(email); // Pre-fill with email from login form if available
+    setForgotPasswordModalVisible(true);
+  };
+
+  const handleSendPasswordReset = async () => {
+    if (!resetEmail.trim()) {
+      Alert.alert("Error", "Please enter your email address");
+      return;
+    }
+
+    setSendingReset(true);
+    try {
+      await authService.resetPassword(resetEmail.trim());
+      Alert.alert(
+        "Password Reset Email Sent",
+        "Please check your email for instructions to reset your password.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setForgotPasswordModalVisible(false);
+              setResetEmail("");
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.message || "Failed to send password reset email"
+      );
+    } finally {
+      setSendingReset(false);
     }
   };
 
@@ -74,6 +119,12 @@ export default function LoginScreen({ navigation }: Props) {
         secureTextEntry
         autoCapitalize="none"
       />
+      <TouchableOpacity
+        style={styles.forgotPasswordButton}
+        onPress={handleForgotPassword}
+      >
+        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+      </TouchableOpacity>
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleSignIn}
@@ -112,6 +163,78 @@ export default function LoginScreen({ navigation }: Props) {
       >
         <Text style={styles.linkText}>Don't have an account? Sign Up</Text>
       </TouchableOpacity>
+
+      {/* Forgot Password Modal */}
+      <Modal
+        visible={forgotPasswordModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setForgotPasswordModalVisible(false);
+          setResetEmail("");
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Reset Password</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setForgotPasswordModalVisible(false);
+                  setResetEmail("");
+                }}
+                disabled={sendingReset}
+              >
+                <Ionicons name="close" size={24} color="#111827" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalDescription}>
+                Enter your email address and we'll send you a link to reset your
+                password.
+              </Text>
+
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Email"
+                value={resetEmail}
+                onChangeText={setResetEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoFocus
+                editable={!sendingReset}
+              />
+
+              <TouchableOpacity
+                style={[
+                  styles.modalButton,
+                  sendingReset && styles.modalButtonDisabled,
+                ]}
+                onPress={handleSendPasswordReset}
+                disabled={sendingReset}
+              >
+                {sendingReset ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalButtonText}>Send Reset Email</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => {
+                  setForgotPasswordModalVisible(false);
+                  setResetEmail("");
+                }}
+                disabled={sendingReset}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -209,5 +332,87 @@ const styles = StyleSheet.create({
     color: "#333",
     fontSize: 16,
     fontWeight: "600",
+  },
+  forgotPasswordButton: {
+    alignSelf: "flex-end",
+    marginBottom: 20,
+    marginTop: -10,
+  },
+  forgotPasswordText: {
+    color: "#007AFF",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    width: "90%",
+    maxWidth: 400,
+    padding: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    padding: 16,
+    fontSize: 16,
+    marginBottom: 20,
+    backgroundColor: "#F9FAFB",
+  },
+  modalButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 8,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  modalButtonDisabled: {
+    opacity: 0.6,
+  },
+  modalButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalCancelButton: {
+    padding: 12,
+    alignItems: "center",
+  },
+  modalCancelButtonText: {
+    color: "#6B7280",
+    fontSize: 14,
   },
 });
