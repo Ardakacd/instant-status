@@ -74,7 +74,6 @@ export default function SignUpScreen({ navigation }: Props) {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
-        autoFocus
       />
       <TextInput
         style={styles.input}
