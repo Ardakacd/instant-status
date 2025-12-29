@@ -5,7 +5,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Repository, In } from "typeorm";
 import { Status, StatusState } from "../entities/status.entity";
 import { Connection } from "../entities/connection.entity";
 import { DeviceToken } from "../entities/device-token.entity";
@@ -68,11 +68,14 @@ export class StatusService {
       const savedStatus = await this.statusRepository.save(status);
 
       // Send push notifications to visible connections (don't fail if this fails)
-      this.sendStatusUpdatePush(userId, state, note).catch((error) => {
-        this.logger.warn(
-          `Failed to send push notifications for status update: ${error.message}`
-        );
-      });
+      // Note: Firebase/Apple handle throttling on their end if notifications are sent too rapidly
+      this.sendStatusUpdatePush(userId, state, note, expiresAt).catch(
+        (error) => {
+          this.logger.warn(
+            `Failed to send push notifications for status update: ${error.message}`
+          );
+        }
+      );
 
       return savedStatus;
     } catch (error: any) {
@@ -283,7 +286,8 @@ export class StatusService {
   private async sendStatusUpdatePush(
     userId: string,
     state: StatusState,
-    note?: string
+    note?: string,
+    expiresAt?: Date
   ) {
     try {
       // Get user info
@@ -312,42 +316,98 @@ export class StatusService {
         conn.user_id === userId ? conn.friend_id : conn.user_id
       );
 
-      if (connectionUserIds.length === 0) return;
+      // Include the user's own devices for multi-device sync
+      // This ensures widgets update on all user's devices (iPad, iPhone, etc.)
+      const allUserIds = [...new Set([...connectionUserIds, userId])];
 
-      // Get device tokens for all connected users
+      if (allUserIds.length === 0) return;
+
+      // Get device tokens for all users (friends + self) using In operator for performance
       const deviceTokens = await this.deviceTokenRepository.find({
-        where: connectionUserIds.map((id) => ({ user_id: id })),
+        where: { user_id: In(allUserIds) },
       });
 
       if (deviceTokens.length === 0) return;
 
+      // Prepare display name
+      const displayName =
+        user.first_name && user.last_name
+          ? `${user.first_name} ${user.last_name}`
+          : user.first_name || user.last_name || "Someone";
+
+      // Prepare notification title and body
+      const statusEmoji: Record<StatusState, string> = {
+        FREE: "🟢",
+        BUSY: "🔴",
+        DND: "🔴",
+        SLEEP: "🟡",
+        OFFLINE: "⚪",
+      };
+
+      const statusText: Record<StatusState, string> = {
+        FREE: "is free",
+        BUSY: "is busy",
+        DND: "is busy (do not disturb)",
+        SLEEP: "is sleeping",
+        OFFLINE: "is offline",
+      };
+
+      const title = `${displayName} ${statusText[state]}`;
+      // Truncate note to prevent payload size issues (FCM limit: 4KB, iOS widgets have tiny memory)
+      const truncatedNote = note ? note.substring(0, 200) : "";
+      // Body is only included if there's a note - mobile app will format expiration using user's locale
+      const body = truncatedNote || undefined;
+
+      // Prepare timestamp for widget freshness check
+      const timestamp = new Date().toISOString();
+
       // Send FCM messages
       const messages = deviceTokens.map((token) => ({
         token: token.token,
+        notification: {
+          title,
+          ...(body && { body }), // Only include body if it exists
+        },
         data: {
-          type: "status_update",
+          type: "status_update", // Matches what index.ts background handler expects
           user_id: userId,
-          display_name:
-            user.first_name && user.last_name
-              ? `${user.first_name} ${user.last_name}`
-              : user.first_name || user.last_name || "",
+          display_name: displayName,
           state,
-          note: note || "",
+          note: truncatedNote || "",
+          expires_at: expiresAt ? expiresAt.toISOString() : "",
+          timestamp, // Allows widget to detect stale data
         },
         android: {
           priority: "high" as const,
+          notification: {
+            sound: "default",
+            channelId: "default",
+          },
         },
         apns: {
           headers: {
             "apns-priority": "10",
+            "apns-push-type": "alert", // Required for visible notifications
+          },
+          payload: {
+            aps: {
+              sound: "default",
+              badge: 1,
+              "mutable-content": 1, // Allows Notification Service Extension to update widget
+              "content-available": 1, // Wakes app in background for widget updates
+            },
           },
         },
       }));
+
+      console.log("Sending push notifications to:", allUserIds);
+      console.log("Messages:", messages);
 
       try {
         const response = await this.firebaseAdmin
           .messaging()
           .sendEach(messages);
+        console.log("Response:", JSON.stringify(response, null, 2));
         this.logger.log(
           `Sent ${response.successCount}/${messages.length} push notifications`
         );
@@ -361,14 +421,13 @@ export class StatusService {
           `Error sending push notifications: ${error.message}`,
           error.stack
         );
-        // Don't throw - push notification failures shouldn't fail status updates
+        // Push notification failures shouldn't fail status updates
       }
     } catch (error: any) {
       this.logger.error(
         `Error preparing status update push: ${error.message}`,
         error.stack
       );
-      // Don't throw - push notification failures shouldn't fail status updates
     }
   }
 }
