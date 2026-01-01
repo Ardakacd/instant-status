@@ -11,7 +11,8 @@ npm-debug.*
 *.orig.*
 web-build/
 .env
-.env.local
+.env.development
+.env.production
 
 # macOS
 .DS_Store
@@ -19,3 +20,10 @@ web-build/
 # IDE
 .vscode/
 .idea/
+
+
+ios/
+android/
+
+
+
