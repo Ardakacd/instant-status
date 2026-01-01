@@ -111,6 +111,29 @@ export class AuthService {
 
   async logout() {
     try {
+      // Unregister device token before logout to prevent ghost notifications
+      try {
+        const { messagingService } = await import("./messaging.service");
+        const { deviceTokenService } = await import("./device-token.service");
+
+        // Delete token from Firebase and clear cache
+        await messagingService.unregister();
+
+        // Unregister from backend using stored device token ID
+        try {
+          await deviceTokenService.unregisterToken();
+        } catch (backendError) {
+          // Don't fail logout if backend unregister fails
+          console.warn(
+            "Failed to unregister token from backend:",
+            backendError
+          );
+        }
+      } catch (tokenError) {
+        // Don't fail logout if token unregistration fails
+        console.warn("Error unregistering device token:", tokenError);
+      }
+
       // Sign out from Google Sign-In
       try {
         await GoogleSignin.signOut();
