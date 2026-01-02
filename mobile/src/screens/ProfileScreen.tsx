@@ -134,9 +134,15 @@ export default function ProfileScreen() {
           if (granted) {
             setPushNotifications(true);
             // Get and register new token
-            const token = await messagingService.getToken();
-            if (token && user) {
-              await deviceTokenService.registerToken(token);
+            try {
+              const token = await messagingService.getToken();
+              
+              if (token && user) {
+                await deviceTokenService.registerToken(token);
+              }
+            } catch (error) {
+              console.error("Error registering device token:", error);
+              // Don't crash the UI, but show a warning
             }
           } else {
             // Permission denied, offer to open settings
@@ -161,7 +167,18 @@ export default function ProfileScreen() {
             setPushNotifications(false);
           }
         } else {
+          // User already has permission, ensure token is registered
           setPushNotifications(true);
+          try {
+            const token = await messagingService.getToken();
+            if (token && user) {
+              await deviceTokenService.registerToken(token);
+            }
+          } catch (error) {
+            console.error("Error registering device token:", error);
+            // Don't crash the UI, but log the error
+            // Token might already be registered, so this is not critical
+          }
         }
       } else {
         // User wants to disable notifications
