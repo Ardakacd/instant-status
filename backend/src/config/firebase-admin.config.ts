@@ -7,7 +7,6 @@ export function getFirebaseAdmin(): admin.app.App {
     return firebaseAdmin;
   }
 
-
   // Check if Firebase Admin is already initialized
   if (admin.apps.length > 0) {
     firebaseAdmin = admin.app();
@@ -33,7 +32,6 @@ export function getFirebaseAdmin(): admin.app.App {
 
   // Initialize Firebase Admin using individual environment variables
   try {
-    
     firebaseAdmin = admin.initializeApp({
       projectId: projectId,
       credential: admin.credential.cert({

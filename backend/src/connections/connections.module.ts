@@ -4,12 +4,13 @@ import { ConnectionsController } from './connections.controller';
 import { ConnectionsService } from './connections.service';
 import { Connection } from '../entities/connection.entity';
 import { User } from '../entities/user.entity';
+import { DeviceToken } from '../entities/device-token.entity';
 import { AuthModule } from '../auth/auth.module';
 import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Connection, User]),
+    TypeOrmModule.forFeature([Connection, User, DeviceToken]),
     AuthModule,
     forwardRef(() => UserModule),
   ],
