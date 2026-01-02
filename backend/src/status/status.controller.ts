@@ -30,7 +30,6 @@ export class StatusController {
     // Validate expires_at is a valid ISO 8601 date string with timezone info if provided
     let expiresAt: Date | undefined;
     if (expires_at) {
-    
       expiresAt = new Date(expires_at);
       if (isNaN(expiresAt.getTime())) {
         throw new BadRequestException("Invalid expiration date format");
@@ -48,6 +47,7 @@ export class StatusController {
       user_id: status.user_id,
       state: status.state,
       note: status.note,
+      // NestJS automatically serializes Date objects to ISO strings via JSON.stringify()
       expires_at: status.expires_at,
       updated_at: status.updated_at,
     };
@@ -69,6 +69,7 @@ export class StatusController {
       user_id: status.user_id,
       state: status.state,
       note: status.note,
+      // NestJS automatically serializes Date objects to ISO strings via JSON.stringify()
       expires_at: status.expires_at,
       updated_at: status.updated_at,
     };

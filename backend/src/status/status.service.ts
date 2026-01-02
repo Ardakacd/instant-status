@@ -263,6 +263,7 @@ export class StatusService {
         const correctedStatus = this.checkAndCorrectExpiration(status);
 
         // Return actual status (or OFFLINE if expired)
+        // NestJS automatically serializes Date objects to ISO strings via JSON.stringify()
         return {
           user_id: correctedStatus.user_id,
           first_name: correctedStatus.user.first_name,
@@ -327,6 +328,8 @@ export class StatusService {
         where: { user_id: In(allUserIds) },
       });
 
+      console.log("Device tokens:", deviceTokens);
+
       if (deviceTokens.length === 0) return;
 
       // Prepare display name
@@ -361,44 +364,102 @@ export class StatusService {
       // Prepare timestamp for widget freshness check
       const timestamp = new Date().toISOString();
 
-      // Send FCM messages
-      const messages = deviceTokens.map((token) => ({
-        token: token.token,
-        notification: {
-          title,
-          ...(body && { body }), // Only include body if it exists
-        },
-        data: {
-          type: "status_update", // Matches what index.ts background handler expects
-          user_id: userId,
-          display_name: displayName,
-          state,
-          note: truncatedNote || "",
-          expires_at: expiresAt ? expiresAt.toISOString() : "",
-          timestamp, // Allows widget to detect stale data
-        },
-        android: {
-          priority: "high" as const,
-          notification: {
-            sound: "default",
-            channelId: "default",
+      // Determine notification priority based on expiration duration
+      // For statuses expiring in under 5 minutes, use normal priority to reduce battery/system cost
+      const MIN_DURATION_FOR_HIGH_PRIORITY_MS = 5 * 60 * 1000; // 5 minutes
+      const now = Date.now();
+      const isShortDuration =
+        expiresAt &&
+        expiresAt.getTime() - now < MIN_DURATION_FOR_HIGH_PRIORITY_MS;
+
+      // Use normal priority for short durations, high priority otherwise
+      const androidPriority = isShortDuration
+        ? ("normal" as const)
+        : ("high" as const);
+      const apnsPriority = isShortDuration ? "5" : "10";
+
+      // Prepare common data payload
+      const commonData = {
+        type: "status_update", // Matches what index.ts background handler expects
+        user_id: userId,
+        display_name: displayName,
+        state,
+        note: truncatedNote || "",
+        expires_at: expiresAt ? expiresAt.toISOString() : "",
+        timestamp, // Allows widget to detect stale data
+      };
+
+      // Split device tokens: user's own devices vs friends' devices
+      const ownDeviceTokens = deviceTokens.filter(
+        (token) => token.user_id === userId
+      );
+      const friendDeviceTokens = deviceTokens.filter(
+        (token) => token.user_id !== userId
+      );
+
+      // Build messages array and map tokens to device token IDs for error handling
+      const messages: any[] = [];
+      const tokenToIdMap = new Map<string, string>(); // Maps FCM token -> device token ID
+
+      // For user's own devices: send data-only messages (silent, for widget sync)
+      // No visible notification since user already knows their own status
+      for (const token of ownDeviceTokens) {
+        tokenToIdMap.set(token.token, token.id);
+        messages.push({
+          token: token.token,
+          data: commonData,
+          android: {
+            priority: androidPriority,
+            // No notification object = silent data-only message
           },
-        },
-        apns: {
-          headers: {
-            "apns-priority": "10",
-            "apns-push-type": "alert", // Required for visible notifications
-          },
-          payload: {
-            aps: {
-              sound: "default",
-              badge: 1,
-              "mutable-content": 1, // Allows Notification Service Extension to update widget
-              "content-available": 1, // Wakes app in background for widget updates
+          apns: {
+            headers: {
+              "apns-priority": apnsPriority,
+              "apns-push-type": "background", // Background push for data-only
+            },
+            payload: {
+              aps: {
+                "content-available": 1, // Wakes app in background for widget updates
+                // No sound, badge, or alert = silent
+              },
             },
           },
-        },
-      }));
+        });
+      }
+
+      // For friends' devices: send visible notifications
+      for (const token of friendDeviceTokens) {
+        tokenToIdMap.set(token.token, token.id);
+        messages.push({
+          token: token.token,
+          notification: {
+            title,
+            ...(body && { body }), // Only include body if it exists
+          },
+          data: commonData,
+          android: {
+            priority: androidPriority,
+            notification: {
+              sound: "default",
+              channelId: "default",
+            },
+          },
+          apns: {
+            headers: {
+              "apns-priority": apnsPriority,
+              "apns-push-type": "alert", // Required for visible notifications
+            },
+            payload: {
+              aps: {
+                sound: "default",
+                badge: 1,
+                "mutable-content": 1, // Allows Notification Service Extension to update widget
+                "content-available": 1, // Wakes app in background for widget updates
+              },
+            },
+          },
+        });
+      }
 
       console.log("Sending push notifications to:", allUserIds);
       console.log("Messages:", messages);
@@ -407,14 +468,55 @@ export class StatusService {
         const response = await this.firebaseAdmin
           .messaging()
           .sendEach(messages);
-        console.log("Response:", JSON.stringify(response, null, 2));
+
         this.logger.log(
           `Sent ${response.successCount}/${messages.length} push notifications`
         );
+
         if (response.failureCount > 0) {
-          this.logger.warn(
-            `Failed to send ${response.failureCount} push notifications`
-          );
+          // Track invalid token IDs to delete
+          const invalidTokenIds: string[] = [];
+
+          // Log failed messages and identify invalid tokens
+          response.responses.forEach((result, index) => {
+            if (!result.success && result.error) {
+              const message = messages[index];
+              const errorCode = result.error.code;
+
+              this.logger.warn(
+                `Failed to send notification: ${errorCode} - ${result.error.message} (token: ${message.token.substring(0, 20)}...)`
+              );
+
+              // Delete tokens for these error codes (invalid/expired tokens)
+              if (
+                errorCode === "messaging/invalid-registration-token" ||
+                errorCode === "messaging/registration-token-not-registered" ||
+                errorCode === "messaging/invalid-argument" ||
+                errorCode === "messaging/third-party-auth-error"
+              ) {
+                const deviceTokenId = tokenToIdMap.get(message.token);
+                if (deviceTokenId) {
+                  invalidTokenIds.push(deviceTokenId);
+                }
+              }
+            }
+          });
+
+          // Delete invalid tokens from database
+          if (invalidTokenIds.length > 0) {
+            try {
+              await this.deviceTokenRepository.delete({
+                id: In(invalidTokenIds),
+              });
+              this.logger.log(
+                `Deleted ${invalidTokenIds.length} invalid device token(s)`
+              );
+            } catch (deleteError: any) {
+              this.logger.error(
+                `Failed to delete invalid tokens: ${deleteError.message}`
+              );
+            }
+          }
         }
       } catch (error: any) {
         this.logger.error(
