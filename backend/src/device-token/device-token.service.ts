@@ -24,43 +24,22 @@ export class DeviceTokenService {
         throw new BadRequestException("Device token is required");
       }
 
-      // Check if token already exists
+      // Check if user_id + platform combination exists
+      // This handles token refresh scenarios (same user/platform, new token)
       let deviceToken = await this.deviceTokenRepository.findOne({
-        where: { token },
-      });
-
-      if (deviceToken) {
-        // Update user_id if different (device reassigned)
-        if (deviceToken.user_id !== userId) {
-          deviceToken.user_id = userId;
-          deviceToken.platform = platform;
-          await this.deviceTokenRepository.save(deviceToken);
-          this.logger.log(
-            `Device token reassigned from user ${deviceToken.user_id} to ${userId}`
-          );
-        }
-        return deviceToken;
-      }
-
-      // If token is new but user/platform combination exists, delete old tokens
-      // This handles token refresh scenarios where the token changes but user/platform stays same
-      const existingTokens = await this.deviceTokenRepository.find({
         where: {
           user_id: userId,
           platform: platform,
         },
       });
 
-      // Delete old tokens for this user/platform combination
-      if (existingTokens.length > 0) {
-        const oldTokenIds = existingTokens.map((t) => t.id);
-        await this.deviceTokenRepository.delete(oldTokenIds);
-        this.logger.log(
-          `Deleted ${existingTokens.length} old device token(s) for user ${userId} on ${platform}`
-        );
+      if (deviceToken) {
+        // Update existing token with new token value
+        deviceToken.token = token;
+        return await this.deviceTokenRepository.save(deviceToken);
       }
 
-      // Create new device token
+      // No existing token found, create new one
       deviceToken = this.deviceTokenRepository.create({
         user_id: userId,
         token,
