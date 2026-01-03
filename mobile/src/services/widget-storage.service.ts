@@ -105,8 +105,9 @@ export class WidgetStorageService {
         friendsData.push(friendStatusItem);
       }
       console.log("friendsData", friendsData);
-      // Save updated data
-      this.storage.set(WIDGET_DATA_KEY, friendsData as any);
+    
+      const jsonString = JSON.stringify(friendsData);
+      this.storage.set(WIDGET_DATA_KEY, jsonString);
 
       // Only reload widget if status changed and cooldown has passed
       const now = Date.now();
@@ -152,7 +153,11 @@ export class WidgetStorageService {
       }));
       console.log("widgetData", widgetData);
 
-      this.storage.set(WIDGET_DATA_KEY, widgetData as any);
+      // Explicitly store as JSON string to ensure Swift can read it consistently
+      // ExtensionStorage.get() returns string | null, so storing as string ensures compatibility
+      const jsonString = JSON.stringify(widgetData);
+      console.log("Storing widget data as JSON string, length:", jsonString);
+      this.storage.set(WIDGET_DATA_KEY, jsonString);
 
       // Check cooldown before reloading
       const now = Date.now();
