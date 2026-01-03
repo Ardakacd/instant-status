@@ -16,6 +16,7 @@ export default function EmailVerificationScreen() {
   const { checkEmailVerification, logout } = useAuth();
   const [sending, setSending] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Listen for auth state changes to automatically navigate when verified
   useEffect(() => {
@@ -26,10 +27,25 @@ export default function EmailVerificationScreen() {
     return unsubscribe;
   }, [checkEmailVerification]);
 
+  // Countdown timer for resend cooldown
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => {
+        setResendCooldown(resendCooldown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
   const handleResendVerification = async () => {
+    if (resendCooldown > 0) {
+      return; // Prevent spam clicking
+    }
+
     setSending(true);
     try {
       await authService.sendEmailVerification();
+      setResendCooldown(60); // Set 60 second cooldown
       Alert.alert(
         "Verification Email Sent",
         "Please check your email and click the verification link to verify your account."
@@ -90,17 +106,22 @@ export default function EmailVerificationScreen() {
 
       <Text style={styles.title}>Verify Your Email</Text>
       <Text style={styles.subtitle}>
-        We've sent a verification email to your inbox. Please check your email
-        and click the verification link to continue.
+        We've sent a verification email. It may take a minute to arrive. Check
+        your spam folder.
       </Text>
 
       <TouchableOpacity
-        style={[styles.button, sending && styles.buttonDisabled]}
+        style={[
+          styles.button,
+          (sending || resendCooldown > 0) && styles.buttonDisabled,
+        ]}
         onPress={handleResendVerification}
-        disabled={sending}
+        disabled={sending || resendCooldown > 0}
       >
         {sending ? (
           <ActivityIndicator color="#fff" />
+        ) : resendCooldown > 0 ? (
+          <Text style={styles.buttonText}>Resend in {resendCooldown}s</Text>
         ) : (
           <>
             <Ionicons
