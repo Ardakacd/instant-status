@@ -100,15 +100,15 @@ export class StatusService {
 
     const now = new Date();
     if (status.expires_at && status.expires_at <= now) {
-      // Status is expired - correct it
-      status.state = StatusState.OFFLINE;
+      // Status is expired
+      status.state = StatusState.AVAILABLE;
       status.expires_at = null;
       status.note = null;
       // Persist the correction (fire and forget to avoid blocking)
       this.statusRepository
         .update(
           { user_id: status.user_id },
-          { state: StatusState.OFFLINE, expires_at: null, note: null }
+          { state: StatusState.AVAILABLE, expires_at: null, note: null }
         )
         .catch((error) => {
           this.logger.warn(
@@ -136,7 +136,7 @@ export class StatusService {
         .createQueryBuilder()
         .update(Status)
         .set({
-          state: StatusState.OFFLINE,
+          state: StatusState.AVAILABLE,
           expires_at: null,
           note: null,
         })
@@ -226,32 +226,32 @@ export class StatusService {
       );
 
       // Return status for each friend connection
-      // If visibility is false, return OFFLINE status
+      // If visibility is false, return AVAILABLE status
       return friendConnections.map((fc) => {
         const status = statusMap.get(fc.friendId);
 
-        // If visibility is false, return OFFLINE status
+        // If visibility is false, return AVAILABLE status
         if (!fc.visibility) {
           return {
             user_id: fc.friendId,
             first_name: fc.friend.first_name,
             last_name: fc.friend.last_name,
             avatar_url: null, // TODO: Add avatar_url to User entity if needed
-            state: StatusState.OFFLINE,
+            state: StatusState.AVAILABLE,
             note: null,
             expires_at: null,
             updated_at: new Date().toISOString(),
           };
         }
 
-        // If visibility is true but no status exists, return OFFLINE
+        // If visibility is true but no status exists, return AVAILABLE
         if (!status) {
           return {
             user_id: fc.friendId,
             first_name: fc.friend.first_name,
             last_name: fc.friend.last_name,
             avatar_url: null,
-            state: StatusState.OFFLINE,
+            state: StatusState.AVAILABLE,
             note: null,
             expires_at: null,
             updated_at: new Date().toISOString(),
@@ -262,7 +262,7 @@ export class StatusService {
         // but check again to be safe)
         const correctedStatus = this.checkAndCorrectExpiration(status);
 
-        // Return actual status (or OFFLINE if expired)
+        // Return actual status (or AVAILABLE if expired)
         // NestJS automatically serializes Date objects to ISO strings via JSON.stringify()
         return {
           user_id: correctedStatus.user_id,
@@ -340,19 +340,21 @@ export class StatusService {
 
       // Prepare notification title and body
       const statusEmoji: Record<StatusState, string> = {
-        FREE: "🟢",
-        BUSY: "🔴",
+        AVAILABLE: "🟢",
+        BUSY: "🟠",
         DND: "🔴",
-        SLEEP: "🟡",
-        OFFLINE: "⚪",
+        FOCUS: "🟣",
+        SOCIAL: "🩷",
+        COMMUTE: "🔵",
       };
 
       const statusText: Record<StatusState, string> = {
-        FREE: "is free",
+        AVAILABLE: "is available",
         BUSY: "is busy",
         DND: "is busy (do not disturb)",
-        SLEEP: "is sleeping",
-        OFFLINE: "is offline",
+        FOCUS: "is focusing",
+        SOCIAL: "is socializing",
+        COMMUTE: "is commuting",
       };
 
       const title = `${displayName} ${statusText[state]}`;

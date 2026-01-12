@@ -59,7 +59,7 @@ export class StatusController {
     if (!status) {
       return {
         user_id: req.user.id,
-        state: StatusState.OFFLINE,
+        state: StatusState.AVAILABLE,
         note: null,
         expires_at: null,
         updated_at: new Date().toISOString(),

@@ -71,7 +71,7 @@ export class UserService {
       // Create default status
       const status = this.statusRepository.create({
         user_id: savedUser.id,
-        state: StatusState.OFFLINE,
+        state: StatusState.AVAILABLE,
       });
       await this.statusRepository.save(status);
 

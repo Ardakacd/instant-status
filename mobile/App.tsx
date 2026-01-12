@@ -1,10 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -25,6 +20,7 @@ import ConnectScreen from "./src/screens/ConnectScreen";
 import { deviceTokenService } from "./src/services/device-token.service";
 import { messagingService } from "./src/services/messaging.service";
 import { StatusState } from "./src/types";
+import { statusService } from "./src/services/status.service";
 
 export type RootStackParamList = {
   SignUp: undefined;
@@ -241,6 +237,15 @@ function AppNavigator() {
               Toast.hide();
             },
           });
+
+          // Refresh widget by fetching all friends and updating widget storage
+          try {
+            const allFriends = await statusService.getFriendsStatus();
+            await widgetStorageService.saveAllFriendStatuses(allFriends);
+            console.log("Widget refreshed after friend_added notification");
+          } catch (error) {
+            console.error("Error refreshing widget after friend_added:", error);
+          }
         } else if (remoteMessage.data?.type === "status_update") {
           const displayName = remoteMessage.data.display_name || "Someone";
           const state = remoteMessage.data.state as StatusState;
@@ -385,23 +390,25 @@ function AppNavigator() {
 // Helper function to get status label for display
 function getStatusLabel(state: StatusState): string {
   const labels: Record<StatusState, string> = {
-    [StatusState.FREE]: "Free",
+    [StatusState.AVAILABLE]: "Available",
     [StatusState.BUSY]: "Busy",
     [StatusState.DND]: "Do Not Disturb",
-    [StatusState.SLEEP]: "Sleep",
-    [StatusState.OFFLINE]: "Offline",
+    [StatusState.FOCUS]: "Focus",
+    [StatusState.SOCIAL]: "Social",
+    [StatusState.COMMUTE]: "Commute",
   };
   return labels[state] || "Unknown";
 }
 
-// Helper function to get status verb form for notifications (e.g., "is free", "is sleeping")
+// Helper function to get status verb form for notifications (e.g., "is available", "is busy")
 function getStatusVerb(state: StatusState): string {
   const verbs: Record<StatusState, string> = {
-    [StatusState.FREE]: "is free",
+    [StatusState.AVAILABLE]: "is available",
     [StatusState.BUSY]: "is busy",
     [StatusState.DND]: "is busy (do not disturb)",
-    [StatusState.SLEEP]: "is sleeping",
-    [StatusState.OFFLINE]: "is offline",
+    [StatusState.FOCUS]: "is focusing",
+    [StatusState.SOCIAL]: "is socializing",
+    [StatusState.COMMUTE]: "is commuting",
   };
   return verbs[state] || "has updated their status";
 }

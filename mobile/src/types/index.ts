@@ -1,9 +1,10 @@
 export enum StatusState {
-  FREE = "FREE",
+  AVAILABLE = "AVAILABLE",
   BUSY = "BUSY",
   DND = "DND",
-  SLEEP = "SLEEP",
-  OFFLINE = "OFFLINE",
+  FOCUS = "FOCUS",
+  SOCIAL = "SOCIAL",
+  COMMUTE = "COMMUTE",
 }
 
 export interface User {

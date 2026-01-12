@@ -9,11 +9,12 @@ import {
 import { User } from "./user.entity";
 
 export enum StatusState {
-  FREE = "FREE",
+  AVAILABLE = "AVAILABLE",
   BUSY = "BUSY",
   DND = "DND",
-  SLEEP = "SLEEP",
-  OFFLINE = "OFFLINE",
+  FOCUS = "FOCUS",
+  SOCIAL = "SOCIAL",
+  COMMUTE = "COMMUTE",
 }
 
 @Entity("statuses")
@@ -24,7 +25,7 @@ export class Status {
   @Column({
     type: "enum",
     enum: StatusState,
-    default: StatusState.OFFLINE,
+    default: StatusState.AVAILABLE,
   })
   state: StatusState;
 
