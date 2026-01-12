@@ -9,38 +9,44 @@ import {
   RefreshControl,
   Modal,
   TouchableWithoutFeedback,
+  Animated,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusState, Status } from "../types";
 import { statusService } from "../services/status.service";
+import { widgetStorageService } from "../services/widget-storage.service";
 import { useAuth } from "../contexts/AuthContext";
 import StatusChangeModal from "../components/StatusChangeModal";
 import { fetchSignInMethodsForEmail } from "firebase/auth";
 import { auth } from "../config/firebase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STATUS_COLORS = {
-  [StatusState.FREE]: "#10B981",
-  [StatusState.BUSY]: "#F59E0B",
-  [StatusState.DND]: "#EF4444",
-  [StatusState.SLEEP]: "#8B5CF6",
-  [StatusState.OFFLINE]: "#6B7280",
+  [StatusState.AVAILABLE]: "#10B981", // Green
+  [StatusState.BUSY]: "#F59E0B", // Orange
+  [StatusState.DND]: "#EF4444", // Red
+  [StatusState.FOCUS]: "#6366F1", // Indigo
+  [StatusState.SOCIAL]: "#EC4899", // Pink
+  [StatusState.COMMUTE]: "#3B82F6", // Blue
 };
 
 const STATUS_LABELS = {
-  [StatusState.FREE]: "Free",
+  [StatusState.AVAILABLE]: "Available",
   [StatusState.BUSY]: "Busy",
   [StatusState.DND]: "Do Not Disturb",
-  [StatusState.SLEEP]: "Sleep",
-  [StatusState.OFFLINE]: "Offline",
+  [StatusState.FOCUS]: "Focus",
+  [StatusState.SOCIAL]: "Social",
+  [StatusState.COMMUTE]: "Commute",
 };
 
 const STATUS_ICONS = {
-  [StatusState.FREE]: "✓",
+  [StatusState.AVAILABLE]: "✓",
   [StatusState.BUSY]: "!",
   [StatusState.DND]: "🚫",
-  [StatusState.SLEEP]: "😴",
-  [StatusState.OFFLINE]: "○",
+  [StatusState.FOCUS]: "🎯",
+  [StatusState.SOCIAL]: "👥",
+  [StatusState.COMMUTE]: "🚗",
 };
 
 export default function HomeScreen() {
@@ -49,7 +55,7 @@ export default function HomeScreen() {
   const [myStatus, setMyStatus] = useState<Status | null>(null);
   const [friendsStatus, setFriendsStatus] = useState<Status[]>([]);
 
-  const currentStatus = myStatus?.state || StatusState.OFFLINE;
+  const currentStatus = myStatus?.state || StatusState.AVAILABLE;
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -58,11 +64,58 @@ export default function HomeScreen() {
   );
   const [friendModalVisible, setFriendModalVisible] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<Status | null>(null);
+  const [showRefreshHint, setShowRefreshHint] = useState(false);
+  const slideAnim = React.useRef(new Animated.Value(-100)).current;
 
   useEffect(() => {
     loadFriendsStatus();
     loadCurrentStatus();
     loadSignMethods();
+    checkRefreshHint();
+  }, []);
+
+  // Check if we should show the refresh hint
+  const checkRefreshHint = async () => {
+    try {
+      const hasSeenHint = await AsyncStorage.getItem("hasSeenRefreshHint");
+      if (!hasSeenHint) {
+        // Show hint after a short delay for better UX
+        setTimeout(() => {
+          setShowRefreshHint(true);
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 50,
+            friction: 8,
+          }).start();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error("Error checking refresh hint:", error);
+    }
+  };
+
+  // Hide the hint and mark as seen
+  const dismissRefreshHint = async () => {
+    try {
+      await AsyncStorage.setItem("hasSeenRefreshHint", "true");
+      Animated.timing(slideAnim, {
+        toValue: -100,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowRefreshHint(false);
+      });
+    } catch (error) {
+      console.error("Error dismissing refresh hint:", error);
+      setShowRefreshHint(false);
+    }
+  };
+
+  // Helper function to close friend modal
+  const closeFriendModal = React.useCallback(() => {
+    setFriendModalVisible(false);
+    setSelectedFriend(null);
   }, []);
 
   const handleRefresh = async () => {
@@ -94,6 +147,9 @@ export default function HomeScreen() {
     try {
       const statuses = await statusService.getFriendsStatus();
       setFriendsStatus(statuses);
+
+      // Save friend statuses to widget storage
+      await widgetStorageService.saveAllFriendStatuses(statuses);
     } catch (error) {
       console.error("Error loading friends status:", error);
     }
@@ -192,6 +248,31 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Refresh Hint Banner */}
+      {showRefreshHint && (
+        <Animated.View
+          style={[
+            styles.refreshHintBanner,
+            {
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <View style={styles.refreshHintContent}>
+            <Ionicons name="arrow-down" size={20} color="#007AFF" />
+            <Text style={styles.refreshHintText}>
+              Pull down to refresh your friends' statuses
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={dismissRefreshHint}
+            style={styles.refreshHintClose}
+          >
+            <Ionicons name="close" size={20} color="#6B7280" />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -202,12 +283,12 @@ export default function HomeScreen() {
             onRefresh={handleRefresh}
             tintColor="#007AFF"
             colors={["#007AFF"]}
-            progressViewOffset={60}
+            progressViewOffset={showRefreshHint ? 130 : 80}
           />
         }
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, showRefreshHint && { marginTop: 50 }]}>
           <View style={styles.headerContent}>
             <Text style={styles.greeting}>Hello, </Text>
             <Text style={styles.userName}>{user?.first_name || "User"}</Text>
@@ -371,17 +452,9 @@ export default function HomeScreen() {
         visible={friendModalVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => {
-          setFriendModalVisible(false);
-          setSelectedFriend(null);
-        }}
+        onRequestClose={closeFriendModal}
       >
-        <TouchableWithoutFeedback
-          onPress={() => {
-            setFriendModalVisible(false);
-            setSelectedFriend(null);
-          }}
-        >
+        <TouchableWithoutFeedback onPress={closeFriendModal}>
           <View style={styles.friendModalOverlay}>
             <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
               <View style={styles.friendModalContent}>
@@ -396,10 +469,7 @@ export default function HomeScreen() {
                         )}
                       </Text>
                       <TouchableOpacity
-                        onPress={() => {
-                          setFriendModalVisible(false);
-                          setSelectedFriend(null);
-                        }}
+                        onPress={closeFriendModal}
                         style={styles.friendModalCloseButton}
                       >
                         <Ionicons name="close" size={24} color="#6B7280" />
@@ -448,10 +518,7 @@ export default function HomeScreen() {
                     {/* Close Button */}
                     <TouchableOpacity
                       style={styles.friendModalButton}
-                      onPress={() => {
-                        setFriendModalVisible(false);
-                        setSelectedFriend(null);
-                      }}
+                      onPress={closeFriendModal}
                     >
                       <Text style={styles.friendModalButtonText}>Close</Text>
                     </TouchableOpacity>
@@ -470,6 +537,41 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F9FAFB",
+  },
+  refreshHintBanner: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#EFF6FF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#DBEAFE",
+    paddingTop: 50, // Account for status bar
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  refreshHintContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 8,
+  },
+  refreshHintText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#007AFF",
+  },
+  refreshHintClose: {
+    padding: 4,
   },
   scrollView: {
     flex: 1,
