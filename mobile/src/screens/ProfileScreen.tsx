@@ -12,8 +12,10 @@ import {
   Linking,
   AppState,
   Modal,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
 import { messagingService } from "../services/messaging.service";
@@ -24,6 +26,7 @@ import { deviceTokenService } from "../services/device-token.service";
 
 export default function ProfileScreen() {
   const { user, logout, deleteAccount, refreshUser } = useAuth();
+  const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState(user?.first_name || "");
   const [lastName, setLastName] = useState(user?.last_name || "");
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -136,7 +139,7 @@ export default function ProfileScreen() {
             // Get and register new token
             try {
               const token = await messagingService.getToken();
-              
+
               if (token && user) {
                 await deviceTokenService.registerToken(token);
               }
@@ -153,8 +156,23 @@ export default function ProfileScreen() {
                 { text: "Cancel", style: "cancel" },
                 {
                   text: "Open Settings",
-                  onPress: () => {
-                    Linking.openSettings();
+                  onPress: async () => {
+                    if (Platform.OS === "android") {
+                      // On Android, open app info page which has notification settings
+                      const packageName =
+                        Constants.expoConfig?.android?.package ||
+                        "com.arda.instantstatus.dev";
+                      try {
+                        // Open app info page - user can then tap "Notifications" from there
+                        await Linking.openURL(`package:${packageName}`);
+                      } catch (error) {
+                        // Fallback: Open app settings
+                        await Linking.openSettings();
+                      }
+                    } else {
+                      // iOS - open app settings
+                      await Linking.openSettings();
+                    }
                     // Re-check after a delay
                     setTimeout(() => {
                       checkNotificationState();
@@ -193,8 +211,27 @@ export default function ProfileScreen() {
             },
             {
               text: "Open Settings",
-              onPress: () => {
-                Linking.openSettings();
+              onPress: async () => {
+                if (Platform.OS === "android") {
+                  // On Android, open app notification settings directly
+                  const packageName =
+                    Constants.expoConfig?.android?.package ||
+                    "com.arda.instantstatus.dev";
+                  try {
+                    await Linking.openURL(`app-settings:notification`);
+                  } catch (error) {
+                    // Fallback to app settings if direct notification settings fails
+                    try {
+                      await Linking.openURL(`package:${packageName}`);
+                    } catch (fallbackError) {
+                      // Final fallback to general settings
+                      await Linking.openSettings();
+                    }
+                  }
+                } else {
+                  // iOS - open app settings
+                  await Linking.openSettings();
+                }
                 // Re-check after a delay
                 setTimeout(() => {
                   checkNotificationState();
@@ -339,11 +376,13 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View
+          style={[styles.header, { paddingTop: Math.max(insets.top + 10, 40) }]}
+        >
           <View style={styles.headerContent}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>

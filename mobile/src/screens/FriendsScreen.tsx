@@ -11,12 +11,14 @@ import {
   Modal,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Connection } from "../types";
 import { connectionsService } from "../services/connections.service";
 
 export default function FriendsScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [manageMenuVisible, setManageMenuVisible] = useState(false);
@@ -149,7 +151,7 @@ export default function FriendsScreen() {
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -162,7 +164,9 @@ export default function FriendsScreen() {
         }
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View
+          style={[styles.header, { paddingTop: Math.max(insets.top + 10, 40) }]}
+        >
           <Text style={styles.headerTitle}>Friends</Text>
         </View>
 
@@ -463,6 +467,7 @@ const styles = StyleSheet.create({
   },
   friendInfo: {
     flex: 1,
+    minWidth: 0, // Allow flex shrinking for text truncation
   },
   friendName: {
     fontSize: 16,

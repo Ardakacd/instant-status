@@ -11,7 +11,8 @@ import {
   TouchableWithoutFeedback,
   Animated,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusState, Status } from "../types";
 import { statusService } from "../services/status.service";
@@ -52,6 +53,8 @@ const STATUS_ICONS = {
 export default function HomeScreen() {
   const { user } = useAuth();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const route = useRoute();
   const [myStatus, setMyStatus] = useState<Status | null>(null);
   const [friendsStatus, setFriendsStatus] = useState<Status[]>([]);
 
@@ -73,6 +76,25 @@ export default function HomeScreen() {
     loadSignMethods();
     checkRefreshHint();
   }, []);
+
+  // Handle navigation params to open friend detail modal
+  useEffect(() => {
+    const params = route.params as { friendId?: string } | undefined;
+    if (params?.friendId && friendsStatus.length > 0) {
+      const friend = friendsStatus.find((f) => f.user_id === params.friendId);
+      if (friend) {
+        setSelectedFriend(friend);
+        setFriendModalVisible(true);
+        // Clear the param to prevent reopening on re-render
+        // Use setTimeout to avoid navigation during render
+        setTimeout(() => {
+          if (navigation.isFocused()) {
+            navigation.setParams({ friendId: undefined } as any);
+          }
+        }, 100);
+      }
+    }
+  }, [route.params, friendsStatus, navigation]);
 
   // Check if we should show the refresh hint
   const checkRefreshHint = async () => {
@@ -275,7 +297,7 @@ export default function HomeScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -288,7 +310,13 @@ export default function HomeScreen() {
         }
       >
         {/* Header */}
-        <View style={[styles.header, showRefreshHint && { marginTop: 50 }]}>
+        <View
+          style={[
+            styles.header,
+            { paddingTop: Math.max(insets.top + 10, 40) },
+            showRefreshHint && { marginTop: 50 },
+          ]}
+        >
           <View style={styles.headerContent}>
             <Text style={styles.greeting}>Hello, </Text>
             <Text style={styles.userName}>{user?.first_name || "User"}</Text>
@@ -580,7 +608,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: 60, // Base padding, will be overridden by inline style
     paddingHorizontal: 24,
     paddingBottom: 24,
     backgroundColor: "#FFFFFF",
@@ -623,9 +651,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
+    marginHorizontal: -4, // Negative margin to offset button margins
   },
   statusButton: {
     width: "31%",
+    height: 100, // Fixed height to ensure all buttons are the same size
+    marginHorizontal: 4, // Add horizontal margin for spacing
     marginBottom: 12,
     backgroundColor: "#F3F4F6",
     borderRadius: 12,
@@ -635,7 +666,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "transparent",
     position: "relative",
-    minHeight: 100,
   },
   statusButtonActive: {
     borderColor: "#FFFFFF",
@@ -779,6 +809,7 @@ const styles = StyleSheet.create({
   },
   friendInfo: {
     flex: 1,
+    minWidth: 0, // Allow flex shrinking for text truncation
   },
   friendName: {
     fontSize: 16,
@@ -798,6 +829,7 @@ const styles = StyleSheet.create({
   },
   friendStatusContent: {
     flex: 1,
+    minWidth: 0, // Allow flex shrinking for text truncation
   },
   friendStatus: {
     fontSize: 14,
@@ -820,7 +852,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: Math.min(20, 12), // Reduce padding on very small screens
   },
   friendModalContent: {
     backgroundColor: "#FFFFFF",
@@ -828,6 +860,7 @@ const styles = StyleSheet.create({
     padding: 24,
     width: "100%",
     maxWidth: 400,
+    minWidth: 280, // Ensure minimum width for readability
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
