@@ -328,8 +328,6 @@ export class StatusService {
         where: { user_id: In(allUserIds) },
       });
 
-      console.log("Device tokens:", deviceTokens);
-
       if (deviceTokens.length === 0) return;
 
       // Prepare display name
@@ -462,9 +460,6 @@ export class StatusService {
           },
         });
       }
-
-      console.log("Sending push notifications to:", allUserIds);
-      console.log("Messages:", messages);
 
       try {
         const response = await this.firebaseAdmin

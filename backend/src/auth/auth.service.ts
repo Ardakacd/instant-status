@@ -52,7 +52,6 @@ export class AuthService {
             } catch (firebaseError: any) {
               // Old Firebase user doesn't exist (deleted)
               // Safe to delete the orphaned backend record
-              console.log("firebaseError", firebaseError.code);
               if (firebaseError.code === "auth/user-not-found") {
                 this.logger.log(
                   `Deleting orphaned user record for email ${email} (Firebase UID ${existingUserByEmail.firebase_uid} no longer exists)`
