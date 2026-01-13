@@ -18,7 +18,7 @@ interface FriendStatusWidgetItem {
 export class WidgetStorageService {
   private storage: ExtensionStorage | null = null;
   private lastReloadTime: number = 0;
-  private readonly RELOAD_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly RELOAD_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes cooldown for widget reload
 
   constructor() {
     if (Platform.OS === "ios") {
@@ -66,7 +66,7 @@ export class WidgetStorageService {
           ? displayName
           : String(displayName || "");
       const stateStr =
-        typeof state === "string" ? state : String(state || "offline");
+        typeof state === "string" ? state : String(state || "available");
 
       const friendStatusItem: FriendStatusWidgetItem = {
         id: userId,
@@ -85,16 +85,15 @@ export class WidgetStorageService {
       if (friendIndex >= 0) {
         // Friend exists, check if status changed
         const existingFriend = friendsData[friendIndex];
-        statusChanged =
-          existingFriend.state !== friendStatusItem.state ||
-          existingFriend.note !== friendStatusItem.note ||
+        const stateChanged = existingFriend.state !== friendStatusItem.state;
+        const noteChanged = existingFriend.note !== friendStatusItem.note;
+        const expiresAtChanged =
           existingFriend.expiresAt !== friendStatusItem.expiresAt;
+
+        statusChanged = stateChanged || noteChanged || expiresAtChanged;
 
         if (!statusChanged) {
           // Status unchanged, no need to reload
-          console.log(
-            `Friend ${userId} status unchanged, skipping widget reload`
-          );
           return;
         }
 
@@ -105,27 +104,26 @@ export class WidgetStorageService {
         friendsData.push(friendStatusItem);
       }
       console.log("friendsData", friendsData);
-    
+
       const jsonString = JSON.stringify(friendsData);
       this.storage.set(WIDGET_DATA_KEY, jsonString);
+      console.log(`Widget data saved, JSON length: ${jsonString.length}`);
 
       // Only reload widget if status changed and cooldown has passed
       const now = Date.now();
       const timeSinceLastReload = now - this.lastReloadTime;
 
-      if (timeSinceLastReload >= this.RELOAD_COOLDOWN_MS) {
-        ExtensionStorage.reloadWidget();
-        this.lastReloadTime = now;
-        console.log(
-          `Friend ${userId} status updated in widget storage, widget reloaded`
-        );
-      } else {
-        console.log(
-          `Friend ${userId} status updated in widget storage, reload skipped (cooldown: ${Math.ceil(
-            (this.RELOAD_COOLDOWN_MS - timeSinceLastReload) / 1000
-          )}s remaining)`
-        );
-      }
+      console.log(
+        `Reload check: timeSinceLastReload=${timeSinceLastReload}ms, cooldown=${this.RELOAD_COOLDOWN_MS}ms`
+      );
+
+      // Always reload widget when status changes (cooldown is handled by iOS WidgetKit internally)
+      // iOS WidgetKit has its own rate limiting, so we don't need to add extra cooldown
+      ExtensionStorage.reloadWidget("InstantStatusWidget");
+      this.lastReloadTime = now;
+      console.log(
+        `✅ Friend ${userId} status updated in widget storage, widget reloaded (kind: InstantStatusWidget)`
+      );
     } catch (error) {
       console.error("Error updating widget storage:", error);
     }
@@ -164,7 +162,7 @@ export class WidgetStorageService {
       const timeSinceLastReload = now - this.lastReloadTime;
 
       if (timeSinceLastReload >= this.RELOAD_COOLDOWN_MS) {
-        ExtensionStorage.reloadWidget();
+        ExtensionStorage.reloadWidget("InstantStatusWidget");
         this.lastReloadTime = now;
         console.log(
           "All friend statuses saved to widget storage, widget reloaded"
