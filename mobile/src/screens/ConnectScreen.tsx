@@ -15,12 +15,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { inviteService } from "../services/invite.service";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RootStackParamList } from "../../App";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Connect">;
 
 export default function ConnectScreen({ navigation }: Props) {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [inviteCode, setInviteCode] = useState("");
   const [myInviteCode, setMyInviteCode] = useState("");
   const [shareableLink, setShareableLink] = useState("");
@@ -132,11 +134,13 @@ export default function ConnectScreen({ navigation }: Props) {
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View
+          style={[styles.header, { paddingTop: Math.max(insets.top + 10, 40) }]}
+        >
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -384,6 +388,7 @@ const styles = StyleSheet.create({
   },
   linkText: {
     flex: 1,
+    minWidth: 0, // Allow flex shrinking for text truncation
     fontSize: 14,
     color: "#111827",
     marginRight: 8,
@@ -403,9 +408,11 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     gap: 12,
+    flexWrap: "wrap", // Allow wrapping on very small screens
   },
   input: {
     flex: 1,
+    minWidth: 120, // Minimum width for input on small screens
     fontSize: 14,
     fontWeight: "600",
     color: "#111827",
@@ -421,11 +428,12 @@ const styles = StyleSheet.create({
   redeemButton: {
     backgroundColor: "#007AFF",
     borderRadius: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 16,
     justifyContent: "center",
     alignItems: "center",
-    minWidth: 100,
+    minWidth: 90, // Reduced from 100 for better fit on small screens
+    flexShrink: 0, // Prevent button from shrinking
   },
   redeemButtonDisabled: {
     opacity: 0.5,
