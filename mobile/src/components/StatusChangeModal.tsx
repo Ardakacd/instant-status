@@ -9,6 +9,7 @@ import {
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -23,27 +24,30 @@ interface StatusChangeModalProps {
 }
 
 const STATUS_COLORS_MAP: Record<StatusState, string> = {
-  [StatusState.FREE]: "#10B981",
-  [StatusState.BUSY]: "#F59E0B",
-  [StatusState.DND]: "#EF4444",
-  [StatusState.SLEEP]: "#8B5CF6",
-  [StatusState.OFFLINE]: "#6B7280",
+  [StatusState.AVAILABLE]: "#10B981", // Green
+  [StatusState.BUSY]: "#F59E0B", // Orange
+  [StatusState.DND]: "#EF4444", // Red
+  [StatusState.FOCUS]: "#6366F1", // Indigo
+  [StatusState.SOCIAL]: "#EC4899", // Pink
+  [StatusState.COMMUTE]: "#3B82F6", // Blue
 };
 
 const STATUS_LABELS_MAP: Record<StatusState, string> = {
-  [StatusState.FREE]: "Free",
+  [StatusState.AVAILABLE]: "Available",
   [StatusState.BUSY]: "Busy",
   [StatusState.DND]: "Do Not Disturb",
-  [StatusState.SLEEP]: "Sleep",
-  [StatusState.OFFLINE]: "Offline",
+  [StatusState.FOCUS]: "Focus",
+  [StatusState.SOCIAL]: "Social",
+  [StatusState.COMMUTE]: "Commute",
 };
 
 const STATUS_ICONS_MAP: Record<StatusState, string> = {
-  [StatusState.FREE]: "✓",
+  [StatusState.AVAILABLE]: "✓",
   [StatusState.BUSY]: "!",
   [StatusState.DND]: "🚫",
-  [StatusState.SLEEP]: "😴",
-  [StatusState.OFFLINE]: "○",
+  [StatusState.FOCUS]: "🎯",
+  [StatusState.SOCIAL]: "👥",
+  [StatusState.COMMUTE]: "🚗",
 };
 
 export default function StatusChangeModal({
@@ -57,14 +61,11 @@ export default function StatusChangeModal({
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [customDate, setCustomDate] = useState(new Date());
+  const [androidPickerMode, setAndroidPickerMode] = useState<"date" | "time">(
+    "date"
+  );
 
-  // Clear expiresAt when status is OFFLINE
-  useEffect(() => {
-    if (selectedStatus === StatusState.OFFLINE) {
-      setExpiresAt(null);
-      setShowCustomPicker(false);
-    }
-  }, [selectedStatus]);
+  // Note: All statuses can have expiration times
 
   const getPresetDate = (preset: string): Date => {
     const now = new Date();
@@ -98,12 +99,36 @@ export default function StatusChangeModal({
   const handlePresetSelect = (preset: string) => {
     setExpiresAt(getPresetDate(preset));
     setShowCustomPicker(false);
+    setAndroidPickerMode("date"); // Reset Android picker mode
   };
 
   const handleCustomDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === "android") {
-      setShowCustomPicker(false);
+      // On Android, use two-step approach: date first, then time
+      if (event.type === "dismissed") {
+        setShowCustomPicker(false);
+        setAndroidPickerMode("date"); // Reset to date mode
+        return;
+      }
+      if (event.type === "set" && selectedDate) {
+        if (androidPickerMode === "date") {
+          // Date selected, now show time picker
+          setCustomDate(selectedDate);
+          setAndroidPickerMode("time");
+        } else {
+          // Time selected, combine with date and finish
+          const combinedDate = new Date(customDate);
+          combinedDate.setHours(selectedDate.getHours());
+          combinedDate.setMinutes(selectedDate.getMinutes());
+          setCustomDate(combinedDate);
+          setExpiresAt(combinedDate);
+          setShowCustomPicker(false);
+          setAndroidPickerMode("date"); // Reset for next time
+        }
+      }
+      return;
     }
+    // iOS behavior (picker stays open)
     if (selectedDate) {
       setCustomDate(selectedDate);
       setExpiresAt(selectedDate);
@@ -111,12 +136,8 @@ export default function StatusChangeModal({
   };
 
   const handleConfirm = () => {
-    // Don't send expiresAt if status is OFFLINE
-    const finalExpiresAt =
-      selectedStatus === StatusState.OFFLINE
-        ? undefined
-        : expiresAt || undefined;
-    onConfirm(selectedStatus, note.trim() || undefined, finalExpiresAt);
+    // All statuses can have expiration times
+    onConfirm(selectedStatus, note.trim() || undefined, expiresAt || undefined);
     // Reset form
     setNote("");
     setExpiresAt(null);
@@ -127,7 +148,13 @@ export default function StatusChangeModal({
     setNote("");
     setExpiresAt(null);
     setShowCustomPicker(false);
+    setAndroidPickerMode("date"); // Reset Android picker mode
     onClose();
+  };
+
+  const handleClearExpiresAt = () => {
+    setExpiresAt(null);
+    setCustomDate(new Date()); // Reset to current date
   };
 
   const statusColor = STATUS_COLORS_MAP[selectedStatus];
@@ -135,70 +162,91 @@ export default function StatusChangeModal({
   const statusIcon = STATUS_ICONS_MAP[selectedStatus];
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleClose}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalContainer}>
-              {/* Header */}
-              <View style={styles.header}>
-                <View style={styles.headerContent}>
-                  <View
-                    style={[
-                      styles.statusIndicator,
-                      { backgroundColor: statusColor + "20" },
-                    ]}
+    <>
+      {/* Render Android DateTimePicker outside Modal to avoid modal conflicts */}
+      {showCustomPicker && Platform.OS === "android" && (
+        <DateTimePicker
+          value={customDate}
+          mode={androidPickerMode}
+          is24Hour={false}
+          display="default"
+          onChange={handleCustomDateChange}
+          minimumDate={androidPickerMode === "date" ? new Date() : undefined}
+        />
+      )}
+      <Modal
+        visible={visible}
+        transparent
+        animationType="slide"
+        onRequestClose={handleClose}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.overlay}>
+            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+              <View
+                style={[
+                  styles.modalContainer,
+                  expiresAt && styles.modalContainerExpanded,
+                ]}
+              >
+                {/* Header */}
+                <View style={styles.header}>
+                  <View style={styles.headerContent}>
+                    <View
+                      style={[
+                        styles.statusIndicator,
+                        { backgroundColor: statusColor + "20" },
+                      ]}
+                    >
+                      <Text style={styles.statusIcon}>{statusIcon}</Text>
+                    </View>
+                    <View style={styles.headerText}>
+                      <Text style={styles.headerTitle}>Change Status</Text>
+                      <Text style={styles.headerSubtitle}>
+                        Set your status to {statusLabel}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    onPress={handleClose}
+                    style={styles.closeButton}
                   >
-                    <Text style={styles.statusIcon}>{statusIcon}</Text>
-                  </View>
-                  <View style={styles.headerText}>
-                    <Text style={styles.headerTitle}>Change Status</Text>
-                    <Text style={styles.headerSubtitle}>
-                      Set your status to {statusLabel}
-                    </Text>
-                  </View>
+                    <Ionicons name="close" size={24} color="#6B7280" />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  onPress={handleClose}
-                  style={styles.closeButton}
+
+                <ScrollView
+                  style={styles.scrollContent}
+                  contentContainerStyle={styles.content}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
                 >
-                  <Ionicons name="close" size={24} color="#6B7280" />
-                </TouchableOpacity>
-              </View>
+                  {/* Note Input */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>Note (Optional)</Text>
+                    <TextInput
+                      style={styles.noteInput}
+                      placeholder="Add a note..."
+                      placeholderTextColor="#9CA3AF"
+                      value={note}
+                      onChangeText={setNote}
+                      multiline
+                      maxLength={200}
+                      textAlignVertical="top"
+                      blurOnSubmit={true}
+                      returnKeyType="done"
+                      onSubmitEditing={Keyboard.dismiss}
+                    />
+                    <Text style={styles.charCount}>{note.length}/200</Text>
+                  </View>
 
-              <View style={styles.content}>
-                {/* Note Input */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionLabel}>Note (Optional)</Text>
-                  <TextInput
-                    style={styles.noteInput}
-                    placeholder="Add a note..."
-                    placeholderTextColor="#9CA3AF"
-                    value={note}
-                    onChangeText={setNote}
-                    multiline
-                    maxLength={200}
-                    textAlignVertical="top"
-                    blurOnSubmit={true}
-                    returnKeyType="done"
-                    onSubmitEditing={Keyboard.dismiss}
-                  />
-                  <Text style={styles.charCount}>{note.length}/200</Text>
-                </View>
-
-                {/* Until When Section - Only show if status is not OFFLINE */}
-                {selectedStatus !== StatusState.OFFLINE && (
+                  {/* Until When Section - All statuses can have expiration times */}
                   <View style={styles.section}>
                     <Text style={styles.sectionLabel}>
                       Until When (Optional)
                     </Text>
                     <Text style={styles.sectionHint}>
-                      After this time your status will be changed to offline
+                      After this time your status will be changed to available
                     </Text>
 
                     {/* Presets */}
@@ -310,7 +358,10 @@ export default function StatusChangeModal({
                     {!showCustomPicker && (
                       <TouchableOpacity
                         style={styles.customPickerButton}
-                        onPress={() => setShowCustomPicker(true)}
+                        onPress={() => {
+                          setShowCustomPicker(true);
+                          setAndroidPickerMode("date"); // Reset to date mode
+                        }}
                       >
                         <Ionicons
                           name="calendar-outline"
@@ -323,15 +374,36 @@ export default function StatusChangeModal({
                       </TouchableOpacity>
                     )}
 
-                    {showCustomPicker && Platform.OS === "android" && (
-                      <DateTimePicker
-                        value={customDate}
-                        mode="datetime"
-                        is24Hour={false}
-                        display="default"
-                        onChange={handleCustomDateChange}
-                        minimumDate={new Date()}
-                      />
+                    {/* Display selected datetime */}
+                    {expiresAt && !showCustomPicker && (
+                      <View style={styles.selectedDateTimeContainer}>
+                        <View style={styles.selectedDateTimeContent}>
+                          <View style={styles.selectedDateTimeTextContainer}>
+                            <Text style={styles.selectedDateTimeLabel}>
+                              Selected:
+                            </Text>
+                            <Text style={styles.selectedDateTimeText}>
+                              {expiresAt.toLocaleString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            onPress={handleClearExpiresAt}
+                            style={styles.clearButton}
+                          >
+                            <Ionicons
+                              name="close-circle"
+                              size={20}
+                              color="#EF4444"
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                     )}
 
                     {showCustomPicker && Platform.OS === "ios" && (
@@ -372,38 +444,38 @@ export default function StatusChangeModal({
                       </View>
                     )}
                   </View>
-                )}
-              </View>
+                </ScrollView>
 
-              {/* Footer */}
-              <View style={styles.footer}>
-                <TouchableOpacity
-                  style={[
-                    styles.cancelButton,
-                    loading && styles.buttonDisabled,
-                  ]}
-                  onPress={handleClose}
-                  disabled={loading}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.confirmButton,
-                    { backgroundColor: statusColor },
-                    loading && styles.buttonDisabled,
-                  ]}
-                  onPress={handleConfirm}
-                  disabled={loading}
-                >
-                  <Text style={styles.confirmButtonText}>Change Status</Text>
-                </TouchableOpacity>
+                {/* Footer */}
+                <View style={styles.footer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.cancelButton,
+                      loading && styles.buttonDisabled,
+                    ]}
+                    onPress={handleClose}
+                    disabled={loading}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.confirmButton,
+                      { backgroundColor: statusColor },
+                      loading && styles.buttonDisabled,
+                    ]}
+                    onPress={handleConfirm}
+                    disabled={loading}
+                  >
+                    <Text style={styles.confirmButtonText}>Change Status</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </>
   );
 }
 
@@ -419,6 +491,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     maxHeight: "90%",
     paddingBottom: 40,
+  },
+  modalContainerExpanded: {
+    maxHeight: "95%",
   },
   header: {
     flexDirection: "row",
@@ -460,8 +535,12 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 4,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
     padding: 20,
+    flexGrow: 1,
   },
   section: {
     marginBottom: 24,
@@ -535,6 +614,37 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     marginLeft: 8,
   },
+  selectedDateTimeContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: "#F0F9FF",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+  },
+  selectedDateTimeContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  selectedDateTimeTextContainer: {
+    flex: 1,
+  },
+  selectedDateTimeLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#0369A1",
+    marginBottom: 4,
+  },
+  selectedDateTimeText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#0C4A6E",
+  },
+  clearButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
   selectedExpiresContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -551,9 +661,6 @@ const styles = StyleSheet.create({
     color: "#10B981",
     marginLeft: 8,
     flex: 1,
-  },
-  clearButton: {
-    padding: 4,
   },
   footer: {
     flexDirection: "row",
