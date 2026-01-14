@@ -1,5 +1,12 @@
 import React, { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  AppState,
+} from "react-native";
+import notifee from "@notifee/react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -27,7 +34,7 @@ export type RootStackParamList = {
   SignIn: undefined;
   EmailVerification: undefined;
   Onboarding: undefined;
-  Main: { screen?: string } | undefined;
+  Main: { screen?: string; params?: { friendId?: string } } | undefined;
   Connect: undefined;
 };
 
@@ -38,7 +45,6 @@ async function registerForPushNotifications(): Promise<string | undefined> {
     if (!hasPermission) {
       const granted = await messagingService.requestPermission();
       if (!granted) {
-        console.log("Notification permission denied");
         return undefined;
       }
     }
@@ -109,6 +115,16 @@ function AppNavigator() {
   const { user, loading, onboarding, emailVerified } = useAuth();
   const navigationRef = useRef<any>(null);
 
+  // Reset badge count when app opens/becomes active
+  const resetBadgeCount = async () => {
+    try {
+      // Set badge count to 0 for both iOS and Android
+      await notifee.setBadgeCount(0);
+    } catch (error) {
+      console.error("Error resetting badge count:", error);
+    }
+  };
+
   /**
    * Handle notification navigation consistently
    * This is called when:
@@ -118,7 +134,6 @@ function AppNavigator() {
   const handleNotificationNavigation = (remoteMessage: any) => {
     // Ignore notifications if user is not logged in
     if (!user) {
-      console.log("Ignoring notification - user not logged in");
       return;
     }
 
@@ -131,10 +146,11 @@ function AppNavigator() {
         return;
       }
 
-      // Navigate to Main tab, then Home screen
+      // Navigate to Main tab, then Home screen with friend ID to open detail modal
       if (navigationRef.current) {
         navigationRef.current.navigate("Main", {
           screen: "Home",
+          params: { friendId: userId },
         });
       }
     } else if (remoteMessage.data?.type === "friend_added") {
@@ -148,6 +164,24 @@ function AppNavigator() {
       }
     }
   };
+
+  // Reset badge count on app launch and when app becomes active
+  useEffect(() => {
+    // Reset badge immediately on mount
+    resetBadgeCount();
+
+    // Listen for app state changes
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        // App has come to the foreground
+        resetBadgeCount();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []); // Run once on mount
 
   useEffect(() => {
     if (!user) return;
@@ -186,10 +220,6 @@ function AppNavigator() {
     // This handles the case where the app was completely closed
     messagingService.getInitialNotification().then((remoteMessage) => {
       if (remoteMessage) {
-        console.log(
-          "App opened from notification (QUIT state):",
-          remoteMessage
-        );
         handleNotificationNavigation(remoteMessage);
       }
     });
@@ -198,10 +228,6 @@ function AppNavigator() {
     // User taps notification while app is in background
     const unsubscribeOpened = messagingService.onNotificationOpenedApp(
       (remoteMessage) => {
-        console.log(
-          "Notification opened app (BACKGROUND state):",
-          remoteMessage
-        );
         handleNotificationNavigation(remoteMessage);
       }
     );
@@ -210,11 +236,9 @@ function AppNavigator() {
     // App is open and user is actively using it
     const unsubscribeForeground = messagingService.onMessage(
       async (remoteMessage) => {
-        console.log("Foreground notification received:", remoteMessage);
 
         // Ignore notifications if user is not logged in
         if (!user) {
-          console.log("Ignoring foreground notification - user not logged in");
           return;
         }
 
@@ -242,7 +266,6 @@ function AppNavigator() {
           try {
             const allFriends = await statusService.getFriendsStatus();
             await widgetStorageService.saveAllFriendStatuses(allFriends);
-            console.log("Widget refreshed after friend_added notification");
           } catch (error) {
             console.error("Error refreshing widget after friend_added:", error);
           }
