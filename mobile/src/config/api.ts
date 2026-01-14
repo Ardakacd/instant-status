@@ -94,7 +94,6 @@ api.interceptors.response.use(
 
           // Emit a custom event that AuthContext can listen to
           // This will trigger the navigation to login via AuthContext's user state change
-          console.log("Session expired. Please sign in again.");
         } catch (logoutError) {
           console.error("Error during logout:", logoutError);
         }
