@@ -14,36 +14,80 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.instantstatus.app"
+      "appleTeamId": "FPQ5Q94QY6",
+      "bundleIdentifier": "com.arda.instantstatus.dev",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["fetch", "remote-notification"]
+      },
+      "entitlements": {
+        "aps-environment": "development",
+        "com.apple.security.application-groups": [
+          "group.com.arda.instantstatus.dev"
+        ]
+      }
     },
     "android": {
+      "package": "com.arda.instantstatus.dev",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.instantstatus.app",
-      "permissions": [
-        "RECEIVE_BOOT_COMPLETED"
-      ]
+      "permissions": ["RECEIVE_BOOT_COMPLETED"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "@react-native-community/datetimepicker",
+      "expo-web-browser",
       [
-        "expo-notifications",
+        "@react-native-google-signin/google-signin",
         {
-          "icon": "./assets/icon.png",
-          "color": "#ffffff"
+          "iosUrlScheme": "com.googleusercontent.apps.70279102156-1hdnc7rnv4mlumb4ldifsdm1at2ejka1"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "buildReactNativeFromSource": true,
+            "forceStaticLinking": ["RNFBApp", "RNFBMessaging"]
+          }
+        }
+      ],
+      "@bacons/apple-targets",
+      "./withNotifeeMavenRepo.js",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "InstantStatusWidget",
+              "label": "Instant Status",
+              "description": "See your friends' current status.",
+              "preview": "InstantStatusWidgetPreviewScreen",
+              "minWidth": "320dp",
+              "minHeight": "138dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000,
+              "widgetFeatures": "reconfigurable"
+            }
+          ]
         }
       ]
     ],
     "extra": {
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "d4314124-26b3-4693-a96f-35ea529a0ad1"
       }
-    }
+    },
+    "owner": "ardaka"
   }
 }
