@@ -6,27 +6,27 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
-import { User } from './user.entity';
+} from "typeorm";
+import { User } from "./user.entity";
 
 export enum Platform {
-  IOS = 'iOS',
-  ANDROID = 'Android',
+  IOS = "iOS",
+  ANDROID = "Android",
 }
 
-@Entity('device_tokens')
+@Entity("device_tokens")
 export class DeviceToken {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column({ type: 'uuid' })
+  @Column({ type: "uuid" })
   user_id: string;
 
-  @Column({ type: 'varchar', length: 500, unique: true })
+  @Column({ type: "varchar", length: 500 })
   token: string;
 
   @Column({
-    type: 'enum',
+    type: "enum",
     enum: Platform,
   })
   platform: Platform;
@@ -37,8 +37,7 @@ export class DeviceToken {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @ManyToOne(() => User, (user) => user.deviceTokens, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
+  @ManyToOne(() => User, (user) => user.deviceTokens, { onDelete: "CASCADE" })
+  @JoinColumn({ name: "user_id" })
   user: User;
 }
-
