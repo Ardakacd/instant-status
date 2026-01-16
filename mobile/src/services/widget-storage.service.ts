@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import { ExtensionStorage } from "@bacons/apple-targets";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Status } from "../types";
 
 const APP_GROUP_ID = "group.com.arda.instantstatus.dev";
@@ -38,26 +39,37 @@ export class WidgetStorageService {
     expiresAt: string | null,
     timestamp: string
   ): Promise<void> {
-    if (Platform.OS !== "ios" || !this.storage) {
-      return;
-    }
-
     try {
       // Get existing widget data
-      const existingData = this.storage.get(WIDGET_DATA_KEY);
       let friendsData: FriendStatusWidgetItem[] = [];
 
-      if (existingData) {
-        try {
-          const dataString =
-            typeof existingData === "string"
-              ? existingData
-              : JSON.stringify(existingData);
-          friendsData = JSON.parse(dataString);
-        } catch (e) {
-          console.warn("Failed to parse existing widget data:", e);
-          friendsData = [];
+      if (Platform.OS === "ios" && this.storage) {
+        const existingData = this.storage.get(WIDGET_DATA_KEY);
+        if (existingData) {
+          try {
+            const dataString =
+              typeof existingData === "string"
+                ? existingData
+                : JSON.stringify(existingData);
+            friendsData = JSON.parse(dataString);
+          } catch (e) {
+            console.warn("Failed to parse existing widget data:", e);
+            friendsData = [];
+          }
         }
+      } else if (Platform.OS === "android") {
+        // Use AsyncStorage for Android
+        const existingData = await AsyncStorage.getItem(WIDGET_DATA_KEY);
+        if (existingData) {
+          try {
+            friendsData = JSON.parse(existingData);
+          } catch (e) {
+            console.warn("Failed to parse existing widget data:", e);
+            friendsData = [];
+          }
+        }
+      } else {
+        return;
       }
 
       // Prepare new status item
@@ -106,24 +118,34 @@ export class WidgetStorageService {
       console.log("friendsData", friendsData);
 
       const jsonString = JSON.stringify(friendsData);
-      this.storage.set(WIDGET_DATA_KEY, jsonString);
-      console.log(`Widget data saved, JSON length: ${jsonString.length}`);
 
-      // Only reload widget if status changed and cooldown has passed
-      const now = Date.now();
-      const timeSinceLastReload = now - this.lastReloadTime;
+      // Save to appropriate storage
+      if (Platform.OS === "ios" && this.storage) {
+        this.storage.set(WIDGET_DATA_KEY, jsonString);
+        console.log(
+          `Widget data saved to iOS storage, JSON length: ${jsonString.length}`
+        );
 
-      console.log(
-        `Reload check: timeSinceLastReload=${timeSinceLastReload}ms, cooldown=${this.RELOAD_COOLDOWN_MS}ms`
-      );
+        // Reload iOS widget
+        ExtensionStorage.reloadWidget("InstantStatusWidget");
+        this.lastReloadTime = Date.now();
+        console.log(
+          `✅ Friend ${userId} status updated in iOS widget storage, widget reloaded`
+        );
+      } else if (Platform.OS === "android") {
+        await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
+        console.log(
+          `Widget data saved to Android storage, JSON length: ${jsonString.length}`
+        );
 
-      // Always reload widget when status changes (cooldown is handled by iOS WidgetKit internally)
-      // iOS WidgetKit has its own rate limiting, so we don't need to add extra cooldown
-      ExtensionStorage.reloadWidget("InstantStatusWidget");
-      this.lastReloadTime = now;
-      console.log(
-        `✅ Friend ${userId} status updated in widget storage, widget reloaded (kind: InstantStatusWidget)`
-      );
+        // Reload Android widget
+        const { reloadWidget } = require("react-native-android-widget");
+        reloadWidget("InstantStatusWidget");
+        this.lastReloadTime = Date.now();
+        console.log(
+          `✅ Friend ${userId} status updated in Android widget storage, widget reloaded`
+        );
+      }
     } catch (error) {
       console.error("Error updating widget storage:", error);
     }
@@ -134,10 +156,6 @@ export class WidgetStorageService {
    * Used when fetching the full list of friends
    */
   async saveAllFriendStatuses(statuses: Status[]): Promise<void> {
-    if (Platform.OS !== "ios" || !this.storage) {
-      return;
-    }
-
     try {
       // Convert Status[] to widget format
       const widgetData: FriendStatusWidgetItem[] = statuses.map((status) => ({
@@ -151,27 +169,44 @@ export class WidgetStorageService {
       }));
       console.log("widgetData", widgetData);
 
-      // Explicitly store as JSON string to ensure Swift can read it consistently
-      // ExtensionStorage.get() returns string | null, so storing as string ensures compatibility
       const jsonString = JSON.stringify(widgetData);
-      console.log("Storing widget data as JSON string, length:", jsonString);
-      this.storage.set(WIDGET_DATA_KEY, jsonString);
+      console.log(
+        "Storing widget data as JSON string, length:",
+        jsonString.length
+      );
 
-      // Check cooldown before reloading
-      const now = Date.now();
-      const timeSinceLastReload = now - this.lastReloadTime;
+      // Save to appropriate storage
+      if (Platform.OS === "ios" && this.storage) {
+        this.storage.set(WIDGET_DATA_KEY, jsonString);
 
-      if (timeSinceLastReload >= this.RELOAD_COOLDOWN_MS) {
-        ExtensionStorage.reloadWidget("InstantStatusWidget");
-        this.lastReloadTime = now;
+        // Check cooldown before reloading iOS widget
+        const now = Date.now();
+        const timeSinceLastReload = now - this.lastReloadTime;
+
+        if (timeSinceLastReload >= this.RELOAD_COOLDOWN_MS) {
+          ExtensionStorage.reloadWidget("InstantStatusWidget");
+          this.lastReloadTime = now;
+          console.log(
+            "All friend statuses saved to iOS widget storage, widget reloaded"
+          );
+        } else {
+          console.log(
+            `All friend statuses saved to iOS widget storage, reload skipped (cooldown: ${Math.ceil(
+              (this.RELOAD_COOLDOWN_MS - timeSinceLastReload) / 1000
+            )}s remaining)`
+          );
+        }
+      } else if (Platform.OS === "android") {
+        await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
+
+        // Reload Android widget
+        const { requestWidgetUpdate } = require("react-native-android-widget");
+        requestWidgetUpdate({
+          widgetName: "InstantStatusWidget",
+        });
+        this.lastReloadTime = Date.now();
         console.log(
-          "All friend statuses saved to widget storage, widget reloaded"
-        );
-      } else {
-        console.log(
-          `All friend statuses saved to widget storage, reload skipped (cooldown: ${Math.ceil(
-            (this.RELOAD_COOLDOWN_MS - timeSinceLastReload) / 1000
-          )}s remaining)`
+          "All friend statuses saved to Android widget storage, widget reloaded"
         );
       }
     } catch (error) {

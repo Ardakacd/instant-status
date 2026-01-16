@@ -23,10 +23,17 @@ import { useAuth } from "../contexts/AuthContext";
 import { userService } from "../services/user.service";
 import { authService } from "../services/auth.service";
 import { deviceTokenService } from "../services/device-token.service";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../../App";
+
+type ProfileScreenNavigationProp =
+  NativeStackNavigationProp<RootStackParamList>;
 
 export default function ProfileScreen() {
   const { user, logout, deleteAccount, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
   const [firstName, setFirstName] = useState(user?.first_name || "");
   const [lastName, setLastName] = useState(user?.last_name || "");
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -605,6 +612,17 @@ export default function ProfileScreen() {
 
           <TouchableOpacity style={styles.infoRow} onPress={openTermsOfUse}>
             <Text style={styles.infoLabel}>Terms of Use</Text>
+            <Ionicons name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          {/* Temporary: Widget Preview - Remove later */}
+          <TouchableOpacity
+            style={styles.infoRow}
+            onPress={() => navigation.navigate("WidgetPreview")}
+          >
+            <Text style={styles.infoLabel}>Widget Preview (Dev)</Text>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
         </View>
