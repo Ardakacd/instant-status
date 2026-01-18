@@ -5,12 +5,14 @@ React Native + Expo mobile app for Instant Status.
 ## Setup
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Configure environment variables:
-Create a `.env` file in the mobile directory:
+   Create a `.env` file in the mobile directory:
+
 ```
 EXPO_PUBLIC_API_URL=http://localhost:3000
 EXPO_PUBLIC_FIREBASE_API_KEY=your-api-key
@@ -22,6 +24,7 @@ EXPO_PUBLIC_FIREBASE_APP_ID=your-app-id
 ```
 
 3. Set up Firebase:
+
    - Create a Firebase project
    - Enable Phone Authentication
    - Enable Cloud Messaging
@@ -29,6 +32,7 @@ EXPO_PUBLIC_FIREBASE_APP_ID=your-app-id
    - Download `google-services.json` (Android) and `GoogleService-Info.plist` (iOS)
 
 4. Run the app:
+
 ```bash
 npm start
 # Then press 'i' for iOS or 'a' for Android
@@ -37,7 +41,7 @@ npm start
 ## Features
 
 - Phone number authentication via Firebase
-- Status management (FREE, BUSY, DND, SLEEP, OFFLINE)
+- Status management (AVAILABLE, BUSY, DND, FOCUS, SOCIAL, COMMUTE)
 - Friend connections via invite codes
 - Real-time status updates via push notifications
 - Clean, minimal UI
@@ -58,4 +62,3 @@ src/
 - Firebase Phone Auth requires additional setup for production
 - Push notifications require proper Firebase Cloud Messaging configuration
 - For testing, you may need to use Firebase's test phone numbers
-
