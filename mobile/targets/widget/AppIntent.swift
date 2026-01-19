@@ -105,20 +105,20 @@ struct FriendDataService {
             return []
         }
         logger.info("Widget data: \(jsonString)")
-       let decoder = JSONDecoder()
-decoder.dateDecodingStrategy = .custom { decoder in
-    let container = try decoder.singleValueContainer()
-    let dateString = try container.decode(String.self)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
 
-    if let date = ISO8601DateFormatter.withFractionalSeconds.date(from: dateString) {
-        return date
-    }
+            if let date = ISO8601DateFormatter.withFractionalSeconds.date(from: dateString) {
+                return date
+            }
 
-    throw DecodingError.dataCorruptedError(
-        in: container,
-        debugDescription: "Invalid ISO8601 date: \(dateString)"
-    )
-}
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Invalid ISO8601 date: \(dateString)"
+            )
+        }
 
         logger.info("Decoding widget data: \(jsonData)")
         do {

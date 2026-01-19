@@ -136,31 +136,35 @@ struct WidgetEntryView: View {
                       .frame(maxWidth: .infinity, maxHeight: .infinity)
                       .padding()
                   } else {
-                      // Add top padding to make room for refresh button
-                      if #available(iOS 17.0, *) {
-                          Spacer()
-                              .frame(height: 28) // Space for refresh button
-                      }
-                      
-                      switch family {
-                      case .systemSmall:
-                          // Small shows 4 max
-                          VStack(alignment: .leading, spacing: 6) {
-                              ForEach(entry.friends.prefix(4)) { friend in
-                                  smallDetailedRow(friend)
-                              }
+                      VStack(alignment: .leading, spacing: 0) {
+                          // Add top padding to make room for refresh button
+                          if #available(iOS 17.0, *) {
+                              Spacer()
+                                  .frame(height: 28) // Space for refresh button
+                          } else {
+                              EmptyView()
                           }
-                      default:
-                          // Medium shows 8 max in 2 columns
-                          LazyVGrid(columns: [
-                              GridItem(.flexible(), spacing: 10),
-                              GridItem(.flexible(), spacing: 10)
-                          ], spacing: 0) {
-                              ForEach(entry.friends.prefix(8)) { friend in
-                                  mediumDetailedRow(friend)
+                          
+                          switch family {
+                          case .systemSmall:
+                              // Small shows 4 max
+                              VStack(alignment: .leading, spacing: 6) {
+                                  ForEach(entry.friends.prefix(4)) { friend in
+                                      smallDetailedRow(friend)
+                                  }
                               }
+                          default:
+                              // Medium shows 8 max in 2 columns
+                              LazyVGrid(columns: [
+                                  GridItem(.flexible(), spacing: 10),
+                                  GridItem(.flexible(), spacing: 10)
+                              ], spacing: 0) {
+                                  ForEach(entry.friends.prefix(8)) { friend in
+                                      mediumDetailedRow(friend)
+                                  }
+                              }
+                              .modifier(TrailingPaddingModifier())
                           }
-                          .modifier(TrailingPaddingModifier())
                       }
                   }
               }
@@ -181,6 +185,8 @@ struct WidgetEntryView: View {
                   .invalidatableContent()
                   .padding(.top, 4)
                   .padding(.trailing, 4)
+              } else {
+                  EmptyView()
               }
           }
           .containerBackground(.clear, for: .widget)
@@ -194,6 +200,22 @@ struct WidgetEntryView: View {
       let currentState = friend.effectiveState
       // Check if status expired (original state was not available but effectiveState is available)
       let isExpired = currentState == .available && friend.state != .available && friend.expiresAt != nil && friend.expiresAt! <= Date()
+      
+      // Pre-compute expiry display values outside ViewBuilder
+      let expiryText: String? = {
+          guard !isExpired, let expiry = friend.expiresAt, expiry > Date() else { return nil }
+          let isToday = Calendar.current.isDateInToday(expiry)
+          let timeFormatter = DateFormatter()
+          timeFormatter.timeStyle = .short
+          
+          if isToday {
+              return "until \(timeFormatter.string(from: expiry))"
+          } else {
+              let dateFormatter = DateFormatter()
+              dateFormatter.dateFormat = "MMM d"
+              return "until \(dateFormatter.string(from: expiry)), \(timeFormatter.string(from: expiry))"
+          }
+      }()
       
       HStack(alignment: .center, spacing: 8) {
           // 1. Status Dot - uses effectiveState with spring animation
@@ -222,25 +244,12 @@ struct WidgetEntryView: View {
           Spacer() // Pushes the expiry time to the far right
           
           // 3. Expiry time (ONLY show if NOT expired and future expiry exists)
-          if !isExpired, let expiry = friend.expiresAt, expiry > Date() {
-              let isToday = Calendar.current.isDateInToday(expiry)
-              let timeFormatter = DateFormatter()
-              timeFormatter.timeStyle = .short
-              
-              if isToday {
-                  Text("until \(expiry, style: .time)")
-                      .font(.system(size: 9, weight: .medium, design: .rounded))
-                      .foregroundColor(.orange)
-                      .multilineTextAlignment(.trailing)
-              } else {
-                  let dateFormatter = DateFormatter()
-                  dateFormatter.dateFormat = "MMM d"
-                  Text("until \(dateFormatter.string(from: expiry)), \(timeFormatter.string(from: expiry))")
-                      .font(.system(size: 9, weight: .medium, design: .rounded))
-                      .foregroundColor(.orange)
-                      .multilineTextAlignment(.trailing)
-              }
-              .transition(.asymmetric(insertion: .scale, removal: .opacity))
+          if let text = expiryText {
+              Text(text)
+                  .font(.system(size: 9, weight: .medium, design: .rounded))
+                  .foregroundColor(.orange)
+                  .multilineTextAlignment(.trailing)
+                  .transition(.asymmetric(insertion: .scale, removal: .opacity))
           }
       }
       .animation(.easeInOut, value: isExpired) // Animates the whole row layout
@@ -252,6 +261,22 @@ struct WidgetEntryView: View {
       let currentState = friend.effectiveState
       // Check if status expired (original state was not available but effectiveState is available)
       let isExpired = currentState == .available && friend.state != .available && friend.expiresAt != nil && friend.expiresAt! <= Date()
+      
+      // Pre-compute expiry display values outside ViewBuilder
+      let expiryText: String? = {
+          guard !isExpired, let expiry = friend.expiresAt, expiry > Date() else { return nil }
+          let isToday = Calendar.current.isDateInToday(expiry)
+          let timeFormatter = DateFormatter()
+          timeFormatter.timeStyle = .short
+          
+          if isToday {
+              return "until \(timeFormatter.string(from: expiry))"
+          } else {
+              let dateFormatter = DateFormatter()
+              dateFormatter.dateFormat = "MMM d"
+              return "until \(dateFormatter.string(from: expiry)), \(timeFormatter.string(from: expiry))"
+          }
+      }()
       
       HStack(alignment: .center, spacing: 8) {
           // Status Dot - uses effectiveState with spring animation
@@ -268,25 +293,12 @@ struct WidgetEntryView: View {
                       .lineLimit(1)
                   
                   // Expiry time (Only if NOT expired and future expiry exists)
-                  if !isExpired, let expiry = friend.expiresAt, expiry > Date() {
-                      let isToday = Calendar.current.isDateInToday(expiry)
-                      let timeFormatter = DateFormatter()
-                      timeFormatter.timeStyle = .short
-                      
-                      if isToday {
-                          Text("until \(expiry, style: .time)")
-                              .font(.system(size: 9, weight: .medium, design: .rounded))
-                              .foregroundColor(.orange)
-                              .lineLimit(1)
-                      } else {
-                          let dateFormatter = DateFormatter()
-                          dateFormatter.dateFormat = "MMM d"
-                          Text("until \(dateFormatter.string(from: expiry)), \(timeFormatter.string(from: expiry))")
-                              .font(.system(size: 9, weight: .medium, design: .rounded))
-                              .foregroundColor(.orange)
-                              .lineLimit(1)
-                      }
-                      .transition(.asymmetric(insertion: .scale, removal: .opacity))
+                  if let text = expiryText {
+                      Text(text)
+                          .font(.system(size: 9, weight: .medium, design: .rounded))
+                          .foregroundColor(.orange)
+                          .lineLimit(1)
+                          .transition(.asymmetric(insertion: .scale, removal: .opacity))
                   }
               }
               .frame(maxWidth: .infinity, alignment: .leading) // Ensure proper alignment
