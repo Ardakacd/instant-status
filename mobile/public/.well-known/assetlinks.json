@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.arda.instantstatus.dev",
+      "sha256_cert_fingerprints": [
+        "34:89:CB:DD:6E:55:B4:E6:DD:7D:6C:87:72:B1:C9:67:0D:5F:0F:F6:FE:0E:5B:36:FF:3F:38:36:E1:27:60:4D"
+      ]
+    }
+  }
+]
