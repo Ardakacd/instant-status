@@ -25,6 +25,7 @@
     "@react-navigation/native-stack": "^6.9.17",
     "axios": "^1.6.5",
     "expo": "~54.0.29",
+    "expo-apple-authentication": "~8.0.8",
     "expo-auth-session": "~7.0.10",
     "expo-build-properties": "~1.0.10",
     "expo-clipboard": "^8.0.8",
