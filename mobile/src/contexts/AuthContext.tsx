@@ -12,6 +12,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: (password?: string) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -49,6 +50,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function checkEmailVerification() {
+    // Skip email verification check in development
+    if (__DEV__) {
+      setEmailVerified(true);
+      return;
+    }
+
     try {
       const provider = authService.getAuthProvider();
       if (provider === "password") {
@@ -104,6 +111,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setEmailVerified(true);
   }
 
+  async function signInWithApple() {
+    const result = await authService.signInWithApple();
+    setUser(result.user);
+    setOnboarding(result.onboarding || false);
+    // Apple users are automatically verified
+    setEmailVerified(true);
+  }
+
   async function completeOnboarding() {
     setOnboarding(false);
     await AsyncStorage.setItem("onboarding", JSON.stringify(false));
@@ -155,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signUp,
         signInWithGoogle,
+        signInWithApple,
         logout,
         deleteAccount,
         refreshUser,

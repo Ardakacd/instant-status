@@ -540,6 +540,13 @@ export default function ProfileScreen() {
                 </Text>
                 <Ionicons name="logo-google" size={18} color="#4285F4" />
               </View>
+            ) : authProvider === "apple.com" ? (
+              <View style={styles.valueRow}>
+                <Text style={[styles.valueText, styles.readOnlyText]}>
+                  Signed up with Apple
+                </Text>
+                <Ionicons name="logo-apple" size={18} color="#000" />
+              </View>
             ) : (
               <View style={styles.valueRow}>
                 <Text style={[styles.valueText, styles.readOnlyText]}>

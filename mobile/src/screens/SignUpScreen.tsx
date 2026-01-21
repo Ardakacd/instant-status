@@ -7,7 +7,9 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { useAuth } from "../contexts/AuthContext";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
@@ -21,7 +23,8 @@ export default function SignUpScreen({ navigation }: Props) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { signUp, signInWithGoogle } = useAuth();
+  const [appleLoading, setAppleLoading] = useState(false);
+  const { signUp, signInWithGoogle, signInWithApple } = useAuth();
 
   const handleSignUp = async () => {
     if (!email.trim() || !password.trim()) {
@@ -37,13 +40,11 @@ export default function SignUpScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await signUp(email, password);
-      if (!__DEV__) {
-        Alert.alert(
-          "Verification Email Sent",
-          "Please check your email and click the verification link to verify your account.",
-          [{ text: "OK" }]
-        );
-      }
+      Alert.alert(
+        "Verification Email Sent",
+        "Please check your email and click the verification link to verify your account.",
+        [{ text: "OK" }]
+      );
     } catch (error: any) {
       const errorMessage =
         error.message || error.originalError?.message || "Failed to sign up";
@@ -61,6 +62,20 @@ export default function SignUpScreen({ navigation }: Props) {
       Alert.alert("Error", error.message || "Failed to sign in with Google");
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
+      await signInWithApple();
+    } catch (error: any) {
+      // Don't show alert for user cancellation
+      if (!error.message?.includes("cancelled")) {
+        Alert.alert("Error", error.message || "Failed to sign in with Apple");
+      }
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -106,7 +121,7 @@ export default function SignUpScreen({ navigation }: Props) {
       <TouchableOpacity
         style={[styles.googleButton, googleLoading && styles.buttonDisabled]}
         onPress={handleGoogleSignIn}
-        disabled={googleLoading || loading}
+        disabled={googleLoading || loading || appleLoading}
       >
         {googleLoading ? (
           <ActivityIndicator color="#333" />
@@ -117,6 +132,27 @@ export default function SignUpScreen({ navigation }: Props) {
           </>
         )}
       </TouchableOpacity>
+
+      {Platform.OS === "ios" && !appleLoading && !googleLoading && !loading && (
+        <View style={styles.appleButtonContainer}>
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={
+              AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
+            }
+            buttonStyle={
+              AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+            }
+            cornerRadius={8}
+            style={styles.appleButton}
+            onPress={handleAppleSignIn}
+          />
+        </View>
+      )}
+      {Platform.OS === "ios" && appleLoading && (
+        <View style={[styles.appleButtonContainer, styles.appleButton]}>
+          <ActivityIndicator color="#fff" />
+        </View>
+      )}
 
       <TouchableOpacity
         style={styles.linkButton}
@@ -216,5 +252,12 @@ const styles = StyleSheet.create({
     color: "#333",
     fontSize: 16,
     fontWeight: "600",
+  },
+  appleButtonContainer: {
+    marginBottom: 12,
+  },
+  appleButton: {
+    width: "100%",
+    height: 50,
   },
 });

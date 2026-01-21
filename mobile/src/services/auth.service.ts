@@ -4,6 +4,7 @@ import {
   signOut,
   signInWithCredential,
   GoogleAuthProvider,
+  OAuthProvider,
   UserCredential,
   reauthenticateWithCredential,
   EmailAuthProvider,
@@ -11,6 +12,7 @@ import {
   sendEmailVerification,
   deleteUser,
   sendPasswordResetEmail,
+  applyActionCode,
 } from "firebase/auth";
 import { auth, mapSignInError, mapSignupError } from "../config/firebase";
 import api, { resetAuthReady } from "../config/api";
@@ -20,6 +22,7 @@ import {
   statusCodes,
 } from "@react-native-google-signin/google-signin";
 import { userService } from "./user.service";
+import * as AppleAuthentication from "expo-apple-authentication";
 
 export class AuthService {
   constructor() {
@@ -78,13 +81,17 @@ export class AuthService {
         password
       );
 
-      // Send email verification
-      try {
-        await sendEmailVerification(userCredential.user);
-        console.log("Verification email sent", userCredential.user.email);
-      } catch (verificationError: any) {
-        // Log but don't fail signup if verification email fails
-        console.warn("Failed to send verification email:", verificationError);
+      // Send email verification with universal link (skip in dev)
+      if (!__DEV__) {
+        try {
+          await sendEmailVerification(userCredential.user, {
+            url: "https://instantstatus.app/verify",
+            handleCodeInApp: true,
+          });
+        } catch (verificationError: any) {
+          // Log but don't fail signup if verification email fails
+          console.warn("Failed to send verification email:", verificationError);
+        }
       }
 
       return this.handleAuthSuccess(userCredential);
@@ -139,7 +146,6 @@ export class AuthService {
         await GoogleSignin.signOut();
       } catch (error) {
         // Ignore errors if user wasn't signed in with Google
-        console.log("Google Sign-In sign out:", error);
       }
 
       await AsyncStorage.removeItem("firebase_token");
@@ -218,6 +224,70 @@ export class AuthService {
     }
   }
 
+  async signInWithApple() {
+    try {
+      console.log("apple authentication", AppleAuthentication);
+
+      // Check if Apple Authentication is available
+      if (!AppleAuthentication || !AppleAuthentication.isAvailableAsync) {
+        throw new Error("Apple Sign In is not available on this device");
+      }
+
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      if (!isAvailable) {
+        throw new Error("Apple Sign In is not available on this device");
+      }
+
+      // Request Apple Sign In (email only)
+      const appleCredential = await AppleAuthentication.signInAsync({
+        requestedScopes: [AppleAuthentication.AppleAuthenticationScope.EMAIL],
+      });
+
+      const { identityToken } = appleCredential;
+
+      if (!identityToken) {
+        throw new Error("Apple Sign In failed - no identity token received");
+      }
+
+      // Create Firebase credential with Apple identity token
+      const provider = new OAuthProvider("apple.com");
+      const credential = provider.credential({
+        idToken: identityToken,
+      });
+
+      // Sign in to Firebase with Apple credential
+      // Firebase will automatically create the user account if it doesn't exist
+      let userCredential: UserCredential;
+      try {
+        userCredential = await signInWithCredential(auth, credential);
+      } catch (firebaseError: any) {
+        console.error("Firebase sign-in error:", firebaseError);
+        throw new Error(
+          firebaseError.message || "Failed to sign in with Apple"
+        );
+      }
+
+      return this.handleAuthSuccess(userCredential);
+    } catch (error: any) {
+      console.error("Error signing in with Apple:", error);
+
+      // Handle user cancellation
+      if (
+        error.code === "ERR_REQUEST_CANCELED" ||
+        error.message?.includes("cancel")
+      ) {
+        throw new Error("Apple Sign In was cancelled");
+      }
+
+      // Handle other errors
+      if (error.message) {
+        throw new Error(error.message);
+      }
+
+      throw new Error("Failed to sign in with Apple");
+    }
+  }
+
   async refreshToken() {
     const user = auth.currentUser;
     if (user) {
@@ -264,6 +334,12 @@ export class AuthService {
   }
 
   async sendEmailVerification(): Promise<void> {
+    // Skip email verification in development
+    if (__DEV__) {
+      console.log("Email verification skipped in development mode");
+      return;
+    }
+
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
@@ -274,7 +350,11 @@ export class AuthService {
         throw new Error("Email is already verified");
       }
 
-      await sendEmailVerification(currentUser);
+      // Use universal link for email verification
+      await sendEmailVerification(currentUser, {
+        url: "https://instantstatus.app/verify",
+        handleCodeInApp: true,
+      });
     } catch (error: any) {
       console.error("Error sending verification email:", error);
       if (error.code === "auth/too-many-requests") {
@@ -288,8 +368,39 @@ export class AuthService {
   }
 
   isEmailVerified(): boolean {
+    // Skip email verification check in development
+    if (__DEV__) {
+      return true;
+    }
     const currentUser = auth.currentUser;
     return currentUser?.emailVerified || false;
+  }
+
+  /**
+   * Verify email using action code from email verification link
+   */
+  async verifyEmail(oobCode: string): Promise<void> {
+    try {
+      await applyActionCode(auth, oobCode);
+      // Reload user to get updated emailVerified status
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        await currentUser.reload();
+      }
+    } catch (error: any) {
+      console.error("Error verifying email:", error);
+      if (error.code === "auth/expired-action-code") {
+        throw new Error(
+          "Verification link has expired. Please request a new one."
+        );
+      } else if (error.code === "auth/invalid-action-code") {
+        throw new Error("Invalid verification link. Please request a new one.");
+      } else if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error("Failed to verify email");
+      }
+    }
   }
 
   async reloadUser(): Promise<void> {
@@ -301,9 +412,7 @@ export class AuthService {
 
   async resetPassword(email: string): Promise<void> {
     try {
-      console.log("Sending password reset email to:", email);
       await sendPasswordResetEmail(auth, email);
-      console.log("Password reset email sent successfully");
     } catch (error: any) {
       console.error("Error sending password reset email:", error);
       if (error.code === "auth/user-not-found") {
@@ -369,7 +478,6 @@ export class AuthService {
         await GoogleSignin.signOut();
       } catch (error) {
         // Ignore errors if user wasn't signed in with Google
-        console.log("Google Sign-In sign out:", error);
       }
 
       resetAuthReady(); // Reset auth ready state
