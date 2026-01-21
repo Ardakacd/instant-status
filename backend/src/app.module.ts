@@ -7,6 +7,7 @@ import { ConnectionsModule } from "./connections/connections.module";
 import { StatusModule } from "./status/status.module";
 import { InviteCodeModule } from "./invite-code/invite-code.module";
 import { DeviceTokenModule } from "./device-token/device-token.module";
+import { RedirectModule } from "./redirect/redirect.module";
 import { User } from "./entities/user.entity";
 import { Status } from "./entities/status.entity";
 import { Connection } from "./entities/connection.entity";
@@ -39,6 +40,7 @@ import { DeviceToken } from "./entities/device-token.entity";
     StatusModule,
     InviteCodeModule,
     DeviceTokenModule,
+    RedirectModule,
   ],
 })
 export class AppModule {}
