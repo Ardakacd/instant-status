@@ -143,6 +143,20 @@ export class ConnectionsService {
     return userId === a ? connection.a_shows_status : connection.b_shows_status;
   }
 
+  /**
+   * Find a connection between two users (if it exists)
+   * Returns the connection or null if not found
+   */
+  async findConnection(
+    userId: string,
+    friendId: string
+  ): Promise<Connection | null> {
+    const [a, b] = normalizePair(userId, friendId);
+    return await this.connectionRepository.findOne({
+      where: { user_id: a, friend_id: b },
+    });
+  }
+
   async createFromInvite(
     userId: string,
     friendId: string,

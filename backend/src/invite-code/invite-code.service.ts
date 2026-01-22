@@ -42,7 +42,7 @@ export class InviteCodeService {
       }
 
       // Default to 1 day expiration if not specified
-      const defaultExpirationHours = 24; 
+      const defaultExpirationHours = 24;
       const expirationHours = expiresInHours ?? defaultExpirationHours;
       const expiresAt = new Date(Date.now() + expirationHours * 60 * 60 * 1000);
 
@@ -114,7 +114,6 @@ export class InviteCodeService {
       if (code.length !== 8) {
         throw new BadRequestException("Invite code must be 8 characters");
       }
-
 
       return await this.dataSource.transaction(async (manager) => {
         try {
@@ -222,8 +221,19 @@ export class InviteCodeService {
         throw new NotFoundException("User not found");
       }
 
+      // Check if connection already exists before attempting to create
+      const existingConnection = await this.connectionsService.findConnection(
+        userId,
+        targetUserId
+      );
+
+      if (existingConnection) {
+        throw new BadRequestException(
+          "You are already connected with this user"
+        );
+      }
+
       // Create connection directly (shareable links are multi-use)
-      // createFromInvite already handles existing connections
       const connection = await this.connectionsService.createFromInvite(
         userId,
         targetUserId

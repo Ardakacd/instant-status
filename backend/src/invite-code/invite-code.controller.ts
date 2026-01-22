@@ -8,11 +8,11 @@ const RedeemCodeDtoSchema = z.object({
 });
 
 @Controller("invite-code")
-@UseGuards(AuthGuard)
 export class InviteCodeController {
   constructor(private inviteCodeService: InviteCodeService) {}
 
   @Post()
+  @UseGuards(AuthGuard)
   async generateCode(@Request() req, @Body() body: unknown) {
     const { expires_in_hours } = z
       .object({ expires_in_hours: z.number().optional() })
@@ -31,12 +31,14 @@ export class InviteCodeController {
   }
 
   @Post("redeem")
+  @UseGuards(AuthGuard)
   async redeemCode(@Request() req, @Body() body: unknown) {
     const { code } = RedeemCodeDtoSchema.parse(body);
     return this.inviteCodeService.redeemCode(req.user.id, code);
   }
 
   @Post("connect-by-link")
+  @UseGuards(AuthGuard)
   async connectByLink(@Request() req, @Body() body: unknown) {
     const { user_id } = z.object({ user_id: z.string().uuid() }).parse(body);
     return this.inviteCodeService.connectByLink(req.user.id, user_id);
