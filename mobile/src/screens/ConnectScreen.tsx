@@ -20,18 +20,34 @@ import { RootStackParamList } from "../../App";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Connect">;
 
-export default function ConnectScreen({ navigation }: Props) {
+export default function ConnectScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [inviteCode, setInviteCode] = useState("");
   const [myInviteCode, setMyInviteCode] = useState("");
   const [shareableLink, setShareableLink] = useState("");
   const [redeemingCode, setRedeemingCode] = useState(false);
+  const [connectingByLink, setConnectingByLink] = useState(false);
 
   useEffect(() => {
     loadMyInviteCode();
     generateShareableLink();
   }, [user]);
+
+  // Handle deep link when screen opens with userId parameter
+  useEffect(() => {
+    const userId = route.params?.userId;
+    if (userId && user) {
+      if (userId === user.id) {
+        Alert.alert(
+          "Cannot Connect",
+          "You cannot connect with yourself. Share this link with a friend instead!"
+        );
+      } else {
+        handleConnectByLink(userId);
+      }
+    }
+  }, [route.params?.userId, user]);
 
   const loadMyInviteCode = async () => {
     try {
@@ -45,9 +61,13 @@ export default function ConnectScreen({ navigation }: Props) {
 
   const generateShareableLink = () => {
     if (user?.id) {
-      // Generate shareable link based on user ID
-      const link = `inststat.app/connect?user=${user.id}`;
-      setShareableLink(link);
+      // Generate universal link using Firebase Hosting domain
+      // This will be intercepted by iOS/Android if app is installed
+      // Otherwise, it will open the web page which redirects to the app
+      const universalLink = `https://instantstatus.app/connect/${user.id}`;
+      setShareableLink(universalLink);
+
+      console.log("Generated shareable link:", universalLink);
     }
   };
 
@@ -84,7 +104,7 @@ export default function ConnectScreen({ navigation }: Props) {
       return;
     }
     try {
-      await Clipboard.setStringAsync(`https://${shareableLink}`);
+      await Clipboard.setStringAsync(shareableLink);
       Alert.alert("Copied!", "Shareable link copied to clipboard");
     } catch (error) {
       Alert.alert("Error", "Failed to copy link");
@@ -97,12 +117,61 @@ export default function ConnectScreen({ navigation }: Props) {
       return;
     }
     try {
+      // WhatsApp link detection requirements:
+      // 1. URL must start with http:// or https://
+      // 2. URL should be on its own line or at sentence boundaries
+      // 3. No extra characters or spaces around the URL
+      // 4. URL should be a complete, valid URL
+
+      // Put URL first on its own line for best recognition
+      const shareMessage = `${shareableLink}\n\nConnect with me on Instant Status!`;
+
+      console.log("Sharing link:", shareableLink);
+      console.log("Share message:", shareMessage);
+
       await Share.share({
-        message: `Join me on Instant Status! ${shareableLink}`,
-        url: `https://${shareableLink}`,
+        message: shareMessage,
       });
     } catch (error) {
       console.error("Error sharing:", error);
+    }
+  };
+
+  const handleConnectByLink = async (targetUserId: string) => {
+    if (!user) {
+      return;
+    }
+
+    if (user.id === targetUserId) {
+      Alert.alert(
+        "Cannot Connect",
+        "You cannot connect with yourself. Share this link with a friend instead!"
+      );
+      return;
+    }
+
+    setConnectingByLink(true);
+    try {
+      const result = await inviteService.connectByLink(targetUserId);
+      Alert.alert(
+        "Success",
+        `Successfully connected with ${result.owner.first_name} ${
+          result.owner.last_name || ""
+        }!`,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Navigate back to home or friends screen
+              navigation.navigate("Main", { screen: "Friends" });
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to connect via link");
+    } finally {
+      setConnectingByLink(false);
     }
   };
 
@@ -241,8 +310,8 @@ export default function ConnectScreen({ navigation }: Props) {
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Your Shareable Link</Text>
             <View style={styles.linkContainer}>
-              <Text style={styles.linkText} numberOfLines={1}>
-                {shareableLink ? `https://${shareableLink}` : "Loading..."}
+              <Text style={styles.linkText} numberOfLines={2}>
+                {shareableLink || "Loading..."}
               </Text>
               <View style={styles.linkActions}>
                 <TouchableOpacity
@@ -259,6 +328,12 @@ export default function ConnectScreen({ navigation }: Props) {
                 </TouchableOpacity>
               </View>
             </View>
+            {connectingByLink && (
+              <View style={styles.connectingContainer}>
+                <ActivityIndicator size="small" color="#10B981" />
+                <Text style={styles.connectingText}>Connecting...</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -457,5 +532,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6B7280",
     lineHeight: 18,
+  },
+  connectingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    gap: 8,
+  },
+  connectingText: {
+    fontSize: 14,
+    color: "#10B981",
+    fontWeight: "500",
   },
 });
