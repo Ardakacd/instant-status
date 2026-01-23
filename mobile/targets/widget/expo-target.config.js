@@ -9,4 +9,13 @@ module.exports = (config) => ({
       "group.com.arda.instantstatus.dev",
     ],
   },
+  // Exclude Firebase frameworks from widget extension since it doesn't use Firebase
+  // Widget only reads from App Group storage (UserDefaults)
+  buildSettings: {
+    OTHER_LDFLAGS: [
+      "$(inherited)",
+      "-weak_framework FirebaseCore",
+      "-weak_framework FirebaseMessaging",
+    ],
+  },
 });
