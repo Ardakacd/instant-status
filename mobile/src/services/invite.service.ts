@@ -19,7 +19,7 @@ export class InviteService {
     userId: string
   ): Promise<{ connection: any; owner: any }> {
     const response = await api.post("/invite-code/connect-by-link", {
-      user_id: userId,
+      user_id: userId, // The target user ID from the link
     });
     return response.data;
   }
