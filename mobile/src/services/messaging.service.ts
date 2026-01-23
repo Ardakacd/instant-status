@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   getMessaging,
   requestPermission,
@@ -11,52 +13,33 @@ import {
   onNotificationOpenedApp,
   onTokenRefresh,
   AuthorizationStatus,
+  unregisterDeviceForRemoteMessages,
 } from "@react-native-firebase/messaging";
-import { Platform } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const FCM_TOKEN_KEY = "fcm_token";
 
 export class MessagingService {
-  private messagingInstance = getMessaging();
+  // In React Native Firebase, getMessaging() automatically uses the default app
+  // initialized by the native GoogleService-Info.plist / google-services.json
+  private get messagingInstance() {
+    return getMessaging();
+  }
+
   /**
    * Request notification permissions
-   * Checks authorization status first and only requests if needed
-   * On iOS, checks if permission is NOT_DETERMINED before requesting
    */
   async requestPermission(): Promise<boolean> {
     try {
-      // First check if we already have permission
-      const hasPermission = await this.hasPermission();
-      if (hasPermission) {
-        return true;
-      }
-
-      // On iOS, check authorization status before requesting
-      if (Platform.OS === "ios") {
-        try {
-          // Use requestPermission which handles NOT_DETERMINED correctly
-          // It will only show prompt if status is NOT_DETERMINED
-          const authStatus = await requestPermission(this.messagingInstance);
-          return (
-            authStatus === AuthorizationStatus.AUTHORIZED ||
-            authStatus === AuthorizationStatus.PROVISIONAL
-          );
-        } catch (iosError) {
-          console.error(
-            "Error requesting iOS notification permission:",
-            iosError
-          );
-          return false;
-        }
-      }
-
-      // For Android, request permission
       const authStatus = await requestPermission(this.messagingInstance);
-      return (
+      const enabled =
         authStatus === AuthorizationStatus.AUTHORIZED ||
-        authStatus === AuthorizationStatus.PROVISIONAL
-      );
+        authStatus === AuthorizationStatus.PROVISIONAL;
+
+      if (enabled && Platform.OS === "ios") {
+        await this.registerDeviceForRemoteMessages();
+      }
+
+      return enabled;
     } catch (error) {
       console.error("Error requesting notification permission:", error);
       return false;
@@ -74,160 +57,98 @@ export class MessagingService {
         authStatus === AuthorizationStatus.PROVISIONAL
       );
     } catch (error) {
-      console.error("Error checking notification permission:", error);
       return false;
     }
   }
 
   /**
-   * Register device for remote messages (required on iOS)
-   * This must be called before getToken() on iOS
+   * Register device for remote messages (Critical for iOS)
    */
   async registerDeviceForRemoteMessages(): Promise<boolean> {
+    if (Platform.OS !== "ios") return true;
     try {
-      if (Platform.OS === "ios") {
-        await registerDeviceForRemoteMessages(this.messagingInstance);
-        return true;
-      }
-      return true; // Android doesn't need this
+      await registerDeviceForRemoteMessages(this.messagingInstance);
+      return true;
     } catch (error: any) {
-      // If entitlement is missing, log but don't fail completely
-      if (
-        error.code === "messaging/unknown" &&
-        error.message?.includes("aps-environment")
-      ) {
-        console.warn(
-          "Push notification entitlement not configured. Make sure 'aps-environment' is set in entitlements."
-        );
-      } else {
-        console.error("Error registering device for remote messages:", error);
-      }
+      console.warn("iOS Remote Message Registration Error:", error.message);
       return false;
     }
   }
 
   /**
-   * Get FCM token - always fetches latest from Firebase to avoid stale tokens
-   * On iOS, registerDeviceForRemoteMessages() must be called first
+   * Get FCM token
    */
   async getToken(): Promise<string | null> {
     try {
-      // On iOS, ensure device is registered for remote messages
       if (Platform.OS === "ios") {
-        const registered = await this.registerDeviceForRemoteMessages();
-        if (!registered) {
-          console.warn(
-            "Device registration failed, token may not be available"
-          );
-        }
+        await this.registerDeviceForRemoteMessages();
       }
 
-      // Always get the latest token from Firebase (not from cache)
-      // This ensures we never return a stale token
       const token = await getToken(this.messagingInstance);
-
-      // Update cache with the latest token
       if (token) {
         await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
-      } else {
-        // Clear cache if token is null
-        await AsyncStorage.removeItem(FCM_TOKEN_KEY);
+        console.log("FCM Token secured:", token);
       }
-
       return token;
-    } catch (error: any) {
-      // If unregistered error, try registering first
-      if (error.code === "messaging/unregistered" && Platform.OS === "ios") {
-        try {
-          await this.registerDeviceForRemoteMessages();
-          const token = await getToken(this.messagingInstance);
-
-          // Cache the token
-          if (token) {
-            await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
-          }
-
-          return token;
-        } catch (retryError) {
-          console.error(
-            "Error getting FCM token after registration:",
-            retryError
-          );
-          return null;
-        }
-      }
+    } catch (error) {
       console.error("Error getting FCM token:", error);
       return null;
     }
   }
 
   /**
-   * Delete FCM token and clear cache
-   * Should be called on logout to prevent ghost notifications
+   * Delete token (Logout)
    */
   async deleteToken(): Promise<void> {
     try {
       await deleteToken(this.messagingInstance);
-      // Clear cached token
       await AsyncStorage.removeItem(FCM_TOKEN_KEY);
     } catch (error) {
-      console.error("Error deleting FCM token:", error);
-      // Still try to clear cache even if deletion fails
+      await AsyncStorage.removeItem(FCM_TOKEN_KEY);
+    }
+  }
+
+  async unregister(): Promise<void> {
+    try {
+      const instance = this.messagingInstance;
+
+      // 1. Delete the FCM token from Firebase servers
+      await deleteToken(instance);
+
+      // 2. On iOS, explicitly unregister from APNs
+      if (Platform.OS === "ios") {
+        await unregisterDeviceForRemoteMessages(instance);
+      }
+
+      // 3. Clear our local cache
+      await AsyncStorage.removeItem(FCM_TOKEN_KEY);
+
+      console.log("Device successfully unregistered from Firebase.");
+    } catch (error) {
+      console.error("Error during unregister:", error);
+      // Fallback: at least clear local storage so the app thinks it's logged out
       await AsyncStorage.removeItem(FCM_TOKEN_KEY).catch(() => {});
     }
   }
 
   /**
-   * Unregister device - deletes token and clears cache
-   * Should be called on logout
-   */
-  async unregister(): Promise<void> {
-    await this.deleteToken();
-  }
-
-  /**
-   * Set up background message handler
-   */
-  setBackgroundMessageHandler(handler: (remoteMessage: any) => Promise<void>) {
-    setBackgroundMessageHandler(this.messagingInstance, handler);
-  }
-
-  /**
-   * Get initial notification (if app was opened from a notification)
-   */
-  async getInitialNotification() {
-    try {
-      return await getInitialNotification(this.messagingInstance);
-    } catch (error) {
-      console.error("Error getting initial notification:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Set up foreground message handler
+   * Listeners
    */
   onMessage(handler: (remoteMessage: any) => void) {
     return onMessage(this.messagingInstance, handler);
   }
 
-  /**
-   * Set up notification opened handler
-   */
   onNotificationOpenedApp(handler: (remoteMessage: any) => void) {
     return onNotificationOpenedApp(this.messagingInstance, handler);
   }
 
-  /**
-   * Listen for token refresh
-   * Updates cache when token changes
-   */
+  async getInitialNotification() {
+    return await getInitialNotification(this.messagingInstance);
+  }
+
   onTokenRefresh(handler: (token: string) => void) {
-    return onTokenRefresh(this.messagingInstance, async (token: string) => {
-      // Update cache when token refreshes
-      if (token) {
-        await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
-      }
+    return onTokenRefresh(this.messagingInstance, async (token) => {
+      await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
       handler(token);
     });
   }
