@@ -69,6 +69,7 @@ export default function HomeScreen() {
   const [selectedFriend, setSelectedFriend] = useState<Status | null>(null);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(-100)).current;
+  const pendingFriendIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
     loadFriendsStatus();
@@ -80,21 +81,45 @@ export default function HomeScreen() {
   // Handle navigation params to open friend detail modal
   useEffect(() => {
     const params = route.params as { friendId?: string } | undefined;
-    if (params?.friendId && friendsStatus.length > 0) {
-      const friend = friendsStatus.find((f) => f.user_id === params.friendId);
+    const friendId = params?.friendId;
+    if (friendId) {
+      // Store the friendId we're waiting for
+      pendingFriendIdRef.current = friendId;
+      
+      // Refresh friends status first to ensure we have the latest data
+      loadFriendsStatus().catch((error) => {
+        console.error("Error refreshing friend status:", error);
+        // If refresh fails, try to open modal with existing data
+        const friend = friendsStatus.find((f) => f.user_id === friendId);
+        if (friend) {
+          setSelectedFriend(friend);
+          setFriendModalVisible(true);
+        }
+        pendingFriendIdRef.current = null;
+        if (navigation.isFocused()) {
+          navigation.setParams({ friendId: undefined } as any);
+        }
+      });
+    }
+  }, [(route.params as { friendId?: string } | undefined)?.friendId]);
+
+  // Open modal when friendsStatus updates and we have a pending friendId
+  useEffect(() => {
+    if (pendingFriendIdRef.current && friendsStatus.length > 0) {
+      const friend = friendsStatus.find((f) => f.user_id === pendingFriendIdRef.current);
       if (friend) {
         setSelectedFriend(friend);
         setFriendModalVisible(true);
-        // Clear the param to prevent reopening on re-render
-        // Use setTimeout to avoid navigation during render
-        setTimeout(() => {
-          if (navigation.isFocused()) {
-            navigation.setParams({ friendId: undefined } as any);
-          }
-        }, 100);
       }
+      // Clear the pending friendId and navigation param
+      pendingFriendIdRef.current = null;
+      setTimeout(() => {
+        if (navigation.isFocused()) {
+          navigation.setParams({ friendId: undefined } as any);
+        }
+      }, 100);
     }
-  }, [route.params, friendsStatus, navigation]);
+  }, [friendsStatus, navigation]);
 
   // Check if we should show the refresh hint
   const checkRefreshHint = async () => {
