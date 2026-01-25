@@ -20,7 +20,6 @@ async function loadWidgetData(widgetId: number): Promise<{
   try {
     const data = await AsyncStorage.getItem(WIDGET_DATA_KEY);
     if (!data) {
-      console.log("Widget: No data found in storage");
       return {
         friends: [],
         hasAnyFriends: false,
@@ -28,7 +27,6 @@ async function loadWidgetData(widgetId: number): Promise<{
     }
 
     const allFriends: FriendStatusWidgetItem[] = JSON.parse(data);
-    console.log(`Widget: Loaded ${allFriends.length} friends from storage`);
 
     // Load selected friend IDs for this widget
     const configKey = `${WIDGET_CONFIG_KEY_PREFIX}${String(widgetId)}`;
@@ -39,15 +37,9 @@ async function loadWidgetData(widgetId: number): Promise<{
       // User has selected specific friends
       const selectedIds: string[] = JSON.parse(savedSelection);
       filteredFriends = allFriends.filter((f) => selectedIds.includes(f.id));
-      console.log(
-        `Widget: Filtered to ${filteredFriends.length} selected friends`
-      );
     } else {
       // No selection, show first 8 friends (default)
       filteredFriends = allFriends.slice(0, 8);
-      console.log(
-        `Widget: No selection, showing first ${filteredFriends.length} friends`
-      );
     }
 
     return {
@@ -113,7 +105,6 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
       break;
 
     case "WIDGET_CLICK":
-      console.log("Widget clicked - clickAction:", props.clickAction);
       if (props.clickAction === "REFRESH_WIDGET") {
         // Handle refresh button click
         const { friends, hasAnyFriends } = await loadWidgetData(

@@ -183,13 +183,6 @@ export function InstantStatusWidget({
   // Show max 8 friends like iOS medium widget
   const displayFriends = friends.slice(0, 8);
 
-  // Debug: Log how many friends we're displaying
-  if (friends.length > 0) {
-    console.log(
-      `Widget: Rendering ${displayFriends.length} out of ${friends.length} friends`
-    );
-  }
-
   if (displayFriends.length === 0) {
     return (
       <FlexWidget
@@ -253,10 +246,6 @@ export function InstantStatusWidget({
         }}
       >
         {displayFriends.map((friend, index) => {
-          // Debug: Log each friend being rendered
-          console.log(
-            `Widget: Rendering friend ${index + 1}: ${friend.firstName}`
-          );
           return <FriendRow key={friend.id} friend={friend} />;
         })}
       </FlexWidget>
