@@ -90,6 +90,41 @@ export default function ProfileScreen() {
     }
   };
 
+  /**
+   * Opens the notification settings page for the app
+   * Uses Android Intent URI for Android 8.0+ to go directly to notification settings
+   * This intent opens the specific notification toggles for your app
+   */
+  const openNotificationSettings = async () => {
+    if (Platform.OS === "android") {
+      const packageName =
+        Constants.expoConfig?.android?.package ||
+        "com.arda.instantstatus.dev";
+      try {
+        // Android 8.0+ (API 26+): Use Intent URI to open notification settings directly
+        // This takes the user directly to the app's notification toggle
+        const intentUri = `intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;data=package:${packageName};end`;
+        const canOpen = await Linking.canOpenURL(intentUri);
+        if (canOpen) {
+          await Linking.openURL(intentUri);
+        } else {
+          // Fallback: Try opening app info page
+          await Linking.openURL(`package:${packageName}`);
+        }
+      } catch (error) {
+        // Final fallback: Open general app settings
+        try {
+          await Linking.openSettings();
+        } catch (fallbackError) {
+          console.error("Failed to open settings:", fallbackError);
+        }
+      }
+    } else {
+      // iOS - open app settings
+      await Linking.openSettings();
+    }
+  };
+
   const handleSaveFirstName = async () => {
     if (!firstName.trim()) {
       Alert.alert("Error", "First name cannot be empty");
@@ -156,31 +191,17 @@ export default function ProfileScreen() {
             }
           } else {
             // Permission denied, offer to open settings
+            // On Android 13+, if user denied twice, system won't show popup again
             Alert.alert(
               "Permission Required",
-              "Push notifications are disabled. Would you like to open settings to enable them?",
+              "It looks like notifications are blocked. Please enable them in settings to stay updated.",
               [
                 { text: "Cancel", style: "cancel" },
                 {
                   text: "Open Settings",
                   onPress: async () => {
-                    if (Platform.OS === "android") {
-                      // On Android, open app info page which has notification settings
-                      const packageName =
-                        Constants.expoConfig?.android?.package ||
-                        "com.arda.instantstatus.dev";
-                      try {
-                        // Open app info page - user can then tap "Notifications" from there
-                        await Linking.openURL(`package:${packageName}`);
-                      } catch (error) {
-                        // Fallback: Open app settings
-                        await Linking.openSettings();
-                      }
-                    } else {
-                      // iOS - open app settings
-                      await Linking.openSettings();
-                    }
-                    // Re-check after a delay
+                    await openNotificationSettings();
+                    // Re-check after a delay (AppState listener will also check when user returns)
                     setTimeout(() => {
                       checkNotificationState();
                     }, 1000);
@@ -219,26 +240,7 @@ export default function ProfileScreen() {
             {
               text: "Open Settings",
               onPress: async () => {
-                if (Platform.OS === "android") {
-                  // On Android, open app notification settings directly
-                  const packageName =
-                    Constants.expoConfig?.android?.package ||
-                    "com.arda.instantstatus.dev";
-                  try {
-                    await Linking.openURL(`app-settings:notification`);
-                  } catch (error) {
-                    // Fallback to app settings if direct notification settings fails
-                    try {
-                      await Linking.openURL(`package:${packageName}`);
-                    } catch (fallbackError) {
-                      // Final fallback to general settings
-                      await Linking.openSettings();
-                    }
-                  }
-                } else {
-                  // iOS - open app settings
-                  await Linking.openSettings();
-                }
+                await openNotificationSettings();
                 // Re-check after a delay
                 setTimeout(() => {
                   checkNotificationState();
