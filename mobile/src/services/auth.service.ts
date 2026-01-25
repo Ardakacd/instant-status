@@ -226,8 +226,6 @@ export class AuthService {
 
   async signInWithApple() {
     try {
-      console.log("apple authentication", AppleAuthentication);
-
       // Check if Apple Authentication is available
       if (!AppleAuthentication || !AppleAuthentication.isAvailableAsync) {
         throw new Error("Apple Sign In is not available on this device");

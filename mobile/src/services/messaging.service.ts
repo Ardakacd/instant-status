@@ -170,7 +170,6 @@ export class MessagingService {
       // 3. Clear our local cache
       await AsyncStorage.removeItem(FCM_TOKEN_KEY);
 
-      console.log("Device successfully unregistered from Firebase.");
     } catch (error) {
       console.error("Error during unregister:", error);
       // Fallback: at least clear local storage so the app thinks it's logged out

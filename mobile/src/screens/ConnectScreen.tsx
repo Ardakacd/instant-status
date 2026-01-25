@@ -66,8 +66,6 @@ export default function ConnectScreen({ navigation, route }: Props) {
       // Otherwise, it will open the web page which redirects to the app
       const universalLink = `https://instantstatus.app/connect/${user.id}`;
       setShareableLink(universalLink);
-
-      console.log("Generated shareable link:", universalLink);
     }
   };
 
@@ -125,9 +123,6 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
       // Put URL first on its own line for best recognition
       const shareMessage = `${shareableLink}\n\nConnect with me on Instant Status!`;
-
-      console.log("Sharing link:", shareableLink);
-      console.log("Share message:", shareMessage);
 
       await Share.share({
         message: shareMessage,
