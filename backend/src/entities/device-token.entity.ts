@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from "typeorm";
 import { User } from "./user.entity";
 
@@ -15,6 +16,7 @@ export enum Platform {
 }
 
 @Entity("device_tokens")
+@Index(["user_id", "platform"], { unique: true })
 export class DeviceToken {
   @PrimaryGeneratedColumn("uuid")
   id: string;
