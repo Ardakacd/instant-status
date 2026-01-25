@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { Platform, PermissionsAndroid } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   getMessaging,
@@ -7,13 +7,13 @@ import {
   registerDeviceForRemoteMessages,
   getToken,
   deleteToken,
-  setBackgroundMessageHandler,
   getInitialNotification,
   onMessage,
   onNotificationOpenedApp,
   onTokenRefresh,
   AuthorizationStatus,
   unregisterDeviceForRemoteMessages,
+  isDeviceRegisteredForRemoteMessages,
 } from "@react-native-firebase/messaging";
 
 const FCM_TOKEN_KEY = "fcm_token";
@@ -27,19 +27,39 @@ export class MessagingService {
 
   /**
    * Request notification permissions
+   * Handles Android 13+ (API 33+) POST_NOTIFICATIONS permission explicitly
    */
   async requestPermission(): Promise<boolean> {
     try {
-      const authStatus = await requestPermission(this.messagingInstance);
-      const enabled =
-        authStatus === AuthorizationStatus.AUTHORIZED ||
-        authStatus === AuthorizationStatus.PROVISIONAL;
+      // Android 13+ (API 33+) requires explicit POST_NOTIFICATIONS permission
+      if (Platform.OS === "android" && Platform.Version >= 33) {
+        const status = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+        );
+        const granted = status === PermissionsAndroid.RESULTS.GRANTED;
+        
+        if (granted) {
+          // Also request Firebase messaging permission for token generation
+          const authStatus = await requestPermission(this.messagingInstance);
+          const firebaseEnabled =
+            authStatus === AuthorizationStatus.AUTHORIZED ||
+            authStatus === AuthorizationStatus.PROVISIONAL;
+          return firebaseEnabled;
+        }
+        return false;
+      } else {
+        // iOS or older Android - use Firebase messaging permission
+        const authStatus = await requestPermission(this.messagingInstance);
+        const enabled =
+          authStatus === AuthorizationStatus.AUTHORIZED ||
+          authStatus === AuthorizationStatus.PROVISIONAL;
 
-      if (enabled && Platform.OS === "ios") {
-        await this.registerDeviceForRemoteMessages();
+        if (enabled && Platform.OS === "ios") {
+          await this.registerDeviceForRemoteMessages();
+        }
+
+        return enabled;
       }
-
-      return enabled;
     } catch (error) {
       console.error("Error requesting notification permission:", error);
       return false;
@@ -48,14 +68,32 @@ export class MessagingService {
 
   /**
    * Check if notifications are enabled
+   * Handles Android 13+ (API 33+) POST_NOTIFICATIONS permission check
    */
   async hasPermission(): Promise<boolean> {
     try {
-      const authStatus = await hasPermission(this.messagingInstance);
-      return (
-        authStatus === AuthorizationStatus.AUTHORIZED ||
-        authStatus === AuthorizationStatus.PROVISIONAL
-      );
+      // Android 13+ (API 33+) requires explicit POST_NOTIFICATIONS check
+      if (Platform.OS === "android" && Platform.Version >= 33) {
+        const status = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+        );
+        if (!status) {
+          return false;
+        }
+        // Also check Firebase messaging permission
+        const authStatus = await hasPermission(this.messagingInstance);
+        return (
+          authStatus === AuthorizationStatus.AUTHORIZED ||
+          authStatus === AuthorizationStatus.PROVISIONAL
+        );
+      } else {
+        // iOS or older Android - use Firebase messaging permission
+        const authStatus = await hasPermission(this.messagingInstance);
+        return (
+          authStatus === AuthorizationStatus.AUTHORIZED ||
+          authStatus === AuthorizationStatus.PROVISIONAL
+        );
+      }
     } catch (error) {
       return false;
     }
@@ -63,11 +101,20 @@ export class MessagingService {
 
   /**
    * Register device for remote messages (Critical for iOS)
+   * Uses the property check to avoid redundant native calls.
    */
   async registerDeviceForRemoteMessages(): Promise<boolean> {
+    // Only iOS needs this explicit registration step
     if (Platform.OS !== "ios") return true;
+
     try {
-      await registerDeviceForRemoteMessages(this.messagingInstance);
+      const instance = this.messagingInstance;
+
+      // Check if already registered
+      if (!isDeviceRegisteredForRemoteMessages(instance)) {
+        await registerDeviceForRemoteMessages(instance);
+      } 
+      
       return true;
     } catch (error: any) {
       console.warn("iOS Remote Message Registration Error:", error.message);
