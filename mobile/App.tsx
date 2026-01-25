@@ -207,13 +207,31 @@ function AppNavigator() {
 
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
+  const appState = useRef(AppState.currentState);
 
   useEffect(() => {
     (async () => {
-      await notifee.setBadgeCount(0);
       setAppIsReady(true);
       await SplashScreen.hideAsync();
     })();
+  }, []);
+
+  // Reset badge count when app comes to foreground (not on cold start)
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", async (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        // App has come to the foreground - reset badge count
+        await notifee.setBadgeCount(0);
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   if (!appIsReady) return null;
