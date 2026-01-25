@@ -60,29 +60,62 @@
         nothing happens, click the button below.
       </p>
 
-      <a href="https://instantstatus.app/connect" class="button"
-        >Open InstantStatus</a
-      >
+      <a id="openAppButton" href="#" class="button">Open InstantStatus</a>
     </div>
 
     <script>
+      // Prevent multiple redirects
+      let hasRedirected = false;
+
       // Extract userId from URL path
-      const pathParts = window.location.pathname.split("/");
-      const userId =
-        pathParts[pathParts.length - 1] || pathParts[pathParts.length - 2];
+      const pathParts = window.location.pathname.split("/").filter(Boolean);
+      const userId = pathParts[pathParts.length - 1];
 
-      // Universal link that will open the app if installed
-      const universalLink = userId
-        ? `https://instantstatus.app/connect/${userId}`
-        : "https://instantstatus.app/connect";
+      // Deep link that will open the app if installed
+      const deepLink = userId
+        ? `instant-status://connect/${userId}`
+        : "instant-status://connect";
 
-      // Try to open the app via universal link
-      window.onload = function () {
-        // Attempt to redirect to universal link (iOS/Android will intercept if app is installed)
-        if (userId) {
-          window.location.href = universalLink;
+      // Try to open the app via deep link (only once)
+      function attemptRedirect() {
+        if (hasRedirected || !userId) return;
+        hasRedirected = true;
+
+        // Try to open the app via deep link
+        // If app is installed, this will open it
+        // If not, the page will stay visible and user can click the button
+        window.location.href = deepLink;
+      }
+
+      // Initialize page when loaded
+      function init() {
+        // Set up button
+        const button = document.getElementById("openAppButton");
+        if (button) {
+          if (userId) {
+            button.href = deepLink;
+            button.addEventListener("click", function (e) {
+              e.preventDefault();
+              window.location.href = deepLink;
+            });
+          } else {
+            button.href = "https://instantstatus.app";
+            button.textContent = "Go to InstantStatus";
+          }
         }
-      };
+
+        // Attempt automatic redirect after a short delay
+        if (userId) {
+          setTimeout(attemptRedirect, 300);
+        }
+      }
+
+      // Wait for page to load
+      if (document.readyState === "complete") {
+        init();
+      } else {
+        window.addEventListener("load", init);
+      }
     </script>
   </body>
 </html>
