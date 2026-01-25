@@ -317,15 +317,15 @@ export class StatusService {
         conn.user_id === userId ? conn.friend_id : conn.user_id
       );
 
-      // Include the user's own devices for multi-device sync
-      // This ensures widgets update on all user's devices (iPad, iPhone, etc.)
-      const allUserIds = [...new Set([...connectionUserIds, userId])];
+      // Only send notifications to friends, not to the user themselves
+      // Widget doesn't show user's own status, so no need for self-notification
+      const friendUserIds = [...new Set(connectionUserIds)];
 
-      if (allUserIds.length === 0) return;
+      if (friendUserIds.length === 0) return;
 
-      // Get device tokens for all users (friends + self) using In operator for performance
+      // Get device tokens for friends only (exclude self)
       const deviceTokens = await this.deviceTokenRepository.find({
-        where: { user_id: In(allUserIds) },
+        where: { user_id: In(friendUserIds) },
       });
 
       if (deviceTokens.length === 0) return;
@@ -389,46 +389,12 @@ export class StatusService {
         timestamp, // Allows widget to detect stale data
       };
 
-      // Split device tokens: user's own devices vs friends' devices
-      const ownDeviceTokens = deviceTokens.filter(
-        (token) => token.user_id === userId
-      );
-      const friendDeviceTokens = deviceTokens.filter(
-        (token) => token.user_id !== userId
-      );
-
       // Build messages array and map tokens to device token IDs for error handling
       const messages: any[] = [];
       const tokenToIdMap = new Map<string, string>(); // Maps FCM token -> device token ID
 
-      // For user's own devices: send data-only messages (silent, for widget sync)
-      // No visible notification since user already knows their own status
-      for (const token of ownDeviceTokens) {
-        tokenToIdMap.set(token.token, token.id);
-        messages.push({
-          token: token.token,
-          data: commonData,
-          android: {
-            priority: androidPriority,
-            // No notification object = silent data-only message
-          },
-          apns: {
-            headers: {
-              "apns-priority": apnsPriority,
-              "apns-push-type": "background", // Background push for data-only
-            },
-            payload: {
-              aps: {
-                "content-available": 1, // Wakes app in background for widget updates
-                // No sound, badge, or alert = silent
-              },
-            },
-          },
-        });
-      }
-
-      // For friends' devices: send visible notifications
-      for (const token of friendDeviceTokens) {
+      // Send visible notifications to friends only
+      for (const token of deviceTokens) {
         tokenToIdMap.set(token.token, token.id);
         messages.push({
           token: token.token,
@@ -462,6 +428,11 @@ export class StatusService {
       }
 
       try {
+        // Log message details for debugging
+        this.logger.log(
+          `Attempting to send ${messages.length} push notification(s) via Firebase Admin`
+        );
+        
         const response = await this.firebaseAdmin
           .messaging()
           .sendEach(messages);
@@ -520,6 +491,26 @@ export class StatusService {
           `Error sending push notifications: ${error.message}`,
           error.stack
         );
+        
+        // Log detailed error info for third-party-auth-error
+        if (error.code === "messaging/third-party-auth-error" || error.message?.includes("authentication credential")) {
+          this.logger.error(
+            `🔴 Authentication Error Details:`,
+            {
+              code: error.code,
+              message: error.message,
+              projectId: this.firebaseAdmin.options.projectId,
+              credentialType: this.firebaseAdmin.options.credential ? "cert" : "none",
+            }
+          );
+          this.logger.error(
+            `💡 Troubleshooting:`,
+            `1. Verify FIREBASE_PRIVATE_KEY includes full key with BEGIN/END markers`,
+            `2. Ensure Firebase Cloud Messaging API is enabled in Google Cloud Console`,
+            `3. Check service account has 'Firebase Cloud Messaging Admin' role`,
+            `4. Verify project ID matches between mobile app and backend`
+          );
+        }
         // Push notification failures shouldn't fail status updates
       }
     } catch (error: any) {
