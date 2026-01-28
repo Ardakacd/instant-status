@@ -15,10 +15,6 @@ const VerifyTokenDtoSchema = z.object({
   idToken: z.string(),
 });
 
-const RefreshTokenDtoSchema = z.object({
-  refreshToken: z.string(),
-});
-
 @Controller("auth")
 export class AuthController {
   constructor(
@@ -38,7 +34,8 @@ export class AuthController {
 
     const user = await this.authService.getOrCreateUser(
       decodedToken.uid,
-      decodedToken.email || null
+      decodedToken.email || null,
+      true // This is a new login
     );
 
     // Check if onboarding is needed (user doesn't exist or missing first_name/last_name)
@@ -78,6 +75,34 @@ export class AuthController {
         last_name: user.last_name,
       },
       onboarding: !user.first_name || !user.last_name,
+    };
+  }
+
+  @Post("send-email-verification")
+  @UseGuards(AuthGuard)
+  async sendEmailVerification(@Request() req) {
+    const user = await this.userService.findById(req.user.id);
+    if (!user) {
+      throw new UnauthorizedException("User not found");
+    }
+
+    await this.authService.sendEmailVerification(user.firebase_uid);
+    return { message: "Verification email sent successfully" };
+  }
+
+  @Post("forgot-password")
+  async forgotPassword(@Body() body: unknown) {
+    const { email } = z
+      .object({
+        email: z.string().email(),
+      })
+      .parse(body);
+
+    // Always return success to prevent email enumeration
+    await this.authService.sendPasswordResetEmail(email);
+    return {
+      message:
+        "If an account exists with this email, a password reset link has been sent.",
     };
   }
 }
