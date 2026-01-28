@@ -23,62 +23,38 @@ cp .env.example .env
 createdb instant_status
 ```
 
-4. Set up Redis:
-
-```bash
-# Using Docker
-docker run -d -p 6379:6379 redis:alpine
-
-# Or install locally
-brew install redis  # macOS
-redis-server
-```
-
-5. Configure Firebase Admin:
+4. Configure Firebase Admin:
 
    **How Firebase Admin identifies your project:**
 
    Firebase Admin SDK identifies which Firebase project to use through the **service account JSON file**. The service account JSON contains a `project_id` field that tells Firebase Admin which project to connect to.
 
-   **Option 1: Service Account JSON (Recommended)**
+   **Firebase Admin Setup:**
    - Go to Firebase Console → Project Settings → Service Accounts
    - Click "Generate New Private Key" to download the service account JSON
-   - Set `FIREBASE_SERVICE_ACCOUNT` environment variable to the entire JSON content as a string:
+   - Extract these values from the JSON and add to your `.env` file:
      ```bash
-     FIREBASE_SERVICE_ACCOUNT='{"type":"service_account","project_id":"your-project-id",...}'
+     FIREBASE_PROJECT_ID=your-project-id
+     FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----\n"
+     FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
      ```
    - The `project_id` in the JSON tells Firebase Admin which project to use
+   - Make sure `FIREBASE_PRIVATE_KEY` includes the BEGIN/END markers and newlines
 
-   **Option 2: Service Account File Path**
-   - Download the service account JSON file
-   - Set `GOOGLE_APPLICATION_CREDENTIALS` to the file path:
-     ```bash
-     GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
-     ```
-   - Optionally set `FIREBASE_PROJECT_ID` explicitly:
-     ```bash
-     FIREBASE_PROJECT_ID=your-project-id
-     ```
+5. Configure Postmark (Email Service):
 
-   **Option 3: Default Credentials (Local Development)**
-   - If using Google Cloud SDK (`gcloud auth application-default login`)
-   - Set `FIREBASE_PROJECT_ID` environment variable:
-     ```bash
-     FIREBASE_PROJECT_ID=your-project-id
-     ```
+   ```bash
+   # Sign up at https://postmarkapp.com/
+   # Create a server and get your API key
+   POSTMARK_API_KEY=your-postmark-api-key
+   ```
 
    **Important:** The project ID must match between:
    - Your Firebase mobile app configuration
    - Your Firebase Admin SDK configuration
    - This ensures tokens from the mobile app can be verified by the backend
 
-6. Run migrations (if using migrations):
-
-```bash
-npm run migration:run
-```
-
-7. Start the server:
+6. Start the server:
 
 ```bash
 npm run start:dev
@@ -92,6 +68,8 @@ The API will be available at `http://localhost:3000`
 
 - `POST /auth/firebase-token-verify` - Verify Firebase token and get/create user
 - `POST /auth/refresh-token` - Refresh user token
+- `POST /auth/send-email-verification` - Send email verification link
+- `POST /auth/forgot-password` - Send password reset email
 
 ### User
 
