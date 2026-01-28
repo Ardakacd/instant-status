@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Verify Email | InstantStatus</title>
+    <title>Reset Password | InstantStatus</title>
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
@@ -92,13 +92,16 @@
         color: #34c759;
       }
     </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   </head>
   <body>
     <div class="container">
-      <div class="logo">✉️</div>
-      <h1 id="title">Verifying Your Email...</h1>
+      <div class="logo">🔒</div>
+      <h1 id="title">Resetting Your Password...</h1>
       <p id="message">
-        We're opening the InstantStatus app to complete email verification. 
+        We're opening the InstantStatus app to complete password reset. 
         Please wait a moment...
       </p>
       <div id="spinner" class="spinner"></div>
@@ -108,12 +111,8 @@
       </a>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-      import { getAuth, applyActionCode } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-
-      // Firebase config - matches your mobile app config
+    <script>
+      // Firebase configuration
       const firebaseConfig = {
         apiKey: "AIzaSyDPPG_-9OO8PoCt4XoKQEX6hi_8l5j-p54",
         authDomain: "instant-status-8d123.firebaseapp.com",
@@ -123,8 +122,11 @@
         appId: "1:70279102156:web:28d20293cec8fc2f9c4c69"
       };
 
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
+      // Initialize Firebase
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      const auth = firebase.auth();
 
       // Extract mode and oobCode from URL query parameters
       const urlParams = new URLSearchParams(window.location.search);
@@ -138,9 +140,11 @@
       const buttonEl = document.getElementById("button");
 
       // Universal link that will open the app if installed
-      let universalLink = "https://instantstatus.app/verify";
+      let universalLink = "https://instantstatus.app/reset-password";
       if (mode && oobCode) {
-        universalLink = `https://instantstatus.app/verify?mode=${mode}&oobCode=${oobCode}`;
+        universalLink = `https://instantstatus.app/reset-password?mode=${mode}&oobCode=${oobCode}`;
+      } else if (mode) {
+        universalLink = `https://instantstatus.app/reset-password?mode=${mode}`;
       }
 
       // Update button href
@@ -148,7 +152,7 @@
 
       // Function to show error state
       function showError(message) {
-        titleEl.textContent = "Unable to Verify";
+        titleEl.textContent = "Unable to Reset Password";
         messageEl.textContent = message;
         messageEl.className = "error";
         spinnerEl.style.display = "none";
@@ -160,19 +164,20 @@
 
       // Function to show success state
       function showSuccess() {
-        titleEl.textContent = "Email Verified!";
-        messageEl.textContent = "Your email has been successfully verified. Redirecting to app...";
+        titleEl.textContent = "Redirecting...";
+        messageEl.textContent = "Opening the InstantStatus app to complete password reset.";
         messageEl.className = "success";
         spinnerEl.style.display = "none";
         statusEl.style.display = "block";
-        statusEl.textContent = "Opening InstantStatus app...";
+        statusEl.textContent = "You can set your new password in the app.";
         statusEl.className = "status-message success";
+        buttonEl.style.display = "inline-block";
+        buttonEl.textContent = "Open InstantStatus";
       }
 
       // Function to redirect to app
       function redirectToApp() {
-        // Redirect to universal link (iOS/Android will intercept if app is installed)
-        setTimeout(function() {
+        setTimeout(() => {
           window.location.href = universalLink;
           
           // If we're still here after 2 seconds, show the button
@@ -186,43 +191,19 @@
         }, 500);
       }
 
-      // Handle verification
-      window.onload = async function () {
-        // Check if mode is correct
-        if (mode && mode !== "verifyEmail") {
-          showError("Invalid verification link. Please check your email and try again.");
-          return;
-        }
-
-        // If we have oobCode, apply it client-side to bypass Firebase's intermediate page
-        if (mode === "verifyEmail" && oobCode) {
-          try {
-            titleEl.textContent = "Verifying Email...";
-            messageEl.textContent = "Please wait while we verify your email address...";
-            
-            // Apply the action code client-side
-            await applyActionCode(auth, oobCode);
-            
-            console.log("Email verified successfully!");
-            showSuccess();
-            
-            // Redirect to app immediately
-            redirectToApp();
-          } catch (error) {
-            console.error("Verification error:", error);
-            showError(error.message || "Failed to verify email. Please try again.");
-            buttonEl.style.display = "inline-block";
-          }
-        } else if (mode === "verifyEmail" && !oobCode) {
-          // Firebase already processed the code - just redirect to app
+      window.onload = function () {
+        // Check if we have the required parameters for password reset
+        if (mode === "resetPassword") {
+          // Just redirect to app - password reset will be handled in the app
           showSuccess();
           redirectToApp();
         } else {
-          // No mode or oobCode - might be a direct link
-          universalLink = "https://instantstatus.app/verify?mode=verifyEmail";
+          // If not a password reset link, just try to open the app
+          console.log("Web: Not a password reset link, attempting to open app directly.");
           redirectToApp();
         }
       };
     </script>
   </body>
 </html>
+
