@@ -9,10 +9,9 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
   updatePassword,
-  sendEmailVerification,
   deleteUser,
-  sendPasswordResetEmail,
   applyActionCode,
+  confirmPasswordReset,
 } from "firebase/auth";
 import { auth, mapSignInError, mapSignupError } from "../config/firebase";
 import api, { resetAuthReady } from "../config/api";
@@ -81,20 +80,18 @@ export class AuthService {
         password
       );
 
-      // Send email verification with universal link (skip in dev)
-      if (!__DEV__) {
-        try {
-          await sendEmailVerification(userCredential.user, {
-            url: "https://instantstatus.app/verify",
-            handleCodeInApp: true,
-          });
-        } catch (verificationError: any) {
-          // Log but don't fail signup if verification email fails
-          console.warn("Failed to send verification email:", verificationError);
-        }
+      // Verify token with backend and create/get user
+      const result = await this.handleAuthSuccess(userCredential);
+
+      // Send email verification via backend
+      try {
+        await api.post("/auth/send-email-verification");
+      } catch (verificationError: any) {
+        // Log but don't fail signup if verification email fails
+        console.warn("Failed to send verification email:", verificationError);
       }
 
-      return this.handleAuthSuccess(userCredential);
+      return result;
     } catch (error: any) {
       console.error("Error signing up:", error);
       throw new Error(mapSignupError(error));
@@ -332,12 +329,6 @@ export class AuthService {
   }
 
   async sendEmailVerification(): Promise<void> {
-    // Skip email verification in development
-    if (__DEV__) {
-      console.log("Email verification skipped in development mode");
-      return;
-    }
-
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
@@ -348,16 +339,11 @@ export class AuthService {
         throw new Error("Email is already verified");
       }
 
-      // Use universal link for email verification
-      await sendEmailVerification(currentUser, {
-        url: "https://instantstatus.app/verify",
-        handleCodeInApp: true,
-      });
+      // Send email verification via backend (uses Postmark)
+      await api.post("/auth/send-email-verification");
     } catch (error: any) {
       console.error("Error sending verification email:", error);
-      if (error.code === "auth/too-many-requests") {
-        throw new Error("Too many requests. Please try again later.");
-      } else if (error.message) {
+      if (error.message) {
         throw new Error(error.message);
       } else {
         throw new Error("Failed to send verification email");
@@ -366,10 +352,6 @@ export class AuthService {
   }
 
   isEmailVerified(): boolean {
-    // Skip email verification check in development
-    if (__DEV__) {
-      return true;
-    }
     const currentUser = auth.currentUser;
     return currentUser?.emailVerified || false;
   }
@@ -380,13 +362,13 @@ export class AuthService {
   async verifyEmail(oobCode: string): Promise<void> {
     try {
       await applyActionCode(auth, oobCode);
+      
       // Reload user to get updated emailVerified status
       const currentUser = auth.currentUser;
       if (currentUser) {
         await currentUser.reload();
       }
     } catch (error: any) {
-      console.error("Error verifying email:", error);
       if (error.code === "auth/expired-action-code") {
         throw new Error(
           "Verification link has expired. Please request a new one."
@@ -410,19 +392,37 @@ export class AuthService {
 
   async resetPassword(email: string): Promise<void> {
     try {
-      await sendPasswordResetEmail(auth, email);
+      // Call backend endpoint instead of Firebase directly
+      // This ensures we use our custom email template and have better control
+      await api.post("/auth/forgot-password", { email });
     } catch (error: any) {
       console.error("Error sending password reset email:", error);
-      if (error.code === "auth/user-not-found") {
-        throw new Error("No account found with this email address");
-      } else if (error.code === "auth/invalid-email") {
-        throw new Error("Invalid email address");
-      } else if (error.code === "auth/too-many-requests") {
-        throw new Error("Too many requests. Please try again later.");
-      } else if (error.message) {
+      if (error.message) {
         throw new Error(error.message);
       } else {
         throw new Error("Failed to send password reset email");
+      }
+    }
+  }
+
+  /**
+   * Confirm password reset using action code from email link
+   */
+  async confirmPasswordReset(oobCode: string, newPassword: string): Promise<void> {
+    try {
+      await confirmPasswordReset(auth, oobCode, newPassword);
+    } catch (error: any) {
+      console.error("Error confirming password reset:", error);
+      if (error.code === "auth/expired-action-code") {
+        throw new Error("Password reset link has expired. Please request a new one.");
+      } else if (error.code === "auth/invalid-action-code") {
+        throw new Error("Invalid password reset link. Please request a new one.");
+      } else if (error.code === "auth/weak-password") {
+        throw new Error("Password is too weak. Please choose a stronger password.");
+      } else if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error("Failed to reset password");
       }
     }
   }

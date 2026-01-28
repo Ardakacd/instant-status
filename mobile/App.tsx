@@ -31,6 +31,7 @@ import LoginScreen from "./src/screens/LoginScreen";
 import SignUpScreen from "./src/screens/SignUpScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
 import EmailVerificationScreen from "./src/screens/EmailVerificationScreen";
+import ResetPasswordScreen from "./src/screens/ResetPasswordScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import FriendsScreen from "./src/screens/FriendsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
@@ -40,6 +41,7 @@ export type RootStackParamList = {
   SignUp: undefined;
   SignIn: undefined;
   EmailVerification: { mode?: string; oobCode?: string } | undefined;
+  ResetPassword: { mode?: string; oobCode?: string } | undefined;
   Onboarding: undefined;
   Main: { screen?: string; params?: { friendId?: string } } | undefined;
   Connect: { userId?: string } | undefined;
@@ -101,6 +103,59 @@ function AppNavigator() {
   const navigationRef =
     useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [isNavReady, setIsNavReady] = useState(false);
+
+  // Handle deep links when app opens or is already open
+  useEffect(() => {
+    // Handle initial URL when app opens from deep link
+    const handleInitialURL = async () => {
+      const initialUrl = await Linking.getInitialURL();
+      if (initialUrl && isNavReady && navigationRef.current) {
+        const parsed = Linking.parse(initialUrl);
+        // Handle reset password links manually since screen is conditionally rendered
+        if (
+          parsed.path === "reset-password" ||
+          parsed.path === "/reset-password" ||
+          parsed.queryParams?.mode === "resetPassword"
+        ) {
+          // Navigate to ResetPassword screen
+          navigationRef.current.navigate("ResetPassword", {
+            mode: parsed.queryParams?.mode as string,
+            oobCode: parsed.queryParams?.oobCode as string,
+          });
+          return; // Don't let React Navigation handle this automatically
+        }
+        // Let React Navigation handle other links automatically
+      }
+    };
+
+    if (isNavReady) {
+      handleInitialURL();
+    }
+
+    // Handle URL changes when app is already open
+    const subscription = Linking.addEventListener("url", (event) => {
+      if (isNavReady && navigationRef.current) {
+        const parsed = Linking.parse(event.url);
+        // Handle reset password links manually
+        if (
+          parsed.path === "reset-password" ||
+          parsed.path === "/reset-password" ||
+          parsed.queryParams?.mode === "resetPassword"
+        ) {
+          navigationRef.current.navigate("ResetPassword", {
+            mode: parsed.queryParams?.mode as string,
+            oobCode: parsed.queryParams?.oobCode as string,
+          });
+          return; // Don't let React Navigation handle this automatically
+        }
+        // Let React Navigation handle other links automatically
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isNavReady]);
 
   // Consistency: Handle navigation for all notification types
   const handleNotificationNavigation = (remoteMessage: any) => {
@@ -178,7 +233,30 @@ function AppNavigator() {
       onReady={() => setIsNavReady(true)}
       linking={{
         prefixes: [Linking.createURL("/"), "https://instantstatus.app"],
-        config: { screens: { Main: "main", Connect: "connect/:userId" } },
+        config: {
+          screens: {
+            Main: "main",
+            Connect: "connect/:userId",
+            EmailVerification: {
+              path: "verify",
+              // Query parameters (mode, oobCode) will be automatically parsed from URL
+            },
+            // ResetPassword is handled manually in useEffect to avoid navigation state errors
+            // since it's conditionally rendered based on auth state
+          },
+        },
+        // Custom getStateFromPath to handle reset-password links manually
+        getStateFromPath: (path, options) => {
+          // If it's a reset-password link, return null so we handle it manually
+          if (
+            path.includes("reset-password") ||
+            path.includes("mode=resetPassword")
+          ) {
+            return undefined; // Let manual navigation handle it
+          }
+          // Use default React Navigation state parsing for other paths
+          return undefined;
+        },
       }}
     >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -186,18 +264,26 @@ function AppNavigator() {
           <>
             <Stack.Screen name="SignUp" component={SignUpScreen} />
             <Stack.Screen name="SignIn" component={LoginScreen} />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           </>
         ) : !emailVerified ? (
-          <Stack.Screen
-            name="EmailVerification"
-            component={EmailVerificationScreen}
-          />
+          <>
+            <Stack.Screen
+              name="EmailVerification"
+              component={EmailVerificationScreen}
+            />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+          </>
         ) : onboarding ? (
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <>
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+          </>
         ) : (
           <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="Connect" component={ConnectScreen} />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           </>
         )}
       </Stack.Navigator>
