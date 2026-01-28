@@ -13,6 +13,7 @@ import {
   AppState,
   Modal,
   Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -731,71 +732,82 @@ export default function ProfileScreen() {
         }}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Delete Account</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setDeleteAccountModalVisible(false);
-                  setDeletePassword("");
-                }}
-                disabled={deletingAccount}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+            style={{ flex: 1, justifyContent: "flex-end" }}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Delete Account</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setDeleteAccountModalVisible(false);
+                    setDeletePassword("");
+                  }}
+                  disabled={deletingAccount}
+                >
+                  <Ionicons name="close" size={24} color="#111827" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                style={styles.modalBody}
+                contentContainerStyle={styles.modalBodyContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
               >
-                <Ionicons name="close" size={24} color="#111827" />
-              </TouchableOpacity>
-            </View>
+                <Text style={styles.deleteWarningText}>
+                  This action cannot be undone. All your data will be permanently
+                  deleted.
+                </Text>
 
-            <ScrollView style={styles.modalBody}>
-              <Text style={styles.deleteWarningText}>
-                This action cannot be undone. All your data will be permanently
-                deleted.
-              </Text>
-
-              {authProvider === "password" && (
-                <View style={styles.modalInputContainer}>
-                  <Text style={styles.modalInputLabel}>
-                    Enter your password to confirm
-                  </Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    value={deletePassword}
-                    onChangeText={setDeletePassword}
-                    placeholder="Enter your password"
-                    secureTextEntry
-                    autoCapitalize="none"
-                    editable={!deletingAccount}
-                  />
-                </View>
-              )}
-
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  styles.deleteButton,
-                  deletingAccount && styles.modalButtonDisabled,
-                ]}
-                onPress={() => handleConfirmDeleteAccount(deletePassword)}
-                disabled={deletingAccount}
-              >
-                {deletingAccount ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.modalButtonText}>Delete Account</Text>
+                {authProvider === "password" && (
+                  <View style={styles.modalInputContainer}>
+                    <Text style={styles.modalInputLabel}>
+                      Enter your password to confirm
+                    </Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      value={deletePassword}
+                      onChangeText={setDeletePassword}
+                      placeholder="Enter your password"
+                      secureTextEntry
+                      autoCapitalize="none"
+                      editable={!deletingAccount}
+                    />
+                  </View>
                 )}
-              </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelDeleteButton]}
-                onPress={() => {
-                  setDeleteAccountModalVisible(false);
-                  setDeletePassword("");
-                }}
-                disabled={deletingAccount}
-              >
-                <Text style={styles.cancelDeleteButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
+                <TouchableOpacity
+                  style={[
+                    styles.modalButton,
+                    styles.deleteButton,
+                    deletingAccount && styles.modalButtonDisabled,
+                  ]}
+                  onPress={() => handleConfirmDeleteAccount(deletePassword)}
+                  disabled={deletingAccount}
+                >
+                  {deletingAccount ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.modalButtonText}>Delete Account</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelDeleteButton]}
+                  onPress={() => {
+                    setDeleteAccountModalVisible(false);
+                    setDeletePassword("");
+                  }}
+                  disabled={deletingAccount}
+                >
+                  <Text style={styles.cancelDeleteButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>
@@ -977,7 +989,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "80%",
-    paddingBottom: 40,
   },
   modalHeader: {
     flexDirection: "row",
@@ -993,7 +1004,11 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   modalBody: {
+    maxHeight: "100%",
+  },
+  modalBodyContent: {
     padding: 20,
+    paddingBottom: 20,
   },
   modalInputContainer: {
     marginBottom: 20,
