@@ -2,13 +2,14 @@
   "expo": {
     "name": "Instant Status",
     "slug": "instant-status",
+    "scheme": "instant-status",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,6 +17,7 @@
       "supportsTablet": true,
       "appleTeamId": "FPQ5Q94QY6",
       "bundleIdentifier": "com.arda.instantstatus.dev",
+      "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -26,21 +28,70 @@
         "com.apple.security.application-groups": [
           "group.com.arda.instantstatus.dev"
         ]
-      }
+      },
+      "associatedDomains": ["applinks:instantstatus.app"]
     },
     "android": {
       "package": "com.arda.instantstatus.dev",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "notification": {
+        "icon": "./assets/notification-icon.png",
+        "color": "#007AFF"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["RECEIVE_BOOT_COMPLETED"]
+      "permissions": ["RECEIVE_BOOT_COMPLETED", "POST_NOTIFICATIONS"],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "instantstatus.app",
+              "pathPrefix": "/verify"
+            },
+            {
+              "scheme": "https",
+              "host": "instantstatus.app",
+              "pathPrefix": "/connect"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.ico",
+      "bundler": "metro",
+      "output": "single",
+      "name": "Instant Status",
+      "shortName": "Instant Status",
+      "lang": "en",
+      "scope": "/",
+      "themeColor": "#ffffff",
+      "backgroundColor": "#ffffff",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "icons": [
+        {
+          "src": "./assets/web-app-manifest-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "any maskable"
+        },
+        {
+          "src": "./assets/web-app-manifest-512x512.png",
+          "sizes": "512x512",
+          "type": "image/png",
+          "purpose": "any maskable"
+        }
+      ]
     },
     "plugins": [
       "@react-native-community/datetimepicker",
@@ -81,7 +132,9 @@
             }
           ]
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
     ],
     "extra": {
       "eas": {
