@@ -13,7 +13,7 @@ web-build/
 .env
 .env.development
 .env.production
-
+credentials.json
 # macOS
 .DS_Store
 
