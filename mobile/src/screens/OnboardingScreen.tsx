@@ -53,7 +53,6 @@ export default function OnboardingScreen() {
         value={firstName}
         onChangeText={setFirstName}
         autoCapitalize="words"
-        autoFocus
       />
       <TextInput
         style={styles.input}
