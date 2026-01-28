@@ -8,6 +8,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { User } from "../entities/user.entity";
 import { Status, StatusState } from "../entities/status.entity";
+import { EmailService } from "../email/email.service";
 
 @Injectable()
 export class UserService {
@@ -17,7 +18,8 @@ export class UserService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Status)
-    private statusRepository: Repository<Status>
+    private statusRepository: Repository<Status>,
+    private emailService: EmailService
   ) {}
 
   async findById(id: string): Promise<User | null> {
@@ -96,8 +98,35 @@ export class UserService {
         throw new NotFoundException("User not found");
       }
 
+      // Check if onboarding is being completed (first time setting first_name and last_name)
+      const wasOnboardingIncomplete = !user.first_name || !user.last_name;
+      const isCompletingOnboarding =
+        wasOnboardingIncomplete &&
+        data.first_name &&
+        data.last_name;
+
       Object.assign(user, data);
-      return await this.userRepository.save(user);
+      const updatedUser = await this.userRepository.save(user);
+
+      // Send welcome email when onboarding is completed
+      if (isCompletingOnboarding && updatedUser.email) {
+        try {
+          await this.emailService.sendWelcomeEmail(
+            updatedUser.email,
+            updatedUser.first_name
+          );
+          this.logger.log(
+            `Welcome email sent to ${updatedUser.email} after onboarding completion`
+          );
+        } catch (error: any) {
+          // Don't fail update if welcome email fails
+          this.logger.warn(
+            `Failed to send welcome email to ${updatedUser.email}: ${error.message}`
+          );
+        }
+      }
+
+      return updatedUser;
     } catch (error: any) {
       // Re-throw NotFoundException as-is
       if (error instanceof NotFoundException) {

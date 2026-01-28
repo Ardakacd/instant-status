@@ -3,10 +3,14 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Logger,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { DeviceToken, Platform } from "../entities/device-token.entity";
+import { UserService } from "../user/user.service";
+import { EmailService } from "../email/email.service";
 
 @Injectable()
 export class DeviceTokenService {
@@ -14,7 +18,10 @@ export class DeviceTokenService {
 
   constructor(
     @InjectRepository(DeviceToken)
-    private deviceTokenRepository: Repository<DeviceToken>
+    private deviceTokenRepository: Repository<DeviceToken>,
+    @Inject(forwardRef(() => UserService))
+    private userService: UserService,
+    private emailService: EmailService
   ) {}
 
   async registerToken(userId: string, token: string, platform: Platform) {
@@ -33,8 +40,10 @@ export class DeviceTokenService {
         },
       });
 
+      const isNewDevice = !existingToken;
+
       if (existingToken) {
-        // Overwrite the token field of the existing row
+        // Overwrite the token field of the existing row (same device, token refreshed)
         existingToken.token = token;
         return await this.deviceTokenRepository.save(existingToken);
       }
@@ -46,7 +55,39 @@ export class DeviceTokenService {
         platform,
       });
 
-      return await this.deviceTokenRepository.save(deviceToken);
+      // Before saving, check if user has other device tokens (to detect new device)
+      const existingTokensForUser = await this.deviceTokenRepository.find({
+        where: { user_id: userId },
+      });
+      const hasOtherDevices = existingTokensForUser.length > 0;
+
+      const savedToken = await this.deviceTokenRepository.save(deviceToken);
+
+      // Check if this is a new device (not first login) and send alert
+      if (isNewDevice && hasOtherDevices) {
+        try {
+          const user = await this.userService.findById(userId);
+          if (user && user.email && user.first_login_at) {
+            // User has logged in before and has other devices - this is a new device
+            await this.emailService.sendNewDeviceAlert(
+              user.email,
+              {
+                platform: platform,
+                // Location detection would require IP geolocation service
+                // For now, we'll omit it
+              },
+              user.first_name
+            );
+          }
+        } catch (emailError: any) {
+          // Don't fail token registration if email fails
+          this.logger.warn(
+            `Failed to send new device alert: ${emailError.message}`
+          );
+        }
+      }
+
+      return savedToken;
     } catch (error: any) {
       // Re-throw NestJS exceptions as-is
       if (error instanceof BadRequestException) {

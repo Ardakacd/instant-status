@@ -28,6 +28,12 @@ export class User {
 
   @Column({ type: "varchar", length: 255, nullable: true })
   last_name: string | null;
+
+  @Column({ type: "timestamp with time zone", nullable: true })
+  first_login_at: Date | null;
+
+  @Column({ type: "timestamp with time zone", nullable: true })
+  last_login_at: Date | null;
   
   @CreateDateColumn()
   created_at: Date;
