@@ -50,23 +50,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function checkEmailVerification() {
-    // Skip email verification check in development
-    if (__DEV__) {
-      setEmailVerified(true);
-      return;
-    }
-
     try {
       const provider = authService.getAuthProvider();
       if (provider === "password") {
         await authService.reloadUser();
-        setEmailVerified(authService.isEmailVerified());
+        const isVerified = authService.isEmailVerified();
+        setEmailVerified(isVerified);
       } else {
-        // Google users are automatically verified
+        // Google and Apple users are automatically verified
         setEmailVerified(true);
       }
     } catch (error) {
-      console.error("Error checking email verification:", error);
+      // Silently handle errors - verification check will retry on next auth state change
     }
   }
 

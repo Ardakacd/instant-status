@@ -8,17 +8,80 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as Linking from "expo-linking";
 import { authService } from "../services/auth.service";
 import { auth } from "../config/firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { RootStackParamList } from "../../App";
 
-export default function EmailVerificationScreen() {
+type Props = NativeStackScreenProps<RootStackParamList, "EmailVerification">;
+
+export default function EmailVerificationScreen({ route }: Props) {
   const { checkEmailVerification, logout } = useAuth();
   const [sending, setSending] = useState(false);
-  const [checking, setChecking] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [hasHandledVerification, setHasHandledVerification] = useState(false);
 
-  // Listen for auth state changes to automatically navigate when verified
+  // Handle email verification link (oobCode from universal link)
+  useEffect(() => {
+    if (hasHandledVerification) return;
+
+    const { oobCode, mode } = route.params || {};
+    
+    // Also try to get params from URL if route.params is empty (deep link case)
+    const getParamsFromURL = async () => {
+      const url = await Linking.getInitialURL();
+      if (url && (!oobCode || !mode)) {
+        const parsed = Linking.parse(url);
+        const queryParams = parsed.queryParams || {};
+        return {
+          mode: mode || queryParams.mode as string,
+          oobCode: oobCode || queryParams.oobCode as string,
+        };
+      }
+      return { mode, oobCode };
+    };
+
+    getParamsFromURL().then(({ mode: finalMode, oobCode: finalOobCode }) => {
+      if (finalMode === "verifyEmail") {
+        setHasHandledVerification(true);
+        if (finalOobCode) {
+          handleVerifyEmail(finalOobCode);
+        } else {
+          handleCheckVerificationOnly();
+        }
+      }
+    });
+  }, [route.params, hasHandledVerification]);
+
+  const handleCheckVerificationOnly = async () => {
+    setVerifying(true);
+    try {
+      await authService.reloadUser();
+      await checkEmailVerification();
+      setVerifying(false);
+    } catch (error: any) {
+      setVerifying(false);
+    }
+  };
+
+  const handleVerifyEmail = async (oobCode: string) => {
+    setVerifying(true);
+    try {
+      await authService.verifyEmail(oobCode);
+      await authService.reloadUser();
+      await checkEmailVerification();
+      setVerifying(false);
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to verify email");
+      setVerifying(false);
+    }
+  };
+
+
+  // Listen for auth state changes to check verification status
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async () => {
       await checkEmailVerification();
@@ -46,10 +109,6 @@ export default function EmailVerificationScreen() {
     try {
       await authService.sendEmailVerification();
       setResendCooldown(60); // Set 60 second cooldown
-      Alert.alert(
-        "Verification Email Sent",
-        "Please check your email and click the verification link to verify your account."
-      );
     } catch (error: any) {
       Alert.alert(
         "Error",
@@ -57,18 +116,6 @@ export default function EmailVerificationScreen() {
       );
     } finally {
       setSending(false);
-    }
-  };
-
-  const checkVerificationStatus = async () => {
-    setChecking(true);
-    try {
-      await checkEmailVerification();
-      // Navigation will happen automatically if email is verified
-    } catch (error: any) {
-      Alert.alert("Error", "Failed to check verification status");
-    } finally {
-      setChecking(false);
     }
   };
 
@@ -106,9 +153,16 @@ export default function EmailVerificationScreen() {
 
       <Text style={styles.title}>Verify Your Email</Text>
       <Text style={styles.subtitle}>
-        We've sent a verification email. It may take a minute to arrive. Check
-        your spam folder.
+        {verifying
+          ? "Verifying your email..."
+          : "We've sent a verification email. Click the link in the email to automatically verify your account. It may take a minute to arrive, check your spam folder if needed."}
       </Text>
+
+      {verifying && (
+        <View style={styles.verifyingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+        </View>
+      )}
 
       <TouchableOpacity
         style={[
@@ -131,26 +185,6 @@ export default function EmailVerificationScreen() {
               style={styles.buttonIcon}
             />
             <Text style={styles.buttonText}>Resend Verification Email</Text>
-          </>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.checkButton, checking && styles.buttonDisabled]}
-        onPress={checkVerificationStatus}
-        disabled={checking}
-      >
-        {checking ? (
-          <ActivityIndicator color="#007AFF" />
-        ) : (
-          <>
-            <Ionicons
-              name="refresh"
-              size={20}
-              color="#007AFF"
-              style={styles.buttonIcon}
-            />
-            <Text style={styles.checkButtonText}>I've Verified My Email</Text>
           </>
         )}
       </TouchableOpacity>
@@ -202,17 +236,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     alignItems: "center",
-    marginBottom: 12,
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  checkButton: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#007AFF",
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
   },
@@ -227,9 +250,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  checkButtonText: {
-    color: "#007AFF",
-    fontSize: 16,
-    fontWeight: "600",
+  verifyingContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+    alignItems: "center",
   },
 });
