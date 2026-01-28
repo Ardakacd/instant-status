@@ -40,11 +40,6 @@ export default function SignUpScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await signUp(email, password);
-      Alert.alert(
-        "Verification Email Sent",
-        "Please check your email and click the verification link to verify your account.",
-        [{ text: "OK" }]
-      );
     } catch (error: any) {
       const errorMessage =
         error.message || error.originalError?.message || "Failed to sign up";
