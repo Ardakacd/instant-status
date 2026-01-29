@@ -19,7 +19,10 @@ export class AuthGuard implements CanActivate {
     const authHeader = request.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid authorization header');
+      throw new UnauthorizedException({
+        message: 'Missing or invalid authorization header',
+        errorCode: 'AUTH_REQUIRED',
+      });
     }
 
     const token = authHeader.substring(7);
@@ -28,20 +31,34 @@ export class AuthGuard implements CanActivate {
       const decodedToken = await this.authService.verifyFirebaseToken(token);
       
       if (!decodedToken.uid) {
-        throw new UnauthorizedException('Firebase UID not found in token');
+        throw new UnauthorizedException({
+          message: 'Firebase UID not found in token',
+          errorCode: 'TOKEN_INVALID',
+        });
       }
 
       // Get user from database by firebase_uid
       const user = await this.userService.findByFirebaseUid(decodedToken.uid);
       
       if (!user) {
-        throw new UnauthorizedException('User not found');
+        throw new UnauthorizedException({
+          message: 'User not found',
+          errorCode: 'UNAUTHORIZED',
+        });
       }
 
       request.user = user;
       return true;
     } catch (error) {
-      throw new UnauthorizedException('You are not authorized');
+      // If it's already an UnauthorizedException with errorCode, re-throw as-is
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      // Otherwise, wrap in generic unauthorized error
+      throw new UnauthorizedException({
+        message: 'You are not authorized',
+        errorCode: 'UNAUTHORIZED',
+      });
     }
   }
 }

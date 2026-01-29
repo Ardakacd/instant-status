@@ -7,6 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
+import { ZodError } from "zod";
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -20,8 +21,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let status: number;
     let message: string | object;
     let error: string;
+    let errorCode: string | undefined;
 
-    if (exception instanceof HttpException) {
+    // Handle Zod validation errors
+    if (exception instanceof ZodError) {
+      status = HttpStatus.BAD_REQUEST;
+      error = "Validation Error";
+      // Format Zod errors into objects with field and message for frontend ease
+      message = exception.errors.map((err) => ({
+        field: err.path.join("."),
+        message: err.message,
+      }));
+    } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
@@ -34,6 +45,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
         // ValidationPipe returns message as array, other exceptions may return string
         message = responseObj.message || exception.message;
         error = responseObj.error || exception.name;
+        // Extract errorCode if present (for structured error handling)
+        errorCode = responseObj.errorCode;
       } else {
         message = exception.message;
         error = exception.name;
@@ -52,21 +65,30 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
     }
 
-    // Log all errors except 404s 
-    if (status !== HttpStatus.NOT_FOUND) {
+    // Log all errors except 404s and expected 401s during app initialization
+    const isExpected401 = 
+      status === HttpStatus.UNAUTHORIZED && 
+      errorCode === 'AUTH_REQUIRED';
+
+    if (status !== HttpStatus.NOT_FOUND && !isExpected401) {
       this.logger.warn(
         `${request.method} ${request.url} - ${status} - ${typeof message === "string" ? message : JSON.stringify(message)}`
       );
     }
 
     // Return consistent error format
-    const errorResponse = {
+    const errorResponse: any = {
       statusCode: status,
       message: Array.isArray(message) ? message : [message],
       error: error,
       timestamp: new Date().toISOString(),
       path: request.url,
     };
+
+    // Add errorCode if present (for structured error handling on frontend)
+    if (errorCode) {
+      errorResponse.errorCode = errorCode;
+    }
 
     response.status(status).json(errorResponse);
   }
