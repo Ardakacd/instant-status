@@ -8,44 +8,55 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { StatusService } from "./status.service";
+import { StatusOptionService } from "../status-option/status-option.service";
 import { AuthGuard } from "../auth/auth.guard";
-import { StatusState } from "../entities/status.entity";
 import { z } from "zod";
 
-const UpdateStatusDtoSchema = z.object({
-  state: z.nativeEnum(StatusState),
-  note: z.string().optional(),
-  expires_at: z.string().datetime().optional(),
-});
+const UpdateStatusDtoSchema = z
+  .object({
+    option_id: z.string().uuid(),
+    note: z.string().optional(),
+    expires_at: z.string().datetime().optional(),
+  })
+  .strict(); // Reject unknown fields
 
 @Controller("status")
 @UseGuards(AuthGuard)
 export class StatusController {
-  constructor(private statusService: StatusService) {}
+  constructor(
+    private statusService: StatusService,
+    private statusOptionService: StatusOptionService
+  ) {}
 
   @Patch()
   async updateStatus(@Request() req, @Body() body: unknown) {
-    const { state, note, expires_at } = UpdateStatusDtoSchema.parse(body);
+    const { option_id, note, expires_at } = UpdateStatusDtoSchema.parse(body);
 
-    // Validate expires_at is a valid ISO 8601 date string with timezone info if provided
-    let expiresAt: Date | undefined;
-    if (expires_at) {
-      expiresAt = new Date(expires_at);
-      if (isNaN(expiresAt.getTime())) {
-        throw new BadRequestException("Invalid expiration date format");
-      }
-    }
+    // Zod's .datetime() already validates ISO 8601 format, so new Date() will always be valid
+    const expiresAt = expires_at ? new Date(expires_at) : undefined;
 
-    const status = await this.statusService.updateStatus(
+    // Prepare display name from req.user to avoid extra database query in service
+    const displayName =
+      req.user.first_name && req.user.last_name
+        ? `${req.user.first_name} ${req.user.last_name}`
+        : req.user.first_name || req.user.last_name || "Someone";
+
+    const { status, option } = await this.statusService.updateStatus(
       req.user.id,
-      state,
+      option_id,
+      displayName,
       note,
       expiresAt
     );
 
     return {
       user_id: status.user_id,
-      state: status.state,
+      option: {
+        id: option.id,
+        label: option.label,
+        emoji: option.emoji,
+        color: option.color,
+      },
       note: status.note,
       // NestJS automatically serializes Date objects to ISO strings via JSON.stringify()
       expires_at: status.expires_at,
@@ -56,18 +67,37 @@ export class StatusController {
   @Get("me")
   async getMyStatus(@Request() req) {
     const status = await this.statusService.getUserStatus(req.user.id);
+
     if (!status) {
+      // Only fetch default option if status doesn't exist
+      const defaultOption = await this.statusOptionService.getDefaultStatusOption();
       return {
         user_id: req.user.id,
-        state: StatusState.AVAILABLE,
+        option: defaultOption
+          ? {
+              id: defaultOption.id,
+              label: defaultOption.label,
+              emoji: defaultOption.emoji,
+              color: defaultOption.color,
+            }
+          : null,
         note: null,
         expires_at: null,
         updated_at: new Date().toISOString(),
       };
     }
+
+    // Status already has option relation loaded, no need to fetch default
     return {
       user_id: status.user_id,
-      state: status.state,
+      option: status.option
+        ? {
+            id: status.option.id,
+            label: status.option.label,
+            emoji: status.option.emoji,
+            color: status.option.color,
+          }
+        : null,
       note: status.note,
       // NestJS automatically serializes Date objects to ISO strings via JSON.stringify()
       expires_at: status.expires_at,

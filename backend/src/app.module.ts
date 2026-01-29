@@ -5,11 +5,13 @@ import { AuthModule } from "./auth/auth.module";
 import { UserModule } from "./user/user.module";
 import { ConnectionsModule } from "./connections/connections.module";
 import { StatusModule } from "./status/status.module";
+import { StatusOptionModule } from "./status-option/status-option.module";
 import { InviteCodeModule } from "./invite-code/invite-code.module";
 import { DeviceTokenModule } from "./device-token/device-token.module";
 import { RedirectModule } from "./redirect/redirect.module";
 import { User } from "./entities/user.entity";
 import { Status } from "./entities/status.entity";
+import { StatusOption } from "./entities/status-option.entity";
 import { Connection } from "./entities/connection.entity";
 import { InviteCode } from "./entities/invite-code.entity";
 import { DeviceToken } from "./entities/device-token.entity";
@@ -30,7 +32,7 @@ import { DeviceToken } from "./entities/device-token.entity";
       username: process.env.DB_USERNAME || "postgres",
       password: process.env.DB_PASSWORD || "postgres",
       database: process.env.DB_NAME || "instant_status",
-      entities: [User, Status, Connection, InviteCode, DeviceToken],
+      entities: [User, Status, StatusOption, Connection, InviteCode, DeviceToken],
       synchronize: process.env.NODE_ENV !== "production",
       logging: process.env.NODE_ENV === "development",
     }),
@@ -38,6 +40,7 @@ import { DeviceToken } from "./entities/device-token.entity";
     UserModule,
     ConnectionsModule,
     StatusModule,
+    StatusOptionModule,
     InviteCodeModule,
     DeviceTokenModule,
     RedirectModule,

@@ -3,13 +3,16 @@ import {
   InternalServerErrorException,
   BadRequestException,
   Logger,
+  NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, In } from "typeorm";
-import { Status, StatusState } from "../entities/status.entity";
+import { Status } from "../entities/status.entity";
+import { StatusOption } from "../entities/status-option.entity";
 import { Connection } from "../entities/connection.entity";
 import { DeviceToken } from "../entities/device-token.entity";
 import { User } from "../entities/user.entity";
+import { StatusOptionService } from "../status-option/status-option.service";
 import * as admin from "firebase-admin";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
 
@@ -26,18 +29,26 @@ export class StatusService {
     @InjectRepository(DeviceToken)
     private deviceTokenRepository: Repository<DeviceToken>,
     @InjectRepository(User)
-    private userRepository: Repository<User>
+    private userRepository: Repository<User>,
+    private statusOptionService: StatusOptionService
   ) {
     this.firebaseAdmin = getFirebaseAdmin();
   }
 
   async updateStatus(
     userId: string,
-    state: StatusState,
+    optionId: string,
+    displayName: string,
     note?: string,
     expiresAt?: Date
-  ) {
+  ): Promise<{ status: Status; option: StatusOption }> {
     try {
+      // Validate that the option exists and user has access to it
+      const option = await this.statusOptionService.getStatusOptionById(
+        optionId,
+        userId
+      );
+
       // Validate note length
       if (note && note.length > 200) {
         throw new BadRequestException("Note cannot exceed 200 characters");
@@ -48,28 +59,30 @@ export class StatusService {
         throw new BadRequestException("Expiration time must be in the future");
       }
 
-      let status = await this.statusRepository.findOne({
+      // Use upsert() to atomically handle update-or-insert, preventing race conditions
+      const updateData = {
+        user_id: userId,
+        option_id: optionId,
+        note: note || null,
+        expires_at: expiresAt || null,
+      };
+
+      await this.statusRepository.upsert(updateData, ["user_id"]);
+
+      // Reload the status with relations to ensure we have the latest data
+      const reloadedStatus = await this.statusRepository.findOne({
         where: { user_id: userId },
+        relations: ["option"],
       });
 
-      if (!status) {
-        status = this.statusRepository.create({
-          user_id: userId,
-          state,
-          note: note || null,
-          expires_at: expiresAt || null,
-        });
-      } else {
-        status.state = state;
-        status.note = note || null;
-        status.expires_at = expiresAt || null;
+      if (!reloadedStatus) {
+        throw new InternalServerErrorException("Failed to reload status after update");
       }
-
-      const savedStatus = await this.statusRepository.save(status);
 
       // Send push notifications to visible connections (don't fail if this fails)
       // Note: Firebase/Apple handle throttling on their end if notifications are sent too rapidly
-      this.sendStatusUpdatePush(userId, state, note, expiresAt).catch(
+      // Display name is passed from controller to avoid extra database query
+      this.sendStatusUpdatePush(userId, option, displayName, note, expiresAt).catch(
         (error) => {
           this.logger.warn(
             `Failed to send push notifications for status update: ${error.message}`
@@ -77,11 +90,12 @@ export class StatusService {
         }
       );
 
-      return savedStatus;
+      return { status: reloadedStatus, option };
     } catch (error: any) {
       // Re-throw NestJS exceptions as-is
       if (
         error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
         error instanceof InternalServerErrorException
       ) {
         throw error;
@@ -95,26 +109,41 @@ export class StatusService {
    * Checks if a status is expired and corrects it if needed.
    * Uses lazy evaluation - only checks expiration when status is accessed.
    */
-  private checkAndCorrectExpiration(status: Status | null): Status | null {
+  private async checkAndCorrectExpiration(
+    status: Status | null
+  ): Promise<Status | null> {
     if (!status) return null;
 
     const now = new Date();
     if (status.expires_at && status.expires_at <= now) {
-      // Status is expired
-      status.state = StatusState.AVAILABLE;
-      status.expires_at = null;
-      status.note = null;
-      // Persist the correction (fire and forget to avoid blocking)
-      this.statusRepository
-        .update(
-          { user_id: status.user_id },
-          { state: StatusState.AVAILABLE, expires_at: null, note: null }
-        )
-        .catch((error) => {
-          this.logger.warn(
-            `Failed to persist expired status correction: ${error.message}`
-          );
-        });
+      // Status is expired - reset to default "Available" option
+      const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+      if (defaultOption) {
+        status.option_id = defaultOption.id;
+        status.expires_at = null;
+        status.note = null;
+        // Update the option relation manually
+        status.option = defaultOption;
+        // Persist the correction (fire and forget to avoid blocking)
+        this.statusRepository
+          .update(
+            { user_id: status.user_id },
+            {
+              option_id: defaultOption.id,
+              expires_at: null,
+              note: null,
+            }
+          )
+          .catch((error) => {
+            this.logger.warn(
+              `Failed to persist expired status correction: ${error.message}`
+            );
+          });
+      } else {
+        this.logger.error(
+          "Cannot correct expired status: default status option not found"
+        );
+      }
     }
 
     return status;
@@ -131,12 +160,21 @@ export class StatusService {
     if (userIds.length === 0) return;
 
     try {
+      // Get default "Available" option
+      const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+      if (!defaultOption) {
+        this.logger.warn(
+          "Default status option not found, skipping expired status correction"
+        );
+        return;
+      }
+
       // Use PostgreSQL NOW() to compare timestamps correctly across timezones
       await this.statusRepository
         .createQueryBuilder()
         .update(Status)
         .set({
-          state: StatusState.AVAILABLE,
+          option_id: defaultOption.id,
           expires_at: null,
           note: null,
         })
@@ -156,10 +194,11 @@ export class StatusService {
     try {
       const status = await this.statusRepository.findOne({
         where: { user_id: userId },
+        relations: ["option"],
       });
 
       // Apply lazy expiration check
-      return this.checkAndCorrectExpiration(status);
+      return await this.checkAndCorrectExpiration(status);
     } catch (error: any) {
       this.logger.error(
         `Error getting user status: ${error.message}`,
@@ -214,7 +253,7 @@ export class StatusService {
       // Get statuses for all friends
       const statuses = await this.statusRepository.find({
         where: friendIds.map((id) => ({ user_id: id })),
-        relations: ["user"],
+        relations: ["user", "option"],
       });
 
       // Create a map of friendId -> status for quick lookup
@@ -225,54 +264,88 @@ export class StatusService {
           .map((status) => [status.user_id, status])
       );
 
+      // Get default option for fallback
+      const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+
       // Return status for each friend connection
-      // If visibility is false, return AVAILABLE status
+      // If visibility is false, return default status
       return friendConnections.map((fc) => {
         const status = statusMap.get(fc.friendId);
 
-        // If visibility is false, return AVAILABLE status
+        // If visibility is false, return default status
         if (!fc.visibility) {
           return {
             user_id: fc.friendId,
             first_name: fc.friend.first_name,
             last_name: fc.friend.last_name,
             avatar_url: null, // TODO: Add avatar_url to User entity if needed
-            state: StatusState.AVAILABLE,
+            option: defaultOption
+              ? {
+                  id: defaultOption.id,
+                  label: defaultOption.label,
+                  emoji: defaultOption.emoji,
+                  color: defaultOption.color,
+                }
+              : null,
             note: null,
             expires_at: null,
             updated_at: new Date().toISOString(),
           };
         }
 
-        // If visibility is true but no status exists, return AVAILABLE
+        // If visibility is true but no status exists, return default status
         if (!status) {
           return {
             user_id: fc.friendId,
             first_name: fc.friend.first_name,
             last_name: fc.friend.last_name,
             avatar_url: null,
-            state: StatusState.AVAILABLE,
+            option: defaultOption
+              ? {
+                  id: defaultOption.id,
+                  label: defaultOption.label,
+                  emoji: defaultOption.emoji,
+                  color: defaultOption.color,
+                }
+              : null,
             note: null,
             expires_at: null,
             updated_at: new Date().toISOString(),
           };
         }
 
-        // Apply lazy expiration check (status should already be corrected by bulk update,
-        // but check again to be safe)
-        const correctedStatus = this.checkAndCorrectExpiration(status);
+        // Status should already be corrected by bulk update, but return with option
+        // If option is null (shouldn't happen with eager loading, but handle gracefully)
+        if (!status.option) {
+          this.logger.warn(
+            `Status for user ${status.user_id} has invalid option_id: ${status.option_id}`
+          );
+        }
 
-        // Return actual status (or AVAILABLE if expired)
         // NestJS automatically serializes Date objects to ISO strings via JSON.stringify()
         return {
-          user_id: correctedStatus.user_id,
-          first_name: correctedStatus.user.first_name,
-          last_name: correctedStatus.user.last_name,
+          user_id: status.user_id,
+          first_name: status.user.first_name,
+          last_name: status.user.last_name,
           avatar_url: null, // TODO: Add avatar_url to User entity if needed
-          state: correctedStatus.state,
-          note: correctedStatus.note,
-          expires_at: correctedStatus.expires_at,
-          updated_at: correctedStatus.updated_at,
+          option: status.option
+            ? {
+                id: status.option.id,
+                label: status.option.label,
+                emoji: status.option.emoji,
+                color: status.option.color,
+              }
+            : defaultOption
+            ? {
+                id: defaultOption.id,
+                label: defaultOption.label,
+                emoji: defaultOption.emoji,
+                color: defaultOption.color,
+              }
+            : null,
+          note: status.note,
+          expires_at: status.expires_at,
+          updated_at: status.updated_at,
         };
       });
     } catch (error: any) {
@@ -286,14 +359,12 @@ export class StatusService {
 
   private async sendStatusUpdatePush(
     userId: string,
-    state: StatusState,
+    option: StatusOption,
+    displayName: string,
     note?: string,
     expiresAt?: Date
   ) {
     try {
-      // Get user info
-      const user = await this.userRepository.findOne({ where: { id: userId } });
-      if (!user) return;
 
       // Find all connections where this user is involved
       // We'll filter by visibility (a_shows_status && b_shows_status) after fetching
@@ -330,32 +401,9 @@ export class StatusService {
 
       if (deviceTokens.length === 0) return;
 
-      // Prepare display name
-      const displayName =
-        user.first_name && user.last_name
-          ? `${user.first_name} ${user.last_name}`
-          : user.first_name || user.last_name || "Someone";
-
-      // Prepare notification title and body
-      const statusEmoji: Record<StatusState, string> = {
-        AVAILABLE: "🟢",
-        BUSY: "🟠",
-        DND: "🔴",
-        FOCUS: "🟣",
-        SOCIAL: "🩷",
-        COMMUTE: "🔵",
-      };
-
-      const statusText: Record<StatusState, string> = {
-        AVAILABLE: "is available",
-        BUSY: "is busy",
-        DND: "is busy (do not disturb)",
-        FOCUS: "is focusing",
-        SOCIAL: "is socializing",
-        COMMUTE: "is commuting",
-      };
-
-      const title = `${displayName} ${statusText[state]}`;
+      // Prepare notification title and body using option data
+      // Display name is passed as parameter to avoid database query
+      const title = `${displayName} is ${option.label.toLowerCase()}`;
       // Truncate note to prevent payload size issues (FCM limit: 4KB, iOS widgets have tiny memory)
       const truncatedNote = note ? note.substring(0, 200) : "";
       // Body is only included if there's a note - mobile app will format expiration using user's locale
@@ -383,7 +431,10 @@ export class StatusService {
         type: "status_update", // Matches what index.ts background handler expects
         user_id: userId,
         display_name: displayName,
-        state,
+        option_id: option.id,
+        option_label: option.label,
+        option_emoji: option.emoji,
+        option_color: option.color,
         note: truncatedNote || "",
         expires_at: expiresAt ? expiresAt.toISOString() : "",
         timestamp, // Allows widget to detect stale data

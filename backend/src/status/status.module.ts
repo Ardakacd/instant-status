@@ -8,12 +8,14 @@ import { DeviceToken } from "../entities/device-token.entity";
 import { User } from "../entities/user.entity";
 import { AuthModule } from "../auth/auth.module";
 import { UserModule } from "../user/user.module";
+import { StatusOptionModule } from "../status-option/status-option.module";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Status, Connection, DeviceToken, User]),
     AuthModule,
     forwardRef(() => UserModule),
+    StatusOptionModule,
   ],
   controllers: [StatusController],
   providers: [StatusService],
