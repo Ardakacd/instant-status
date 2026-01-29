@@ -53,8 +53,12 @@ export default function SignUpScreen({ navigation }: Props) {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
+      // No error means success or cancellation (both handled silently)
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to sign in with Google");
+      // Only show error if it's not a cancellation
+      if (!error.message?.includes("cancelled")) {
+        Alert.alert("Error", error.message || "Failed to sign in with Google");
+      }
     } finally {
       setGoogleLoading(false);
     }

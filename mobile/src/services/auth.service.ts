@@ -145,10 +145,24 @@ export class AuthService {
         // Ignore errors if user wasn't signed in with Google
       }
 
-      await AsyncStorage.removeItem("firebase_token");
-      await AsyncStorage.removeItem("firebase_uid");
-      await AsyncStorage.removeItem("user");
-      await AsyncStorage.removeItem("onboarding");
+      // Clear widget storage to prevent data leakage between users
+      try {
+        const { widgetStorageService } = await import("./widget-storage.service");
+        await widgetStorageService.clearAll();
+      } catch (widgetError) {
+        // Don't fail logout if widget cleanup fails
+        console.warn("Error clearing widget storage:", widgetError);
+      }
+
+      // Batch remove AsyncStorage items for better performance
+      const keysToRemove = [
+        "firebase_token",
+        "firebase_uid",
+        "user",
+        "onboarding",
+      ];
+      await AsyncStorage.multiRemove(keysToRemove);
+      
       await signOut(auth);
       resetAuthReady(); // Reset auth ready state so it can be re-initialized on next login
     } catch (error: any) {
@@ -188,7 +202,9 @@ export class AuthService {
 
       // Check if sign-in was successful
       if (signInResult.type !== "success") {
-        throw new Error("Google sign-in was cancelled");
+        // User cancelled - return early without throwing to avoid showing error
+        console.log("User cancelled Google Sign-in");
+        return;
       }
 
       // Get the ID token from the sign-in response
@@ -212,6 +228,13 @@ export class AuthService {
       return this.handleAuthSuccess(userCredential);
     } catch (error: any) {
       console.error("Error signing in with Google:", error);
+
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // User cancelled the flow (tapped back on Android or Cancel on iOS)
+        // Return undefined to indicate cancellation without throwing
+        console.log("User cancelled Google Sign-in");
+        return undefined as any;
+      }
 
       if (error.code === statusCodes.IN_PROGRESS) {
         throw new Error("Google sign-in is already in progress");
