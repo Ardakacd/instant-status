@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   AppState,
-  TouchableOpacity,
-  View,
-  Text,
-  StyleSheet,
+  Platform,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SplashScreen from "expo-splash-screen";
 import notifee from "@notifee/react-native";
 import {
@@ -36,6 +34,7 @@ import HomeScreen from "./src/screens/HomeScreen";
 import FriendsScreen from "./src/screens/FriendsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import ConnectScreen from "./src/screens/ConnectScreen";
+import ManageStatusScreen from "./src/screens/ManageStatusScreen";
 
 export type RootStackParamList = {
   SignUp: undefined;
@@ -46,6 +45,7 @@ export type RootStackParamList = {
   Main: { screen?: string; params?: { friendId?: string } } | undefined;
   Connect: { userId?: string } | undefined;
   WidgetPreview: undefined;
+  ManageStatus: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -173,52 +173,100 @@ function AppNavigator() {
   };
 
   useEffect(() => {
+    let isMounted = true;
     if (!user || !emailVerified || onboarding) return;
 
     const initMessaging = async () => {
-      // 1. Check permissions & Register Token (only if permission already granted)
-      // Don't automatically request permission - let user control it via ProfileScreen toggle
-      const hasPerm = await messagingService.hasPermission();
-      if (hasPerm) {
-        // Only register token if permission is already granted
-        const token = await messagingService.getToken();
-        if (token) await deviceTokenService.registerToken(token);
+      // 1. On iOS, request permission automatically on first launch (only once)
+      // On Android, only register token if permission already granted (to avoid permission loop)
+      if (Platform.OS === "ios") {
+        const PERMISSION_ASKED_KEY = "notification_permission_asked_ios";
+        const hasAskedBefore = await AsyncStorage.getItem(PERMISSION_ASKED_KEY);
+        
+        if (!hasAskedBefore && isMounted) {
+          // First time - request permission automatically on iOS
+          console.log("iOS: Requesting notification permission for the first time");
+          const granted = await messagingService.requestPermission();
+          if (isMounted) {
+            await AsyncStorage.setItem(PERMISSION_ASKED_KEY, "true");
+            
+            if (granted) {
+              // Register token if permission granted
+              const token = await messagingService.getToken();
+              if (token && user && isMounted) {
+                await deviceTokenService.registerToken(token);
+              }
+            } else {
+              console.log("iOS: User denied notification permission");
+            }
+          }
+        } else if (isMounted) {
+          // Already asked before - just check and register token if granted
+          const hasPerm = await messagingService.hasPermission();
+          if (hasPerm && isMounted) {
+            const token = await messagingService.getToken();
+            if (token && user && isMounted) {
+              await deviceTokenService.registerToken(token);
+            }
+          }
+        }
+      } else if (isMounted) {
+        // Android: Only register token if permission already granted
+        // Don't automatically request - let user control via ProfileScreen toggle
+        const hasPerm = await messagingService.hasPermission();
+        if (hasPerm && isMounted) {
+          const token = await messagingService.getToken();
+          if (token && user && isMounted) {
+            await deviceTokenService.registerToken(token);
+          }
+        }
       }
 
       // 2. Cold Start: Notification that opened the app
-      const initial = await messagingService.getInitialNotification();
-      if (initial) handleNotificationNavigation(initial);
+      if (isMounted) {
+        const initial = await messagingService.getInitialNotification();
+        if (initial && isMounted) handleNotificationNavigation(initial);
+      }
     };
 
     initMessaging();
 
     // 3. Listeners
-    const unsubToken = messagingService.onTokenRefresh((t) =>
-      deviceTokenService.registerToken(t)
-    );
+    const unsubToken = messagingService.onTokenRefresh((t) => {
+      if (isMounted) {
+        deviceTokenService.registerToken(t);
+      }
+    });
     const unsubOpened = messagingService.onNotificationOpenedApp(
       handleNotificationNavigation
     );
     const unsubForeground = messagingService.onMessage(async (msg) => {
-      if (msg.data?.type === "status_update") {
+      if (msg.data?.type === "status_update" && isMounted) {
         // Show in-app Toast and update widget
+        const optionLabel = msg.data.option_label;
         Toast.show({
           type: "info",
-          text1: `${msg.data.display_name} updated status`,
+          text1: `${msg.data.display_name} is ${optionLabel.toLowerCase()}`,
           text2: msg.data.note,
         });
-        await widgetStorageService.updateFriendStatus(
-          msg.data.user_id,
-          msg.data.display_name,
-          msg.data.state,
-          msg.data.note,
-          msg.data.expires_at,
-          msg.data.timestamp
-        );
+        if (isMounted) {
+          await widgetStorageService.updateFriendStatus(
+            msg.data.user_id,
+            msg.data.display_name,
+            msg.data.option_id || null,
+            msg.data.option_label || null,
+            msg.data.option_emoji || null,
+            msg.data.option_color || null,
+            msg.data.note,
+            msg.data.expires_at,
+            msg.data.timestamp
+          );
+        }
       }
     });
 
     return () => {
+      isMounted = false;
       unsubToken();
       unsubOpened();
       unsubForeground();
@@ -262,8 +310,8 @@ function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
           <>
-            <Stack.Screen name="SignUp" component={SignUpScreen} />
             <Stack.Screen name="SignIn" component={LoginScreen} />
+            <Stack.Screen name="SignUp" component={SignUpScreen} />            
             <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           </>
         ) : !emailVerified ? (
@@ -284,6 +332,13 @@ function AppNavigator() {
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="Connect" component={ConnectScreen} />
             <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+            <Stack.Screen
+              name="ManageStatus"
+              component={ManageStatusScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
           </>
         )}
       </Stack.Navigator>
