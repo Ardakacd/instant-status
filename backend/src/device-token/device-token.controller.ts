@@ -4,10 +4,12 @@ import { AuthGuard } from '../auth/auth.guard';
 import { Platform } from '../entities/device-token.entity';
 import { z } from 'zod';
 
-const RegisterTokenDtoSchema = z.object({
-  token: z.string().min(1).max(500),
-  platform: z.nativeEnum(Platform),
-});
+const RegisterTokenDtoSchema = z
+  .object({
+    token: z.string().min(1).max(500),
+    platform: z.nativeEnum(Platform),
+  })
+  .strict(); // Reject unknown fields
 
 @Controller('device-token')
 @UseGuards(AuthGuard)

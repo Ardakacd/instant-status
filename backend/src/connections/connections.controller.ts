@@ -13,9 +13,11 @@ import { ConnectionsService } from "./connections.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { z } from "zod";
 
-const FromInviteDtoSchema = z.object({
-  friend_id: z.string().uuid(),
-});
+const FromInviteDtoSchema = z
+  .object({
+    friend_id: z.string().uuid(),
+  })
+  .strict(); // Reject unknown fields
 
 @Controller("connections")
 @UseGuards(AuthGuard)
@@ -61,6 +63,7 @@ export class ConnectionsController {
   ) {
     const { shows_status } = z
       .object({ shows_status: z.boolean() })
+      .strict() // Reject unknown fields
       .parse(body);
     await this.connectionsService.updateVisibility(
       req.user.id,

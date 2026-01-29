@@ -218,7 +218,7 @@ Didn't create an account? If you didn't sign up for Instant Status, you can safe
             </p>
             
             <ul style="font-size: 16px; color: #1d1d1f; margin-bottom: 30px; padding-left: 20px;">
-              <li style="margin-bottom: 10px;">Set your current status (Available, Busy, Do Not Disturb, etc.)</li>
+              <li style="margin-bottom: 10px;">Set your current status (Available, Busy, etc.)</li>
               <li style="margin-bottom: 10px;">Connect with friends using invite codes</li>
               <li style="margin-bottom: 10px;">See your friends' real-time status updates</li>
             </ul>
@@ -256,7 +256,7 @@ ${greeting}
 We're excited to have you on board! You've successfully created your Instant Status account and can now start sharing your status with friends.
 
 Here's what you can do next:
-- Set your current status (Available, Busy, Do Not Disturb, etc.)
+- Set your current status (Available, Busy, or create custom statuses)
 - Connect with friends using invite codes
 - See your friends' real-time status updates
 

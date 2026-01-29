@@ -6,12 +6,14 @@ import { User } from '../entities/user.entity';
 import { Status } from '../entities/status.entity';
 import { AuthModule } from '../auth/auth.module';
 import { EmailModule } from '../email/email.module';
+import { StatusOptionModule } from '../status-option/status-option.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Status]),
     forwardRef(() => AuthModule),
     EmailModule,
+    StatusOptionModule,
   ],
   controllers: [UserController],
   providers: [UserService],

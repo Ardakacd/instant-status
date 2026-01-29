@@ -11,9 +11,11 @@ import { UserService } from "../user/user.service";
 import { z } from "zod";
 import { AuthGuard } from "./auth.guard";
 
-const VerifyTokenDtoSchema = z.object({
-  idToken: z.string(),
-});
+const VerifyTokenDtoSchema = z
+  .object({
+    idToken: z.string(),
+  })
+  .strict(); // Reject unknown fields
 
 @Controller("auth")
 export class AuthController {
@@ -96,6 +98,7 @@ export class AuthController {
       .object({
         email: z.string().email(),
       })
+      .strict() // Reject unknown fields
       .parse(body);
 
     // Always return success to prevent email enumeration

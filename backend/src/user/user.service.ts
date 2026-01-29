@@ -7,8 +7,10 @@ import {
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { User } from "../entities/user.entity";
-import { Status, StatusState } from "../entities/status.entity";
+import { Status } from "../entities/status.entity";
+import { StatusOption } from "../entities/status-option.entity";
 import { EmailService } from "../email/email.service";
+import { StatusOptionService } from "../status-option/status-option.service";
 
 @Injectable()
 export class UserService {
@@ -19,7 +21,8 @@ export class UserService {
     private userRepository: Repository<User>,
     @InjectRepository(Status)
     private statusRepository: Repository<Status>,
-    private emailService: EmailService
+    private emailService: EmailService,
+    private statusOptionService: StatusOptionService
   ) {}
 
   async findById(id: string): Promise<User | null> {
@@ -70,12 +73,15 @@ export class UserService {
       const user = this.userRepository.create(data);
       const savedUser = await this.userRepository.save(user);
 
-      // Create default status
-      const status = this.statusRepository.create({
-        user_id: savedUser.id,
-        state: StatusState.AVAILABLE,
-      });
-      await this.statusRepository.save(status);
+      // Create default status with default "Available" option
+      const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+      if (defaultOption) {
+        const status = this.statusRepository.create({
+          user_id: savedUser.id,
+          option_id: defaultOption.id,
+        });
+        await this.statusRepository.save(status);
+      }
 
       return savedUser;
     } catch (error: any) {

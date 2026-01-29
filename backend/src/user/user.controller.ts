@@ -12,11 +12,13 @@ import { UserService } from "./user.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { z } from "zod";
 
-const UpdateUserDtoSchema = z.object({
-  email: z.string().email().optional(),
-  first_name: z.string().optional(),
-  last_name: z.string().optional(),
-});
+const UpdateUserDtoSchema = z
+  .object({
+    email: z.string().email().optional(),
+    first_name: z.string().optional(),
+    last_name: z.string().optional(),
+  })
+  .strict(); // Reject unknown fields
 
 @Controller("user")
 export class UserController {
@@ -72,6 +74,7 @@ export class UserController {
       .object({
         firebase_uid: z.string(),
       })
+      .strict() // Reject unknown fields
       .parse(body);
 
     const user = await this.userService.findByFirebaseUid(firebase_uid);

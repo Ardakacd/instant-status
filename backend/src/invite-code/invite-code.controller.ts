@@ -3,9 +3,11 @@ import { InviteCodeService } from "./invite-code.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { z } from "zod";
 
-const RedeemCodeDtoSchema = z.object({
-  code: z.string().length(8),
-});
+const RedeemCodeDtoSchema = z
+  .object({
+    code: z.string().length(8),
+  })
+  .strict(); // Reject unknown fields
 
 @Controller("invite-code")
 export class InviteCodeController {
@@ -16,6 +18,7 @@ export class InviteCodeController {
   async generateCode(@Request() req, @Body() body: unknown) {
     const { expires_in_hours } = z
       .object({ expires_in_hours: z.number().optional() })
+      .strict() // Reject unknown fields
       .parse(body);
 
     const inviteCode = await this.inviteCodeService.generateCode(
@@ -40,7 +43,10 @@ export class InviteCodeController {
   @Post("connect-by-link")
   @UseGuards(AuthGuard)
   async connectByLink(@Request() req, @Body() body: unknown) {
-    const { user_id } = z.object({ user_id: z.string().uuid() }).parse(body);
+    const { user_id } = z
+      .object({ user_id: z.string().uuid() })
+      .strict() // Reject unknown fields
+      .parse(body);
     return this.inviteCodeService.connectByLink(req.user.id, user_id);
   }
 }
