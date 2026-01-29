@@ -10,15 +10,14 @@ private let WIDGET_DATA_KEY = "widget_status_data"
 
 // MARK: - Status Model
 
-enum StatusState: String, Codable {
-    case available, busy, dnd, focus, social, commute
-}
-
 struct FriendStatusWidgetItem: Codable, Identifiable {
     let id: String
     let firstName: String
     let lastName: String?
-    let state: StatusState
+    let optionId: String?
+    let optionLabel: String?
+    let optionEmoji: String?
+    let optionColor: String?
     let note: String?
     let expiresAt: Date?
     let updatedAt: Date
@@ -27,12 +26,34 @@ struct FriendStatusWidgetItem: Codable, Identifiable {
         lastName != nil ? "\(firstName) \(lastName!)" : firstName
     }
 
-    /// Lazy expiration - defaults to available when expired
-    var effectiveState: StatusState {
+    /// Lazy expiration - defaults to "Available" when expired
+    var effectiveOptionLabel: String {
         if let expiresAt, expiresAt <= Date() {
-            return .available
+            return "Available"
         }
-        return state
+        return optionLabel ?? "Available"
+    }
+    
+    var effectiveOptionEmoji: String {
+        if let expiresAt, expiresAt <= Date() {
+            return "🟢"
+        }
+        return optionEmoji ?? "🟢"
+    }
+    
+    var effectiveOptionColor: String {
+        if let expiresAt, expiresAt <= Date() {
+            return "#10B981" // Green for Available
+        }
+        return optionColor ?? "#10B981"
+    }
+    
+    /// Check if status has expired
+    var isExpired: Bool {
+        if let expiresAt, expiresAt <= Date() {
+            return true
+        }
+        return false
     }
 }
 

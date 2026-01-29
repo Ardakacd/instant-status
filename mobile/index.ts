@@ -23,7 +23,10 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
       const {
         user_id,
         display_name,
-        state,
+        option_id,
+        option_label,
+        option_emoji,
+        option_color,
         note,
         expires_at,
         timestamp
@@ -33,7 +36,10 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
       await widgetStorageService.updateFriendStatus(
         String(user_id || ""),
         String(display_name || ""),
-        String(state || "available"),
+        option_id ? String(option_id) : null,
+        option_label ? String(option_label) : null,
+        option_emoji ? String(option_emoji) : null,
+        option_color ? String(option_color) : null,
         note ? String(note) : null,
         expires_at ? String(expires_at) : null,
         timestamp ? String(timestamp) : new Date().toISOString()

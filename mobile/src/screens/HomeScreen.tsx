@@ -14,41 +14,15 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { StatusState, Status } from "../types";
+import { Status, StatusOption } from "../types";
 import { statusService } from "../services/status.service";
+import { statusOptionService } from "../services/status-option.service";
 import { widgetStorageService } from "../services/widget-storage.service";
 import { useAuth } from "../contexts/AuthContext";
 import StatusChangeModal from "../components/StatusChangeModal";
 import { fetchSignInMethodsForEmail } from "firebase/auth";
 import { auth } from "../config/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const STATUS_COLORS = {
-  [StatusState.AVAILABLE]: "#10B981", // Green
-  [StatusState.BUSY]: "#F59E0B", // Orange
-  [StatusState.DND]: "#EF4444", // Red
-  [StatusState.FOCUS]: "#6366F1", // Indigo
-  [StatusState.SOCIAL]: "#EC4899", // Pink
-  [StatusState.COMMUTE]: "#3B82F6", // Blue
-};
-
-const STATUS_LABELS = {
-  [StatusState.AVAILABLE]: "Available",
-  [StatusState.BUSY]: "Busy",
-  [StatusState.DND]: "Do Not Disturb",
-  [StatusState.FOCUS]: "Focus",
-  [StatusState.SOCIAL]: "Social",
-  [StatusState.COMMUTE]: "Commute",
-};
-
-const STATUS_ICONS = {
-  [StatusState.AVAILABLE]: "✓",
-  [StatusState.BUSY]: "!",
-  [StatusState.DND]: "🚫",
-  [StatusState.FOCUS]: "🎯",
-  [StatusState.SOCIAL]: "👥",
-  [StatusState.COMMUTE]: "🚗",
-};
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -57,12 +31,11 @@ export default function HomeScreen() {
   const route = useRoute();
   const [myStatus, setMyStatus] = useState<Status | null>(null);
   const [friendsStatus, setFriendsStatus] = useState<Status[]>([]);
-
-  const currentStatus = myStatus?.state || StatusState.AVAILABLE;
+  const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<StatusState | null>(
+  const [selectedOption, setSelectedOption] = useState<StatusOption | null>(
     null
   );
   const [friendModalVisible, setFriendModalVisible] = useState(false);
@@ -71,12 +44,24 @@ export default function HomeScreen() {
   const slideAnim = React.useRef(new Animated.Value(-100)).current;
   const pendingFriendIdRef = React.useRef<string | null>(null);
 
+  const currentOptionId = myStatus?.option?.id || null;
+
   useEffect(() => {
+    loadStatusOptions();
     loadFriendsStatus();
     loadCurrentStatus();
     loadSignMethods();
     checkRefreshHint();
   }, []);
+
+  const loadStatusOptions = async () => {
+    try {
+      const options = await statusOptionService.getStatusOptions();
+      setStatusOptions(options);
+    } catch (error) {
+      console.error("Error loading status options:", error);
+    }
+  };
 
   // Handle navigation params to open friend detail modal
   useEffect(() => {
@@ -168,7 +153,11 @@ export default function HomeScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([loadFriendsStatus(), loadCurrentStatus()]);
+      await Promise.all([
+        loadStatusOptions(),
+        loadFriendsStatus(),
+        loadCurrentStatus(),
+      ]);
     } finally {
       setRefreshing(false);
     }
@@ -202,26 +191,26 @@ export default function HomeScreen() {
     }
   };
 
-  const handleStatusButtonPress = (state: StatusState) => {
-    setSelectedStatus(state);
+  const handleStatusButtonPress = (option: StatusOption) => {
+    setSelectedOption(option);
     setModalVisible(true);
   };
 
   const handleStatusConfirm = async (
-    state: StatusState,
+    optionId: string,
     note?: string,
     expiresAt?: Date
   ) => {
     setLoading(true);
     try {
       const updatedStatus = await statusService.updateStatus(
-        state,
+        optionId,
         note,
         expiresAt
       );
       setMyStatus(updatedStatus);
       setModalVisible(false);
-      setSelectedStatus(null);
+      setSelectedOption(null);
     } catch (error) {
       console.error("Error updating status:", error);
     } finally {
@@ -350,30 +339,38 @@ export default function HomeScreen() {
 
         {/* My Status Card */}
         <View style={styles.statusCard}>
-          <Text style={styles.cardTitle}>Your Status</Text>
+          <View style={styles.cardTitleContainer}>
+            <Text style={styles.cardTitle}>Your Status</Text>
+            <TouchableOpacity
+              style={styles.manageButton}
+              onPress={() => navigation.navigate("ManageStatus" as never)}
+            >
+              <Text style={styles.manageButtonText}>Manage Status</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.statusButtonsContainer}>
-            {Object.values(StatusState).map((state) => {
-              const isActive = currentStatus === state;
+            {statusOptions.map((option) => {
+              const isActive = currentOptionId === option.id;
               return (
                 <TouchableOpacity
-                  key={state}
+                  key={option.id}
                   style={[
                     styles.statusButton,
                     isActive && styles.statusButtonActive,
-                    isActive && { backgroundColor: STATUS_COLORS[state] },
+                    isActive && { backgroundColor: option.color },
                   ]}
-                  onPress={() => handleStatusButtonPress(state)}
+                  onPress={() => handleStatusButtonPress(option)}
                   disabled={loading}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.statusIcon}>{STATUS_ICONS[state]}</Text>
+                  <Text style={styles.statusIcon}>{option.emoji}</Text>
                   <Text
                     style={[
                       styles.statusButtonText,
                       isActive && styles.statusButtonTextActive,
                     ]}
                   >
-                    {STATUS_LABELS[state]}
+                    {option.label}
                   </Text>
                   {isActive && <View style={styles.activeIndicator} />}
                 </TouchableOpacity>
@@ -439,7 +436,10 @@ export default function HomeScreen() {
                     <View
                       style={[
                         styles.avatar,
-                        { backgroundColor: STATUS_COLORS[status.state] + "20" },
+                        {
+                          backgroundColor:
+                            (status.option?.color || "#10B981") + "20",
+                        },
                       ]}
                     >
                       {status.avatar_url ? (
@@ -450,7 +450,9 @@ export default function HomeScreen() {
                       <View
                         style={[
                           styles.statusBadge,
-                          { backgroundColor: STATUS_COLORS[status.state] },
+                          {
+                            backgroundColor: status.option?.color || "#10B981",
+                          },
                         ]}
                       />
                     </View>
@@ -459,15 +461,10 @@ export default function HomeScreen() {
                         {displayName}
                       </Text>
                       <View style={styles.friendStatusRow}>
-                        <View
-                          style={[
-                            styles.statusDot,
-                            { backgroundColor: STATUS_COLORS[status.state] },
-                          ]}
-                        />
                         <View style={styles.friendStatusContent}>
                           <Text style={styles.friendStatus} numberOfLines={1}>
-                            {STATUS_LABELS[status.state]}
+                            {status.option?.emoji || "🟢"}{" "}
+                            {status.option?.label || "Available"}
                             {status.note && ` • ${status.note}`}
                           </Text>
                           {status.expires_at && (
@@ -487,13 +484,13 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Status Change Modal */}
-      {selectedStatus && (
+      {selectedOption && (
         <StatusChangeModal
           visible={modalVisible}
-          selectedStatus={selectedStatus}
+          selectedOption={selectedOption}
           onClose={() => {
             setModalVisible(false);
-            setSelectedStatus(null);
+            setSelectedOption(null);
           }}
           onConfirm={handleStatusConfirm}
           loading={loading}
@@ -533,17 +530,20 @@ export default function HomeScreen() {
                     <View style={styles.friendModalSection}>
                       <Text style={styles.friendModalLabel}>Status</Text>
                       <View style={styles.friendModalStatusRow}>
+                        <Text style={styles.friendModalStatusEmoji}>
+                          {selectedFriend.option?.emoji || "🟢"}
+                        </Text>
                         <View
                           style={[
                             styles.friendModalStatusDot,
                             {
                               backgroundColor:
-                                STATUS_COLORS[selectedFriend.state],
+                                selectedFriend.option?.color || "#10B981",
                             },
                           ]}
                         />
                         <Text style={styles.friendModalStatusText}>
-                          {STATUS_LABELS[selectedFriend.state]}
+                          {selectedFriend.option?.label || "Available"}
                         </Text>
                       </View>
                     </View>
@@ -666,11 +666,27 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  cardTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
   cardTitle: {
     fontSize: 18,
     fontWeight: "600",
     color: "#111827",
-    marginBottom: 16,
+  },
+  manageButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#EFF6FF",
+  },
+  manageButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#007AFF",
   },
   statusButtonsContainer: {
     flexDirection: "row",
@@ -921,6 +937,10 @@ const styles = StyleSheet.create({
   friendModalStatusRow: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  friendModalStatusEmoji: {
+    fontSize: 20,
+    marginRight: 8,
   },
   friendModalStatusDot: {
     width: 12,

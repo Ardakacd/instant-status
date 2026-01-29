@@ -3,6 +3,33 @@ import SwiftUI
 import AppIntents
 import Foundation
 
+// MARK: - Color Extension for Hex
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 128, 128, 128) // Gray fallback
+        }
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
+}
+
 // MARK: - Provider
 @available(iOS 17.0, *)
 struct Provider: AppIntentTimelineProvider {
@@ -196,10 +223,10 @@ struct WidgetEntryView: View {
     // --- NEW SMALL DETAILED ROW ---
   @ViewBuilder
   private func smallDetailedRow(_ friend: FriendStatusWidgetItem) -> some View {
-      // Use effectiveState for consistent UI
-      let currentState = friend.effectiveState
-      // Check if status expired (original state was not available but effectiveState is available)
-      let isExpired = currentState == .available && friend.state != .available && friend.expiresAt != nil && friend.expiresAt! <= Date()
+      let isExpired = friend.isExpired
+      let optionLabel = friend.effectiveOptionLabel
+      let optionEmoji = friend.effectiveOptionEmoji
+      let optionColor = friend.effectiveOptionColor
       
       // Pre-compute expiry display values outside ViewBuilder
       let expiryText: String? = {
@@ -218,11 +245,11 @@ struct WidgetEntryView: View {
       }()
       
       HStack(alignment: .center, spacing: 8) {
-          // 1. Status Dot - uses effectiveState with spring animation
+          // 1. Status Dot - uses option color with spring animation
           Circle()
-              .fill(color(for: currentState))
+              .fill(Color(hex: optionColor))
               .frame(width: 8, height: 8)
-              .animation(.spring(response: 0.3, dampingFraction: 0.6), value: currentState)
+              .animation(.spring(response: 0.3, dampingFraction: 0.6), value: optionColor)
           
           // 2. Name and Note (Stacked)
           VStack(alignment: .leading, spacing: 0) {
@@ -231,9 +258,9 @@ struct WidgetEntryView: View {
                   .foregroundColor(isExpired ? .secondary : .primary)
                   .lineLimit(1)
               
-              // Show "Available" when expired, otherwise show note or state
+              // Show option label when expired, otherwise show note or option label
               // Note changes with fade + slide transition
-              Text(isExpired ? "Available" : (friend.note ?? currentState.rawValue.capitalized))
+              Text(isExpired ? "Available" : (friend.note ?? optionLabel))
                   .font(.system(size: 10))
                   .foregroundColor(.secondary)
                   .lineLimit(1)
@@ -257,10 +284,10 @@ struct WidgetEntryView: View {
 
   @ViewBuilder
   private func mediumDetailedRow(_ friend: FriendStatusWidgetItem) -> some View {
-      // Use effectiveState for consistent UI
-      let currentState = friend.effectiveState
-      // Check if status expired (original state was not available but effectiveState is available)
-      let isExpired = currentState == .available && friend.state != .available && friend.expiresAt != nil && friend.expiresAt! <= Date()
+      let isExpired = friend.isExpired
+      let optionLabel = friend.effectiveOptionLabel
+      let optionEmoji = friend.effectiveOptionEmoji
+      let optionColor = friend.effectiveOptionColor
       
       // Pre-compute expiry display values outside ViewBuilder
       let expiryText: String? = {
@@ -279,11 +306,11 @@ struct WidgetEntryView: View {
       }()
       
       HStack(alignment: .center, spacing: 8) {
-          // Status Dot - uses effectiveState with spring animation
+          // Status Dot - uses option color with spring animation
           Circle()
-              .fill(color(for: currentState))
+              .fill(Color(hex: optionColor))
               .frame(width: 8, height: 8)
-              .animation(.spring(response: 0.3, dampingFraction: 0.6), value: currentState)
+              .animation(.spring(response: 0.3, dampingFraction: 0.6), value: optionColor)
 
           VStack(alignment: .leading, spacing: 0) {
               HStack(spacing: 4) {
@@ -303,9 +330,9 @@ struct WidgetEntryView: View {
               }
               .frame(maxWidth: .infinity, alignment: .leading) // Ensure proper alignment
 
-              // Show "Available" when expired, otherwise show note or state
+              // Show option label when expired, otherwise show note or option label
               // Note changes with fade + slide transition
-              Text(isExpired ? "Available" : (friend.note ?? currentState.rawValue.capitalized))
+              Text(isExpired ? "Available" : (friend.note ?? optionLabel))
                   .font(.system(size: 10))
                   .foregroundColor(.secondary)
                   .lineLimit(1)
@@ -331,16 +358,6 @@ struct WidgetEntryView: View {
         }
     }
 
-    private func color(for state: StatusState) -> Color {
-        switch state {
-        case .available: return .green
-        case .busy: return .orange
-        case .dnd: return .red
-        case .focus: return .indigo
-        case .social: return .pink
-        case .commute: return .blue
-        }
-    }
 }
 
 // MARK: - Widget Definition
@@ -360,10 +377,10 @@ struct InstantStatusWidget: Widget {
 
 // MARK: - Mock Data
 let mockStatuses: [FriendStatusWidgetItem] = [
-    FriendStatusWidgetItem(id: "1", firstName: "Alex", lastName: nil, state: .busy, note: "In a meeting", expiresAt: Date().addingTimeInterval(1800), updatedAt: Date().addingTimeInterval(-300)),
-    FriendStatusWidgetItem(id: "2", firstName: "Emma", lastName: nil, state: .available, note: nil, expiresAt: nil, updatedAt: Date().addingTimeInterval(-1200)),
-    FriendStatusWidgetItem(id: "3", firstName: "John", lastName: nil, state: .focus, note: nil, expiresAt: nil, updatedAt: Date().addingTimeInterval(-3600)),
-    FriendStatusWidgetItem(id: "4", firstName: "Alice", lastName: nil, state: .dnd, note: "Coding", expiresAt: Date().addingTimeInterval(2400), updatedAt: Date())
+    FriendStatusWidgetItem(id: "1", firstName: "Alex", lastName: nil, optionId: "busy-id", optionLabel: "Busy", optionEmoji: "🟠", optionColor: "#F59E0B", note: "In a meeting", expiresAt: Date().addingTimeInterval(1800), updatedAt: Date().addingTimeInterval(-300)),
+    FriendStatusWidgetItem(id: "2", firstName: "Emma", lastName: nil, optionId: "available-id", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981", note: nil, expiresAt: nil, updatedAt: Date().addingTimeInterval(-1200)),
+    FriendStatusWidgetItem(id: "3", firstName: "John", lastName: nil, optionId: "focus-id", optionLabel: "Focus", optionEmoji: "🟣", optionColor: "#8B5CF6", note: nil, expiresAt: nil, updatedAt: Date().addingTimeInterval(-3600)),
+    FriendStatusWidgetItem(id: "4", firstName: "Alice", lastName: nil, optionId: "dnd-id", optionLabel: "Do Not Disturb", optionEmoji: "🔴", optionColor: "#EF4444", note: "Coding", expiresAt: Date().addingTimeInterval(2400), updatedAt: Date())
 ]
 
 // MARK: - Previews
@@ -395,14 +412,14 @@ let mockStatuses: [FriendStatusWidgetItem] = [
         date: .now,
         configuration: ConfigurationAppIntent(),
         friends: [
-            FriendStatusWidgetItem(id: "1", firstName: "Alex", lastName: nil, state: .busy, note: "In a meeting", expiresAt: Date().addingTimeInterval(1800), updatedAt: Date()),
-            FriendStatusWidgetItem(id: "2", firstName: "Emma", lastName: nil, state: .available, note: "Available now", expiresAt: nil, updatedAt: Date()),
-            FriendStatusWidgetItem(id: "3", firstName: "John", lastName: nil, state: .focus, note: "Deep work", expiresAt: nil, updatedAt: Date()),
-            FriendStatusWidgetItem(id: "4", firstName: "Arda", lastName: nil, state: .dnd, note: "Do not disturb", expiresAt: Date().addingTimeInterval(3600), updatedAt: Date()),
-            FriendStatusWidgetItem(id: "5", firstName: "Kerem", lastName: nil, state: .available, note: nil, expiresAt: nil, updatedAt: Date()),
-            FriendStatusWidgetItem(id: "6", firstName: "Hasan", lastName: nil, state: .busy, note: "In a call", expiresAt: Date().addingTimeInterval(600), updatedAt: Date()),
-            FriendStatusWidgetItem(id: "7", firstName: "Melisa", lastName: nil, state: .social, note: "At a party", expiresAt: nil, updatedAt: Date()),
-            FriendStatusWidgetItem(id: "8", firstName: "Ece", lastName: nil, state: .commute, note: "Driving", expiresAt: nil, updatedAt: Date())
+            FriendStatusWidgetItem(id: "1", firstName: "Alex", lastName: nil, optionId: "busy-id", optionLabel: "Busy", optionEmoji: "🟠", optionColor: "#F59E0B", note: "In a meeting", expiresAt: Date().addingTimeInterval(1800), updatedAt: Date()),
+            FriendStatusWidgetItem(id: "2", firstName: "Emma", lastName: nil, optionId: "available-id", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981", note: "Available now", expiresAt: nil, updatedAt: Date()),
+            FriendStatusWidgetItem(id: "3", firstName: "John", lastName: nil, optionId: "focus-id", optionLabel: "Focus", optionEmoji: "🟣", optionColor: "#8B5CF6", note: "Deep work", expiresAt: nil, updatedAt: Date()),
+            FriendStatusWidgetItem(id: "4", firstName: "Arda", lastName: nil, optionId: "dnd-id", optionLabel: "Do Not Disturb", optionEmoji: "🔴", optionColor: "#EF4444", note: "Do not disturb", expiresAt: Date().addingTimeInterval(3600), updatedAt: Date()),
+            FriendStatusWidgetItem(id: "5", firstName: "Kerem", lastName: nil, optionId: "available-id", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981", note: nil, expiresAt: nil, updatedAt: Date()),
+            FriendStatusWidgetItem(id: "6", firstName: "Hasan", lastName: nil, optionId: "busy-id", optionLabel: "Busy", optionEmoji: "🟠", optionColor: "#F59E0B", note: "In a call", expiresAt: Date().addingTimeInterval(600), updatedAt: Date()),
+            FriendStatusWidgetItem(id: "7", firstName: "Melisa", lastName: nil, optionId: "social-id", optionLabel: "Social", optionEmoji: "🩷", optionColor: "#EC4899", note: "At a party", expiresAt: nil, updatedAt: Date()),
+            FriendStatusWidgetItem(id: "8", firstName: "Ece", lastName: nil, optionId: "commute-id", optionLabel: "Commute", optionEmoji: "🔵", optionColor: "#3B82F6", note: "Driving", expiresAt: nil, updatedAt: Date())
         ],
         hasAnyFriends: true
     )

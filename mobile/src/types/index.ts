@@ -17,12 +17,21 @@ export interface User {
   updated_at?: string;
 }
 
+export interface StatusOption {
+  id: string;
+  user_id: string | null;
+  label: string;
+  emoji: string;
+  color: string;
+  sort_order: number;
+}
+
 export interface Status {
   user_id: string;
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  state: StatusState;
+  option: StatusOption | null;
   note: string | null;
   expires_at: string | null;
   updated_at: string;

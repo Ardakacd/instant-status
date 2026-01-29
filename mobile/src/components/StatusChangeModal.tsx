@@ -13,46 +13,19 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { StatusState } from "../types";
+import { StatusOption } from "../types";
 
 interface StatusChangeModalProps {
   visible: boolean;
-  selectedStatus: StatusState;
+  selectedOption: StatusOption;
   onClose: () => void;
-  onConfirm: (status: StatusState, note?: string, expiresAt?: Date) => void;
+  onConfirm: (optionId: string, note?: string, expiresAt?: Date) => void;
   loading?: boolean;
 }
 
-const STATUS_COLORS_MAP: Record<StatusState, string> = {
-  [StatusState.AVAILABLE]: "#10B981", // Green
-  [StatusState.BUSY]: "#F59E0B", // Orange
-  [StatusState.DND]: "#EF4444", // Red
-  [StatusState.FOCUS]: "#6366F1", // Indigo
-  [StatusState.SOCIAL]: "#EC4899", // Pink
-  [StatusState.COMMUTE]: "#3B82F6", // Blue
-};
-
-const STATUS_LABELS_MAP: Record<StatusState, string> = {
-  [StatusState.AVAILABLE]: "Available",
-  [StatusState.BUSY]: "Busy",
-  [StatusState.DND]: "Do Not Disturb",
-  [StatusState.FOCUS]: "Focus",
-  [StatusState.SOCIAL]: "Social",
-  [StatusState.COMMUTE]: "Commute",
-};
-
-const STATUS_ICONS_MAP: Record<StatusState, string> = {
-  [StatusState.AVAILABLE]: "✓",
-  [StatusState.BUSY]: "!",
-  [StatusState.DND]: "🚫",
-  [StatusState.FOCUS]: "🎯",
-  [StatusState.SOCIAL]: "👥",
-  [StatusState.COMMUTE]: "🚗",
-};
-
 export default function StatusChangeModal({
   visible,
-  selectedStatus,
+  selectedOption,
   onClose,
   onConfirm,
   loading = false,
@@ -137,7 +110,7 @@ export default function StatusChangeModal({
 
   const handleConfirm = () => {
     // All statuses can have expiration times
-    onConfirm(selectedStatus, note.trim() || undefined, expiresAt || undefined);
+    onConfirm(selectedOption.id, note.trim() || undefined, expiresAt || undefined);
     // Reset form
     setNote("");
     setExpiresAt(null);
@@ -157,9 +130,9 @@ export default function StatusChangeModal({
     setCustomDate(new Date()); // Reset to current date
   };
 
-  const statusColor = STATUS_COLORS_MAP[selectedStatus];
-  const statusLabel = STATUS_LABELS_MAP[selectedStatus];
-  const statusIcon = STATUS_ICONS_MAP[selectedStatus];
+  const statusColor = selectedOption.color;
+  const statusLabel = selectedOption.label;
+  const statusIcon = selectedOption.emoji;
 
   return (
     <>

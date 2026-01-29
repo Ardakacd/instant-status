@@ -13,7 +13,10 @@ interface FriendStatusWidgetItem {
   id: string;
   firstName: string;
   lastName: string | null;
-  state: string; 
+  optionId: string | null;
+  optionLabel: string | null;
+  optionEmoji: string | null;
+  optionColor: string | null;
   note: string | null;
   expiresAt: string | null;
   updatedAt: string;
@@ -48,13 +51,19 @@ export class WidgetStorageService {
   async updateFriendStatus(
     userId: string,
     displayName: string,
-    state: string,
+    optionId: string | null,
+    optionLabel: string | null,
+    optionEmoji: string | null,
+    optionColor: string | null,
     note: string | null,
     expiresAt: string | null,
     timestamp: string
   ): Promise<void> {
     try {
       let friendsData: FriendStatusWidgetItem[] = [];
+
+      console.log("Platform.OS", Platform.OS);
+      console.log("this.storage", this.storage);
 
       // 1. Fetch Data
       if (Platform.OS === "ios" && this.storage) {
@@ -80,13 +89,18 @@ export class WidgetStorageService {
         return;
       }
 
+      console.log("friendsData", friendsData);
+
       // 2. Prepare Item
       const displayNameStr = String(displayName || "");
       const friendStatusItem: FriendStatusWidgetItem = {
         id: userId,
         firstName: displayNameStr.split(" ")[0] || displayNameStr,
         lastName: displayNameStr.split(" ").slice(1).join(" ") || null,
-        state: String(state || "available").toLowerCase(),
+        optionId: optionId || null,
+        optionLabel: optionLabel || null,
+        optionEmoji: optionEmoji || null,
+        optionColor: optionColor || null,
         note: note || null,
         expiresAt: expiresAt || null,
         updatedAt: timestamp,
@@ -96,9 +110,10 @@ export class WidgetStorageService {
       const friendIndex = friendsData.findIndex((f) => f.id === userId);
       if (friendIndex >= 0) {
         const existing = friendsData[friendIndex];
-        const hasChanged = existing.state !== friendStatusItem.state || 
+        const hasChanged = existing.optionId !== friendStatusItem.optionId || 
                            existing.note !== friendStatusItem.note || 
                            existing.expiresAt !== friendStatusItem.expiresAt;
+        console.log("hasChanged", hasChanged);
         if (!hasChanged) return;
         friendsData[friendIndex] = friendStatusItem;
       } else {
@@ -106,9 +121,11 @@ export class WidgetStorageService {
       }
 
       const jsonString = JSON.stringify(friendsData);
+      console.log(Platform.OS, "jsonString", this.storage);
 
       // 4. Save and Reload
       if (Platform.OS === "ios" && this.storage) {
+        console.log("update friend statusjsonString", jsonString);
         this.storage.set(WIDGET_DATA_KEY, jsonString);
         ExtensionStorage.reloadWidget("InstantStatusWidget");
         this.lastReloadTime = Date.now();
@@ -123,17 +140,23 @@ export class WidgetStorageService {
 
   async saveAllFriendStatuses(statuses: Status[]): Promise<void> {
     try {
+      console.log("statuses", statuses);
       const widgetData: FriendStatusWidgetItem[] = statuses.map((status) => ({
         id: status.user_id,
         firstName: status.first_name || "Unknown",
         lastName: status.last_name || null,
-        state: status.state.toLowerCase(),
+        optionId: status.option?.id || null,
+        optionLabel: status.option?.label || null,
+        optionEmoji: status.option?.emoji || null,
+        optionColor: status.option?.color || null,
         note: status.note || null,
         expiresAt: status.expires_at || null,
         updatedAt: status.updated_at,
       }));
 
       const jsonString = JSON.stringify(widgetData);
+
+      console.log("jsonString", jsonString);
 
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
@@ -149,6 +172,23 @@ export class WidgetStorageService {
       }
     } catch (error) {
       console.error("Error saving all friend statuses:", error);
+    }
+  }
+
+  /**
+   * Clear all widget data (used during logout to prevent data leakage)
+   */
+  async clearAll(): Promise<void> {
+    try {
+      if (Platform.OS === "ios" && this.storage) {
+        this.storage.remove(WIDGET_DATA_KEY);
+        ExtensionStorage.reloadWidget("InstantStatusWidget");
+      } else if (Platform.OS === "android") {
+        await AsyncStorage.removeItem(WIDGET_DATA_KEY);
+        await this.triggerAndroidUpdate();
+      }
+    } catch (error) {
+      console.error("Error clearing widget storage:", error);
     }
   }
 }
