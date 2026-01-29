@@ -3,6 +3,7 @@ import { User } from "../types";
 import { authService } from "../services/auth.service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "../config/firebase";
+import { setLoggingOut } from "../config/api";
 
 interface AuthContextType {
   user: User | null;
@@ -100,6 +101,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signInWithGoogle() {
     const result = await authService.signInWithGoogle();
+    // Handle cancellation (result is undefined)
+    if (!result) {
+      return;
+    }
     setUser(result.user);
     setOnboarding(result.onboarding || false);
     // Google users are automatically verified
@@ -120,10 +125,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
-    await authService.logout();
+    // Mark that logout is in progress to prevent API interceptor race conditions
+    setLoggingOut(true);
+    
+    // Clear state immediately for snappy UI - show login screen right away
     setUser(null);
     setOnboarding(false);
     setEmailVerified(true);
+    
+    // Perform async cleanup in the background
+    // Don't await - let it run in background, errors are handled internally
+    authService.logout()
+      .catch((error) => {
+        // Log error but don't throw - user is already logged out in UI
+        console.error("Error during logout cleanup:", error);
+      })
+      .finally(() => {
+        // Reset logout flag when cleanup completes (or fails)
+        setLoggingOut(false);
+      });
   }
 
   async function deleteAccount() {
