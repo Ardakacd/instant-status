@@ -144,10 +144,6 @@ export default function ManageStatusScreen() {
         emoji: emoji.trim(),
         color: color.toUpperCase(),
       });
-      Toast.show({
-        type: "success",
-        text1: "Status option created",
-      });
       setCreateModalVisible(false);
       loadStatusOptions();
     } catch (error: any) {
