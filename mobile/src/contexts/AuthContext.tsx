@@ -80,6 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Error loading user:", error);
+      // Ensure loading state is always set to false, even on error
+      // This prevents the app from being stuck on a black screen
     } finally {
       setLoading(false);
     }
