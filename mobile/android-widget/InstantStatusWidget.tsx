@@ -10,7 +10,10 @@ export interface FriendStatusWidgetItem {
   id: string;
   firstName: string;
   lastName: string | null;
-  state: string;
+  optionId: string | null;
+  optionLabel: string | null;
+  optionEmoji: string | null;
+  optionColor: string | null;
   note: string | null;
   expiresAt: string | null;
   updatedAt: string;
@@ -21,33 +24,30 @@ interface InstantStatusWidgetProps {
   hasAnyFriends?: boolean;
 }
 
-function getStatusColor(state: string): string {
-  switch (state.toLowerCase()) {
-    case "available":
-      return "#34C759"; // Green
-    case "busy":
-      return "#FF9500"; // Orange
-    case "dnd":
-      return "#FF3B30"; // Red
-    case "focus":
-      return "#5856D6"; // Indigo
-    case "social":
-      return "#FF2D92"; // Pink
-    case "commute":
-      return "#007AFF"; // Blue
-    default:
-      return "#8E8E93"; // Gray
-  }
-}
-
-function getEffectiveState(friend: FriendStatusWidgetItem): string {
+function getEffectiveStatus(friend: FriendStatusWidgetItem): {
+  label: string;
+  emoji: string;
+  color: string;
+} {
+  // Check if status has expired
   if (friend.expiresAt) {
     const expiryDate = new Date(friend.expiresAt);
     if (expiryDate <= new Date()) {
-      return "available";
+      // Status expired - return default "Available"
+      return {
+        label: "Available",
+        emoji: "🟢",
+        color: "#34C759",
+      };
     }
   }
-  return friend.state.toLowerCase();
+
+  // Return the friend's current status option, or default to "Available"
+  return {
+    label: friend.optionLabel || "Available",
+    emoji: friend.optionEmoji || "🟢",
+    color: friend.optionColor || "#34C759",
+  };
 }
 
 function formatTimeUntil(expiresAt: string): string {
@@ -88,18 +88,16 @@ function formatTimeUntil(expiresAt: string): string {
 }
 
 function FriendRow({ friend }: { friend: FriendStatusWidgetItem }) {
-  const effectiveState = getEffectiveState(friend);
+  const effectiveStatus = getEffectiveStatus(friend);
   const isExpired =
-    effectiveState === "available" &&
-    friend.state.toLowerCase() !== "available" &&
     friend.expiresAt &&
-    new Date(friend.expiresAt) <= new Date();
+    new Date(friend.expiresAt) <= new Date() &&
+    effectiveStatus.label === "Available";
 
-  const statusColor = getStatusColor(effectiveState);
+  const statusColor = effectiveStatus.color;
   const displayNote = isExpired
     ? "Available"
-    : friend.note ||
-      effectiveState.charAt(0).toUpperCase() + effectiveState.slice(1);
+    : friend.note || effectiveStatus.label;
 
   const timeUntil =
     friend.expiresAt && !isExpired ? formatTimeUntil(friend.expiresAt) : "";

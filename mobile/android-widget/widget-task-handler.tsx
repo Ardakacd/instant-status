@@ -114,6 +114,8 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
           <Widget friends={friends} hasAnyFriends={hasAnyFriends} />
         );
       }
+      // Note: For "OPEN_APP" clickAction, the library handles opening the app automatically.
+      // We don't need to handle it here, which allows the native intent to proceed normally.
       break;
 
     default:
