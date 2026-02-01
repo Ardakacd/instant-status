@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   AppState,
   Platform,
+  View,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SplashScreen from "expo-splash-screen";
@@ -273,7 +274,14 @@ function AppNavigator() {
     };
   }, [user, emailVerified, onboarding, isNavReady]);
 
-  if (loading) return null;
+  // Show splash screen while loading auth state
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+        <StatusBar style="auto" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer
