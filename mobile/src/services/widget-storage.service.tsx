@@ -35,13 +35,25 @@ export class WidgetStorageService {
 
   /**
    * Helper to trigger Android Widget Update
+   * This tells Android to wake up the widgetTaskHandler, which will:
+   * 1. Load the data from AsyncStorage
+   * 2. Filter by widget-specific configuration (widget_config_{id})
+   * 3. Render the widget with the correct filtered data for each widget instance
+   * 
+   * Note: We don't provide a renderWidget here. This forces the widgetTaskHandler
+   * to be the single source of truth, ensuring each widget instance respects its
+   * own configuration without any race conditions or flickering.
    */
   private async triggerAndroidUpdate() {
     try {
+      // We only tell Android: "The data for this widget class has changed."
+      // We don't provide a render function here.
+      // This forces the 'widgetTaskHandler.ts' to run for EVERY instance of the widget on the home screen.
+      // Type assertion is needed because TypeScript types require renderWidget, but the runtime API
+      // supports calling without it, which triggers the handler to be the single source of truth.
       await requestWidgetUpdate({
         widgetName: "InstantStatusWidget",
-        renderWidget: () => <InstantStatusWidget />,
-      });
+      } as any);
       this.lastReloadTime = Date.now();
     } catch (error) {
       console.error("Android widget update failed:", error);
@@ -61,9 +73,6 @@ export class WidgetStorageService {
   ): Promise<void> {
     try {
       let friendsData: FriendStatusWidgetItem[] = [];
-
-      console.log("Platform.OS", Platform.OS);
-      console.log("this.storage", this.storage);
 
       // 1. Fetch Data
       if (Platform.OS === "ios" && this.storage) {
@@ -89,8 +98,6 @@ export class WidgetStorageService {
         return;
       }
 
-      console.log("friendsData", friendsData);
-
       // 2. Prepare Item
       const displayNameStr = String(displayName || "");
       const friendStatusItem: FriendStatusWidgetItem = {
@@ -113,7 +120,6 @@ export class WidgetStorageService {
         const hasChanged = existing.optionId !== friendStatusItem.optionId || 
                            existing.note !== friendStatusItem.note || 
                            existing.expiresAt !== friendStatusItem.expiresAt;
-        console.log("hasChanged", hasChanged);
         if (!hasChanged) return;
         friendsData[friendIndex] = friendStatusItem;
       } else {
@@ -121,11 +127,9 @@ export class WidgetStorageService {
       }
 
       const jsonString = JSON.stringify(friendsData);
-      console.log(Platform.OS, "jsonString", this.storage);
 
       // 4. Save and Reload
       if (Platform.OS === "ios" && this.storage) {
-        console.log("update friend statusjsonString", jsonString);
         this.storage.set(WIDGET_DATA_KEY, jsonString);
         ExtensionStorage.reloadWidget("InstantStatusWidget");
         this.lastReloadTime = Date.now();
@@ -156,7 +160,6 @@ export class WidgetStorageService {
 
       const jsonString = JSON.stringify(widgetData);
 
-      console.log("jsonString", jsonString);
 
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
