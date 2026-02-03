@@ -13,6 +13,8 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { useAuth } from "../contexts/AuthContext";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
+import { ErrorBanner } from "../components/ErrorBanner";
+import Toast from "react-native-toast-message";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SignUp">;
 
@@ -21,29 +23,64 @@ const GoogleIcon = () => <Text style={styles.googleIcon}>G</Text>;
 export default function SignUpScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [globalError, setGlobalError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const { signUp, signInWithGoogle, signInWithApple } = useAuth();
 
-  const handleSignUp = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please enter both email and password");
-      return;
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (emailError) setEmailError(""); // Clear error when user starts typing
+    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (passwordError) setPasswordError(""); // Clear error when user starts typing
+    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+  };
+
+  const validateForm = (): boolean => {
+    let isValid = true;
+
+    // Validate email
+    if (!email.trim()) {
+      setEmailError("Email is required");
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setEmailError("Please enter a valid email address");
+      isValid = false;
     }
 
-    if (password.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters");
+    // Validate password
+    if (!password.trim()) {
+      setPasswordError("Password is required");
+      isValid = false;
+    } else if (password.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
+      isValid = false;
+    }
+
+    return isValid;
+  };
+
+  const handleSignUp = async () => {
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
+    setGlobalError(""); // Clear any previous errors
     try {
-      await signUp(email, password);
+      await signUp(email.trim(), password);
     } catch (error: any) {
       const errorMessage =
         error.message || error.originalError?.message || "Failed to sign up";
-      Alert.alert("Error", errorMessage);
+      // Show server errors as global error banner (not validation errors)
+      setGlobalError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -57,7 +94,10 @@ export default function SignUpScreen({ navigation }: Props) {
     } catch (error: any) {
       // Only show error if it's not a cancellation
       if (!error.message?.includes("cancelled")) {
-        Alert.alert("Error", error.message || "Failed to sign in with Google");
+        Toast.show({
+          type: "error",
+          text1: error.message || "Failed to sign in with Google. Please try again.",
+        });
       }
     } finally {
       setGoogleLoading(false);
@@ -71,7 +111,10 @@ export default function SignUpScreen({ navigation }: Props) {
     } catch (error: any) {
       // Don't show alert for user cancellation
       if (!error.message?.includes("cancelled")) {
-        Alert.alert("Error", error.message || "Failed to sign in with Apple");
+        Toast.show({
+          type: "error",
+          text1: error.message || "Failed to sign in with Apple. Please try again.",
+        });
       }
     } finally {
       setAppleLoading(false);
@@ -83,22 +126,36 @@ export default function SignUpScreen({ navigation }: Props) {
       <Text style={styles.title}>Instant Status</Text>
       <Text style={styles.subtitle}>Create your account</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password (min 8 characters)"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoCapitalize="none"
-      />
+      {/* Global Error Banner */}
+      {globalError ? (
+        <ErrorBanner
+          message={globalError}
+          onDismiss={() => setGlobalError("")}
+        />
+      ) : null}
+
+      <View>
+        <TextInput
+          style={[styles.input, emailError && styles.inputError]}
+          placeholder="Email"
+          value={email}
+          onChangeText={handleEmailChange}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+      </View>
+      <View>
+        <TextInput
+          style={[styles.input, passwordError && styles.inputError]}
+          placeholder="Password (min 8 characters)"
+          value={password}
+          onChangeText={handlePasswordChange}
+          secureTextEntry
+          autoCapitalize="none"
+        />
+        {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+      </View>
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleSignUp}
@@ -189,8 +246,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 4,
     backgroundColor: "#f9f9f9",
+  },
+  inputError: {
+    borderColor: "#EF4444",
+    borderWidth: 1,
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 12,
+    marginBottom: 16,
+    marginLeft: 4,
   },
   button: {
     backgroundColor: "#007AFF",

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Connection } from "../types";
 import { connectionsService } from "../services/connections.service";
+import Toast from "react-native-toast-message";
 
 export default function FriendsScreen() {
   const navigation = useNavigation();
@@ -75,8 +76,15 @@ export default function FriendsScreen() {
                 selectedConnection.friend_id
               );
               await loadConnections();
+              Toast.show({
+                type: "success",
+                text1: `${friendName} has been removed from your friends list.`,
+              });
             } catch (error: any) {
-              Alert.alert("Error", error.message || "Failed to remove friend");
+              Toast.show({
+                type: "error",
+                text1: error.message || "Check your connection and try again.",
+              });
             }
           },
         },
@@ -113,14 +121,17 @@ export default function FriendsScreen() {
 
       closeManageMenu();
 
-      Alert.alert(
-        "Success",
-        newUserShowsStatus
+      Toast.show({
+        type: "success",
+        text1: newUserShowsStatus
           ? "You've enabled status sharing. They can now see your status."
-          : "You've hidden your status. They can't see your status until you enable it again."
-      );
+          : "You've hidden your status. They can't see your status until you enable it again.",
+      });
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to update visibility");
+      Toast.show({
+        type: "error",
+        text1: error.message || "Failed to update visibility. Check your connection and try again.",
+      });
     }
   };
 

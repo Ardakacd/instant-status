@@ -19,6 +19,18 @@ export class ConnectionsService {
       shows_status: showsStatus,
     });
   }
+
+  async getFriendCount(): Promise<{
+    count: number;
+    limit: number;
+    freeLimit: number;
+    canAddMore: boolean;
+    isGrandfathered?: boolean;
+    errorMessage?: string;
+  }> {
+    const response = await api.get("/connections/friend-count");
+    return response.data;
+  }
 }
 
 export const connectionsService = new ConnectionsService();

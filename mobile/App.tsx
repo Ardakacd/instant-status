@@ -3,10 +3,13 @@ import {
   AppState,
   Platform,
   View,
+  Text,
+  StyleSheet,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SplashScreen from "expo-splash-screen";
 import notifee from "@notifee/react-native";
+import Purchases, { LOG_LEVEL } from "react-native-purchases";
 import {
   NavigationContainer,
   NavigationContainerRef,
@@ -36,6 +39,117 @@ import FriendsScreen from "./src/screens/FriendsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import ConnectScreen from "./src/screens/ConnectScreen";
 import ManageStatusScreen from "./src/screens/ManageStatusScreen";
+import SubscriptionManagementScreen from "./src/screens/SubscriptionManagementScreen";
+
+// Custom Toast Configuration
+const toastConfig = {
+  success: ({ text1, text2 }: any) => {
+    const message = text2 || text1 || "";
+    return (
+      <View style={styles.toastContainer}>
+        <View style={[styles.toastContent, styles.successToast]}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.text1}>{message}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  },
+
+  error: ({ text1, text2 }: any) => {
+    const message = text2 || text1 || "";
+    return (
+      <View style={styles.toastContainer}>
+        <View style={[styles.toastContent, styles.errorToast]}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="close-circle" size={24} color="#EF4444" />
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.text1}>{message}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  },
+
+  info: ({ text1, text2 }: any) => {
+    const message = text2 || text1 || "";
+    return (
+      <View style={styles.toastContainer}>
+        <View style={[styles.toastContent, styles.infoToast]}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="information-circle" size={24} color="#007AFF" />
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.text1}>{message}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  },
+};
+
+const styles = StyleSheet.create({
+  toastContainer: {
+    width: "100%",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  toastContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    minHeight: 56,
+    width: "100%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  successToast: {
+    backgroundColor: "#FFFFFF",
+    borderLeftWidth: 4,
+    borderLeftColor: "#10B981",
+  },
+  errorToast: {
+    backgroundColor: "#FFFFFF",
+    borderLeftWidth: 4,
+    borderLeftColor: "#EF4444",
+  },
+  infoToast: {
+    backgroundColor: "#FFFFFF",
+    borderLeftWidth: 4,
+    borderLeftColor: "#007AFF",
+  },
+  iconContainer: {
+    marginRight: 12,
+    flexShrink: 0,
+  },
+  textContainer: {
+    flex: 1,
+    flexShrink: 1,
+  },
+  text1: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#000000",
+    marginBottom: 2,
+  },
+  text2: {
+    fontSize: 13,
+    color: "#374151",
+    lineHeight: 18,
+  },
+});
 
 export type RootStackParamList = {
   SignUp: undefined;
@@ -47,6 +161,7 @@ export type RootStackParamList = {
   Connect: { userId?: string } | undefined;
   WidgetPreview: undefined;
   ManageStatus: undefined;
+  SubscriptionManagement: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -347,6 +462,13 @@ function AppNavigator() {
                 headerShown: false,
               }}
             />
+            <Stack.Screen
+              name="SubscriptionManagement"
+              component={SubscriptionManagementScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
           </>
         )}
       </Stack.Navigator>
@@ -354,15 +476,37 @@ function AppNavigator() {
   );
 }
 
+// RevenueCat API Key
+const REVENUECAT_API_KEY = 'test_rXxPaWZYHrzNjCPKZgIxnOFZXYQ';
+
+// Move RevenueCat configuration OUTSIDE the component so it runs as soon as the file loads
+// This ensures the SDK is ready before the component tree tries to render
+if (Platform.OS !== 'web') { // RevenueCat doesn't run on web
+  try {
+    Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    Purchases.configure({ apiKey: REVENUECAT_API_KEY });
+    console.log("RevenueCat initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize RevenueCat:", error);
+  }
+}
+
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
-    (async () => {
-      setAppIsReady(true);
-      await SplashScreen.hideAsync();
-    })();
+    async function prepare() {
+      try {
+        // Pre-load any fonts or assets here if needed
+        setAppIsReady(true);
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        await SplashScreen.hideAsync();
+      }
+    }
+    prepare();
   }, []);
 
   // Reset badge count when app comes to foreground (not on cold start)
@@ -389,7 +533,7 @@ export default function App() {
     <AuthProvider>
       <StatusBar style="auto" />
       <AppNavigator />
-      <Toast topOffset={60} />
+      <Toast config={toastConfig} topOffset={60} />
     </AuthProvider>
   );
 }

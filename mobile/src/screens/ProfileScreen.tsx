@@ -27,6 +27,10 @@ import { deviceTokenService } from "../services/device-token.service";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../App";
+import { presentPaywall, presentCustomerCenter } from "../services/purchases.service";
+import { useIsPremium } from "../hooks/useIsPremium";
+import Purchases from "react-native-purchases";
+import Toast from "react-native-toast-message";
 
 type ProfileScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList>;
@@ -35,6 +39,7 @@ export default function ProfileScreen() {
   const { user, logout, deleteAccount, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
+  const { isPremium, loading: premiumLoading, willRenew, expirationDate, managementURL } = useIsPremium();
   const [firstName, setFirstName] = useState(user?.first_name || "");
   const [lastName, setLastName] = useState(user?.last_name || "");
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -52,6 +57,7 @@ export default function ProfileScreen() {
     useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [openingPaywall, setOpeningPaywall] = useState(false);
 
   useEffect(() => {
     checkNotificationState();
@@ -128,7 +134,10 @@ export default function ProfileScreen() {
 
   const handleSaveFirstName = async () => {
     if (!firstName.trim()) {
-      Alert.alert("Error", "First name cannot be empty");
+      Toast.show({
+        type: "error",
+        text1: "First name cannot be empty",
+      });
       setFirstName(user?.first_name || "");
       setEditingFirstName(false);
       return;
@@ -139,8 +148,15 @@ export default function ProfileScreen() {
       await userService.updateMe({ first_name: firstName.trim() });
       await refreshUser();
       setEditingFirstName(false);
+      Toast.show({
+        type: "success",
+        text1: "First name updated successfully",
+      });
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to update first name");
+      Toast.show({
+        type: "error",
+        text1: error.message || "Failed to update first name. Check your connection and try again.",
+      });
       setFirstName(user?.first_name || "");
     } finally {
       setSaving(false);
@@ -149,7 +165,10 @@ export default function ProfileScreen() {
 
   const handleSaveLastName = async () => {
     if (!lastName.trim()) {
-      Alert.alert("Error", "Last name cannot be empty");
+      Toast.show({
+        type: "error",
+        text1: "Last name cannot be empty",
+      });
       setLastName(user?.last_name || "");
       setEditingLastName(false);
       return;
@@ -160,8 +179,15 @@ export default function ProfileScreen() {
       await userService.updateMe({ last_name: lastName.trim() });
       await refreshUser();
       setEditingLastName(false);
+      Toast.show({
+        type: "success",
+        text1: "Last name updated successfully",
+      });
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to update last name");
+      Toast.show({
+        type: "error",
+        text1: error.message || "Failed to update last name. Check your connection and try again.",
+      });
       setLastName(user?.last_name || "");
     } finally {
       setSaving(false);
@@ -253,9 +279,12 @@ export default function ProfileScreen() {
         // Keep switch enabled since we can't programmatically disable
         setPushNotifications(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error handling push notifications:", error);
-      Alert.alert("Error", "Failed to update push notifications setting");
+      Toast.show({
+        type: "error",
+        text1: error.message || "Failed to update push notifications setting. Please try again.",
+      });
     }
   };
 
@@ -268,8 +297,11 @@ export default function ProfileScreen() {
         onPress: async () => {
           try {
             await logout();
-          } catch (error) {
-            Alert.alert("Error", "Failed to logout");
+          } catch (error: any) {
+            Toast.show({
+              type: "error",
+              text1: error.message || "Failed to logout. Please try again.",
+            });
           }
         },
       },
@@ -285,25 +317,34 @@ export default function ProfileScreen() {
 
   const handleSavePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert("Error", "Please fill in all fields");
+      Toast.show({
+        type: "error",
+        text1: "Please fill in all fields",
+      });
       return;
     }
 
     if (newPassword.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters");
+      Toast.show({
+        type: "error",
+        text1: "Password must be at least 8 characters",
+      });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert("Error", "New passwords do not match");
+      Toast.show({
+        type: "error",
+        text1: "New passwords do not match",
+      });
       return;
     }
 
     if (currentPassword === newPassword) {
-      Alert.alert(
-        "Error",
-        "New password must be different from current password"
-      );
+      Toast.show({
+        type: "error",
+        text1: "New password must be different from current password",
+      });
       return;
     }
 
@@ -311,19 +352,19 @@ export default function ProfileScreen() {
     try {
       await authService.changePassword(currentPassword, newPassword);
 
-      Alert.alert("Success", "Password changed successfully", [
-        {
-          text: "OK",
-          onPress: () => {
-            setChangePasswordModalVisible(false);
-            setCurrentPassword("");
-            setNewPassword("");
-            setConfirmPassword("");
-          },
-        },
-      ]);
+      Toast.show({
+        type: "success",
+        text1: "Your password has been updated successfully",
+      });
+      setChangePasswordModalVisible(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to change password");
+      Toast.show({
+        type: "error",
+        text1: error.message || "Check your connection and try again.",
+      });
     } finally {
       setChangingPassword(false);
     }
@@ -354,10 +395,10 @@ export default function ProfileScreen() {
 
   const handleConfirmDeleteAccount = async (password?: string) => {
     if (authProvider === "password" && !password?.trim()) {
-      Alert.alert(
-        "Error",
-        "Please enter your password to confirm account deletion"
-      );
+      Toast.show({
+        type: "error",
+        text1: "Please enter your password to confirm account deletion",
+      });
       return;
     }
 
@@ -366,7 +407,10 @@ export default function ProfileScreen() {
       await deleteAccount(authProvider === "password" ? password : undefined);
       // Navigation will happen automatically via auth state change
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to delete account");
+      Toast.show({
+        type: "error",
+        text1: error.message || "Check your connection and try again.",
+      });
     } finally {
       setDeletingAccount(false);
       setDeleteAccountModalVisible(false);
@@ -380,6 +424,32 @@ export default function ProfileScreen() {
 
   const openTermsOfUse = () => {
     WebBrowser.openBrowserAsync("https://example.com/terms-of-use");
+  };
+
+  const handleUpgradeToPremium = async () => {
+    try {
+      setOpeningPaywall(true);
+      const success = await presentPaywall();
+      if (success) {
+        Toast.show({
+          type: "success",
+          text1: "Welcome to Premium!",
+        });
+      }
+    } catch (error: any) {
+      console.error("Paywall error:", error);
+      Toast.show({
+        type: "error",
+        text1: error.message || "Please try again later.",
+      });
+    } finally {
+      setOpeningPaywall(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    // Navigate to subscription management screen for plan changes
+    navigation.navigate("SubscriptionManagement" as never);
   };
 
   return (
@@ -558,6 +628,63 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
+        </View>
+
+        {/* Subscription Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Subscription</Text>
+
+          {premiumLoading ? (
+            <View style={styles.premiumLoadingContainer}>
+              <ActivityIndicator size="small" color="#007AFF" />
+              <Text style={styles.premiumLoadingText}>Checking status...</Text>
+            </View>
+          ) : isPremium ? (
+            <>
+              <View style={styles.premiumBadge}>
+                <Ionicons name="star" size={20} color="#FFD700" />
+                <Text style={styles.premiumBadgeText}>Premium Member</Text>
+              </View>
+              
+              {/* Show expiration warning if subscription is cancelled but still active */}
+              {willRenew === false && expirationDate && (
+                <View style={styles.expirationWarning}>
+                  <Ionicons name="information-circle" size={16} color="#F59E0B" />
+                  <Text style={styles.expirationWarningText}>
+                    Your subscription will expire on {expirationDate.toLocaleDateString()}
+                  </Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.subscriptionButton}
+                onPress={handleManageSubscription}
+              >
+                <Ionicons name="settings-outline" size={20} color="#007AFF" />
+                <Text style={styles.subscriptionButtonText}>
+                  Manage Subscription
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color="#999" />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={[styles.subscriptionButton, styles.upgradeButton]}
+              onPress={handleUpgradeToPremium}
+              disabled={openingPaywall}
+            >
+              {openingPaywall ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="star-outline" size={20} color="#FFFFFF" />
+                  <Text style={[styles.subscriptionButtonText, styles.upgradeButtonText]}>
+                    Upgrade to Premium
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Settings Card */}
@@ -1062,5 +1189,78 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 16,
     fontWeight: "600",
+  },
+  premiumLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+    gap: 12,
+  },
+  premiumLoadingText: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  premiumBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  premiumBadgeText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#92400E",
+  },
+  subscriptionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    gap: 12,
+  },
+  upgradeButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 8,
+    padding: 16,
+    justifyContent: "center",
+    marginTop: 8,
+  },
+  subscriptionButtonText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#111827",
+    flex: 1,
+  },
+  cancelMembershipButton: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
+  },
+  cancelMembershipButtonText: {
+    color: "#EF4444",
+  },
+  expirationWarning: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    gap: 8,
+  },
+  expirationWarningText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#92400E",
+    lineHeight: 20,
+  },
+  upgradeButtonText: {
+    color: "#FFFFFF",
   },
 });

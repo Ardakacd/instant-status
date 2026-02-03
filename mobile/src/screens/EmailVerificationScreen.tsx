@@ -14,6 +14,7 @@ import { authService } from "../services/auth.service";
 import { auth } from "../config/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { RootStackParamList } from "../../App";
+import Toast from "react-native-toast-message";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EmailVerification">;
 
@@ -75,7 +76,10 @@ export default function EmailVerificationScreen({ route }: Props) {
       await checkEmailVerification();
       setVerifying(false);
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to verify email");
+      Toast.show({
+        type: "error",
+        text1: error.message || "Failed to verify email. Please try again.",
+      });
       setVerifying(false);
     }
   };
@@ -109,11 +113,15 @@ export default function EmailVerificationScreen({ route }: Props) {
     try {
       await authService.sendEmailVerification();
       setResendCooldown(60); // Set 60 second cooldown
+      Toast.show({
+        type: "success",
+        text1: "Verification email has been sent. Please check your inbox.",
+      });
     } catch (error: any) {
-      Alert.alert(
-        "Error",
-        error.message || "Failed to send verification email"
-      );
+      Toast.show({
+        type: "error",
+        text1: error.message || "Failed to send verification email. Please try again.",
+      });
     } finally {
       setSending(false);
     }
@@ -131,8 +139,11 @@ export default function EmailVerificationScreen({ route }: Props) {
           onPress: async () => {
             try {
               await logout();
-            } catch (error) {
-              Alert.alert("Error", "Failed to logout");
+            } catch (error: any) {
+              Toast.show({
+                type: "error",
+                text1: error.message || "Failed to logout. Please try again.",
+              });
             }
           },
         },

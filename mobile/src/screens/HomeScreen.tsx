@@ -23,12 +23,16 @@ import StatusChangeModal from "../components/StatusChangeModal";
 import { fetchSignInMethodsForEmail } from "firebase/auth";
 import { auth } from "../config/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-toast-message";
+import { useIsPremium } from "../hooks/useIsPremium";
+import { presentPaywall } from "../services/purchases.service";
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const route = useRoute();
+  const { isPremium, loading: premiumLoading } = useIsPremium();
   const [myStatus, setMyStatus] = useState<Status | null>(null);
   const [friendsStatus, setFriendsStatus] = useState<Status[]>([]);
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
@@ -45,6 +49,30 @@ export default function HomeScreen() {
   const pendingFriendIdRef = React.useRef<string | null>(null);
 
   const currentOptionId = myStatus?.option?.id || null;
+
+  const handleManageStatusPress = async () => {
+    // If premium, navigate to Manage Status screen
+    if (isPremium) {
+      navigation.navigate("ManageStatus" as never);
+      return;
+    }
+
+    // If not premium, show paywall
+    try {
+      const success = await presentPaywall();
+      if (success) {
+        // User purchased/restored - they can now access Manage Status
+        // The useIsPremium hook will automatically update, so we can navigate
+        navigation.navigate("ManageStatus" as never);
+      }
+    } catch (error: any) {
+      console.error("Error opening paywall:", error);
+      Toast.show({
+        type: "error",
+        text1: error.message || "Failed to open subscription options. Please try again.",
+      });
+    }
+  };
 
   useEffect(() => {
     loadStatusOptions();
@@ -211,8 +239,12 @@ export default function HomeScreen() {
       setMyStatus(updatedStatus);
       setModalVisible(false);
       setSelectedOption(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating status:", error);
+      Toast.show({
+        type: "error",
+        text1: error.message || "Check your connection and try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -342,10 +374,36 @@ export default function HomeScreen() {
           <View style={styles.cardTitleContainer}>
             <Text style={styles.cardTitle}>Your Status</Text>
             <TouchableOpacity
-              style={styles.manageButton}
-              onPress={() => navigation.navigate("ManageStatus" as never)}
+              style={[
+                styles.manageButton,
+                !isPremium && styles.manageButtonLocked,
+                premiumLoading && styles.manageButtonLoading,
+              ]}
+              onPress={handleManageStatusPress}
+              disabled={premiumLoading}
             >
-              <Text style={styles.manageButtonText}>Manage Status</Text>
+              {premiumLoading ? (
+                <ActivityIndicator size="small" color="#007AFF" />
+              ) : (
+                <>
+                  {!isPremium && (
+                    <Ionicons
+                      name="lock-closed"
+                      size={14}
+                      color="#007AFF"
+                      style={styles.lockIcon}
+                    />
+                  )}
+                  <Text
+                    style={[
+                      styles.manageButtonText,
+                      !isPremium && styles.manageButtonTextLocked,
+                    ]}
+                  >
+                    Manage Status
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
           <View style={styles.statusButtonsContainer}>
@@ -678,15 +736,29 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   manageButton: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     backgroundColor: "#EFF6FF",
   },
+  manageButtonLocked: {
+    opacity: 0.6,
+  },
+  manageButtonLoading: {
+    opacity: 0.7,
+  },
+  lockIcon: {
+    marginRight: 4,
+  },
   manageButtonText: {
     fontSize: 14,
     fontWeight: "600",
     color: "#007AFF",
+  },
+  manageButtonTextLocked: {
+    // Keep same styling, opacity is handled by parent
   },
   statusButtonsContainer: {
     flexDirection: "row",

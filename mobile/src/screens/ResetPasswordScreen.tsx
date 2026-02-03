@@ -15,12 +15,16 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Linking from "expo-linking";
 import { authService } from "../services/auth.service";
 import { RootStackParamList } from "../../App";
+import { ErrorBanner } from "../components/ErrorBanner";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ResetPassword">;
 
 export default function ResetPasswordScreen({ route, navigation }: Props) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [globalError, setGlobalError] = useState("");
   const [resetting, setResetting] = useState(false);
   const [hasHandledReset, setHasHandledReset] = useState(false);
   const [urlParams, setUrlParams] = useState<{ mode?: string; oobCode?: string }>({});
@@ -55,54 +59,60 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
     }
 
     // If we have mode but no oobCode, it's invalid
+    // The screen will render the invalid link UI automatically (no Alert needed)
     if (finalMode === "resetPassword" && !finalOobCode) {
-      Alert.alert(
-        "Invalid Link",
-        "This password reset link is invalid or has expired. Please request a new one.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate("SignIn");
-              }
-            },
-          },
-        ]
-      );
       setHasHandledReset(true);
     }
   }, [route.params, urlParams, hasHandledReset, navigation]);
 
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (passwordError) setPasswordError(""); // Clear error when user starts typing
+    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+  };
+
+  const handleConfirmPasswordChange = (text: string) => {
+    setConfirmPassword(text);
+    if (confirmPasswordError) setConfirmPasswordError(""); // Clear error when user starts typing
+    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+  };
+
+  const validateForm = (): boolean => {
+    let isValid = true;
+
+    if (!password.trim()) {
+      setPasswordError("Password is required");
+      isValid = false;
+    } else if (password.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
+      isValid = false;
+    }
+
+    if (!confirmPassword.trim()) {
+      setConfirmPasswordError("Please confirm your password");
+      isValid = false;
+    } else if (password !== confirmPassword) {
+      setConfirmPasswordError("Passwords do not match");
+      isValid = false;
+    }
+
+    return isValid;
+  };
+
   const handleResetPassword = async () => {
-    if (!password.trim() || !confirmPassword.trim()) {
-      Alert.alert("Error", "Please enter both password fields");
-      return;
-    }
-
-    if (password.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters long");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+    if (!validateForm()) {
       return;
     }
 
     // Get oobCode from route params or URL params
     const finalOobCode = route.params?.oobCode || urlParams.oobCode;
     if (!finalOobCode) {
-      Alert.alert(
-        "Error",
-        "Invalid reset link. Please request a new password reset email."
-      );
+      setGlobalError("Invalid reset link. Please request a new password reset email.");
       return;
     }
 
     setResetting(true);
+    setGlobalError(""); // Clear any previous errors
     try {
       await authService.confirmPasswordReset(finalOobCode, password);
       Alert.alert(
@@ -117,29 +127,11 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
       );
     } catch (error: any) {
       if (error.code === "auth/expired-action-code") {
-        Alert.alert(
-          "Link Expired",
-          "This password reset link has expired. Please request a new one.",
-          [
-            {
-              text: "OK",
-              onPress: () => navigation.navigate("SignIn"),
-            },
-          ]
-        );
+        setGlobalError("This password reset link has expired. Please request a new one.");
       } else if (error.code === "auth/invalid-action-code") {
-        Alert.alert(
-          "Invalid Link",
-          "This password reset link is invalid. Please request a new one.",
-          [
-            {
-              text: "OK",
-              onPress: () => navigation.navigate("SignIn"),
-            },
-          ]
-        );
+        setGlobalError("This password reset link is invalid. Please request a new one.");
       } else {
-        Alert.alert("Error", error.message || "Failed to reset password");
+        setGlobalError(error.message || "Failed to reset password. Please try again.");
       }
     } finally {
       setResetting(false);
@@ -198,40 +190,54 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
           Enter your new password below. Make sure it's at least 8 characters long.
         </Text>
 
-        <View style={styles.inputContainer}>
-          <Ionicons
-            name="lock-closed"
-            size={20}
-            color="#6B7280"
-            style={styles.inputIcon}
+        {/* Global Error Banner */}
+        {globalError ? (
+          <ErrorBanner
+            message={globalError}
+            onDismiss={() => setGlobalError("")}
           />
-          <TextInput
-            style={styles.input}
-            placeholder="New Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!resetting}
-          />
+        ) : null}
+
+        <View>
+          <View style={styles.inputContainer}>
+            <Ionicons
+              name="lock-closed"
+              size={20}
+              color="#6B7280"
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={[styles.input, passwordError && styles.inputError]}
+              placeholder="New Password"
+              value={password}
+              onChangeText={handlePasswordChange}
+              secureTextEntry
+              autoCapitalize="none"
+              editable={!resetting}
+            />
+          </View>
+          {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
         </View>
 
-        <View style={styles.inputContainer}>
-          <Ionicons
-            name="lock-closed"
-            size={20}
-            color="#6B7280"
-            style={styles.inputIcon}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm New Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!resetting}
-          />
+        <View>
+          <View style={styles.inputContainer}>
+            <Ionicons
+              name="lock-closed"
+              size={20}
+              color="#6B7280"
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={[styles.input, confirmPasswordError && styles.inputError]}
+              placeholder="Confirm New Password"
+              value={confirmPassword}
+              onChangeText={handleConfirmPasswordChange}
+              secureTextEntry
+              autoCapitalize="none"
+              editable={!resetting}
+            />
+          </View>
+          {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
         </View>
 
         <TouchableOpacity
@@ -328,6 +334,17 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: "#111827",
+  },
+  inputError: {
+    borderColor: "#EF4444",
+    borderWidth: 1,
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 16,
+    marginLeft: 4,
   },
   button: {
     backgroundColor: "#007AFF",

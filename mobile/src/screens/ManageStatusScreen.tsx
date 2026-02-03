@@ -18,15 +18,19 @@ import {
   StatusOption,
 } from "../services/status-option.service";
 import Toast from "react-native-toast-message";
+import { ErrorBanner } from "../components/ErrorBanner";
 import EmojiPicker from "../components/EmojiPicker";
 import ColorPicker from "../components/ColorPicker";
 import StatusPreviewCard from "../components/StatusPreviewCard";
+import { useIsPremium } from "../hooks/useIsPremium";
+import { PurchasesService } from "../services/purchases.service";
 
 const MAX_CUSTOM_OPTIONS = 4;
 
 export default function ManageStatusScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { isPremium } = useIsPremium();
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -40,6 +44,9 @@ export default function ManageStatusScreen() {
   const [emoji, setEmoji] = useState("");
   const [color, setColor] = useState("#10B981");
   const [saving, setSaving] = useState(false);
+  const [labelError, setLabelError] = useState("");
+  const [emojiError, setEmojiError] = useState("");
+  const [globalError, setGlobalError] = useState("");
 
   useEffect(() => {
     loadStatusOptions();
@@ -48,14 +55,13 @@ export default function ManageStatusScreen() {
   const loadStatusOptions = async () => {
     try {
       setLoading(true);
+      setGlobalError(""); // Clear any previous errors
       const options = await statusOptionService.getStatusOptions();
       setStatusOptions(options);
     } catch (error: any) {
-      Toast.show({
-        type: "error",
-        text1: "Failed to load status options",
-        text2: error.message,
-      });
+      setGlobalError(
+        error.message || "Failed to load status options. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -70,7 +76,15 @@ export default function ManageStatusScreen() {
     setCreateModalVisible(true);
   };
 
-  const handleEdit = (option: StatusOption) => {
+  const handleEdit = async (option: StatusOption) => {
+    // If it's a custom status (user_id !== null) and user is not premium, show paywall
+    if (option.user_id !== null && !isPremium) {
+      const purchased = await PurchasesService.presentPaywall();
+      if (!purchased) {
+        return;
+      }
+      // If purchase successful, continue to edit modal
+    }
     setLabel(option.label);
     setEmoji(option.emoji);
     setColor(option.color);
@@ -81,7 +95,10 @@ export default function ManageStatusScreen() {
 
   const handleDelete = (option: StatusOption) => {
     if (option.user_id === null) {
-      Alert.alert("Cannot Delete", "System status options cannot be deleted.");
+      Toast.show({
+        type: "info",
+        text1: "System status options cannot be deleted.",
+      });
       return;
     }
 
@@ -95,23 +112,49 @@ export default function ManageStatusScreen() {
           style: "destructive",
           onPress: async () => {
             try {
+              setGlobalError(""); // Clear any previous errors
               await statusOptionService.deleteStatusOption(option.id);
               Toast.show({
                 type: "success",
                 text1: "Status option deleted",
               });
+              setGlobalError("");
               loadStatusOptions();
             } catch (error: any) {
-              Toast.show({
-                type: "error",
-                text1: "Failed to delete",
-                text2: error.message,
-              });
+              setGlobalError(
+                error.message || "Failed to delete status option. Please try again."
+              );
             }
           },
         },
       ]
     );
+  };
+
+  const handleLabelChange = (text: string) => {
+    setLabel(text);
+    if (labelError) setLabelError(""); // Clear error when user starts typing
+  };
+
+  const handleEmojiSelect = (selectedEmoji: string) => {
+    setEmoji(selectedEmoji);
+    if (emojiError) setEmojiError(""); // Clear error when user selects emoji
+  };
+
+  const validateForm = (): boolean => {
+    let isValid = true;
+
+    if (!label.trim()) {
+      setLabelError("Label is required");
+      isValid = false;
+    }
+
+    if (!emoji.trim()) {
+      setEmojiError("Emoji is required");
+      isValid = false;
+    }
+
+    return isValid;
   };
 
   const handleSaveCreate = async () => {
@@ -120,8 +163,7 @@ export default function ManageStatusScreen() {
       return;
     }
 
-    if (!label.trim() || !emoji.trim()) {
-      Alert.alert("Validation Error", "Label and emoji are required.");
+    if (!validateForm()) {
       return;
     }
 
@@ -130,28 +172,30 @@ export default function ManageStatusScreen() {
       (opt) => opt.user_id !== null
     ).length;
     if (customOptionsCount >= MAX_CUSTOM_OPTIONS) {
-      Alert.alert(
-        "Limit Reached",
-        `You can only create up to ${MAX_CUSTOM_OPTIONS} custom status options. Please delete one first.`
-      );
+      Toast.show({
+        type: "info",
+        text1: `You can only create up to ${MAX_CUSTOM_OPTIONS} custom status options. Please delete one first.`,
+      });
       return;
     }
 
     try {
       setSaving(true);
+      setGlobalError(""); // Clear any previous errors
       await statusOptionService.createStatusOption({
         label: label.trim(),
         emoji: emoji.trim(),
         color: color.toUpperCase(),
       });
       setCreateModalVisible(false);
+      setLabelError("");
+      setEmojiError("");
+      setGlobalError("");
       loadStatusOptions();
     } catch (error: any) {
-      Toast.show({
-        type: "error",
-        text1: "Failed to create",
-        text2: error.message,
-      });
+      setGlobalError(
+        error.message || "Failed to create status option. Please try again."
+      );
     } finally {
       setSaving(false);
     }
@@ -163,13 +207,17 @@ export default function ManageStatusScreen() {
       return;
     }
 
-    if (!selectedOption || !label.trim() || !emoji.trim()) {
-      Alert.alert("Validation Error", "Label and emoji are required.");
+    if (!selectedOption) {
+      return;
+    }
+
+    if (!validateForm()) {
       return;
     }
 
     try {
       setSaving(true);
+      setGlobalError(""); // Clear any previous errors
       await statusOptionService.updateStatusOption(selectedOption.id, {
         label: label.trim(),
         emoji: emoji.trim(),
@@ -180,13 +228,14 @@ export default function ManageStatusScreen() {
         text1: "Status option updated",
       });
       setEditModalVisible(false);
+      setLabelError("");
+      setEmojiError("");
+      setGlobalError("");
       loadStatusOptions();
     } catch (error: any) {
-      Toast.show({
-        type: "error",
-        text1: "Failed to update",
-        text2: error.message,
-      });
+      setGlobalError(
+        error.message || "Failed to update status option. Please try again."
+      );
     } finally {
       setSaving(false);
     }
@@ -229,6 +278,14 @@ export default function ManageStatusScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        {/* Global Error Banner */}
+        {globalError ? (
+          <ErrorBanner
+            message={globalError}
+            onDismiss={() => setGlobalError("")}
+          />
+        ) : null}
+
         {/* Default Statuses */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Default Statuses</Text>
@@ -304,6 +361,9 @@ export default function ManageStatusScreen() {
                 onPress={() => {
                   setCreateModalVisible(false);
                   setSaving(false);
+                  setGlobalError("");
+                  setLabelError("");
+                  setEmojiError("");
                 }}
                 style={styles.modalCloseButton}
               >
@@ -312,23 +372,33 @@ export default function ManageStatusScreen() {
             </View>
 
             <ScrollView style={styles.modalBody}>
+              {/* Global Error Banner */}
+              {globalError ? (
+                <ErrorBanner
+                  message={globalError}
+                  onDismiss={() => setGlobalError("")}
+                />
+              ) : null}
+
               {/* Preview Card */}
               <StatusPreviewCard emoji={emoji} label={label} color={color} />
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Label</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, labelError && styles.inputError]}
                   value={label}
-                  onChangeText={setLabel}
+                  onChangeText={handleLabelChange}
                   placeholder="e.g., In a Meeting"
                   maxLength={25}
                 />
+                {labelError ? <Text style={styles.errorText}>{labelError}</Text> : null}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Emoji</Text>
-                <EmojiPicker selectedEmoji={emoji} onSelect={setEmoji} />
+                <EmojiPicker selectedEmoji={emoji} onSelect={handleEmojiSelect} />
+                {emojiError ? <Text style={styles.errorText}>{emojiError}</Text> : null}
                 {emoji && (
                   <View style={styles.selectedEmojiContainer}>
                     <Text style={styles.selectedEmojiText}>
@@ -350,6 +420,8 @@ export default function ManageStatusScreen() {
                 onPress={() => {
                   setCreateModalVisible(false);
                   setSaving(false);
+                  setLabelError("");
+                  setEmojiError("");
                 }}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -378,6 +450,8 @@ export default function ManageStatusScreen() {
         onRequestClose={() => {
           setEditModalVisible(false);
           setSaving(false);
+          setLabelError("");
+          setEmojiError("");
         }}
       >
         <View style={styles.modalOverlay}>
@@ -385,7 +459,11 @@ export default function ManageStatusScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Custom Status</Text>
               <TouchableOpacity
-                onPress={() => setEditModalVisible(false)}
+                onPress={() => {
+                  setEditModalVisible(false);
+                  setLabelError("");
+                  setEmojiError("");
+                }}
                 style={styles.modalCloseButton}
               >
                 <Ionicons name="close" size={24} color="#6B7280" />
@@ -393,23 +471,33 @@ export default function ManageStatusScreen() {
             </View>
 
             <ScrollView style={styles.modalBody}>
+              {/* Global Error Banner */}
+              {globalError ? (
+                <ErrorBanner
+                  message={globalError}
+                  onDismiss={() => setGlobalError("")}
+                />
+              ) : null}
+
               {/* Preview Card */}
               <StatusPreviewCard emoji={emoji} label={label} color={color} />
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Label</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, labelError && styles.inputError]}
                   value={label}
-                  onChangeText={setLabel}
+                  onChangeText={handleLabelChange}
                   placeholder="e.g., In a Meeting"
                   maxLength={25}
                 />
+                {labelError ? <Text style={styles.errorText}>{labelError}</Text> : null}
               </View>
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Emoji</Text>
-                <EmojiPicker selectedEmoji={emoji} onSelect={setEmoji} />
+                <EmojiPicker selectedEmoji={emoji} onSelect={handleEmojiSelect} />
+                {emojiError ? <Text style={styles.errorText}>{emojiError}</Text> : null}
                 {emoji && (
                   <View style={styles.selectedEmojiContainer}>
                     <Text style={styles.selectedEmojiText}>
@@ -625,6 +713,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+  },
+  inputError: {
+    borderColor: "#EF4444",
+    borderWidth: 1,
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
     backgroundColor: "#FFFFFF",
   },
   modalFooter: {

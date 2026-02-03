@@ -10,20 +10,52 @@ import {
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { userService } from "../services/user.service";
+import { ErrorBanner } from "../components/ErrorBanner";
 
 export default function OnboardingScreen() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [firstNameError, setFirstNameError] = useState("");
+  const [lastNameError, setLastNameError] = useState("");
+  const [globalError, setGlobalError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { user, completeOnboarding, refreshUser } = useAuth();
+  const { completeOnboarding, refreshUser } = useAuth();
+
+  const handleFirstNameChange = (text: string) => {
+    setFirstName(text);
+    if (firstNameError) setFirstNameError(""); // Clear error when user starts typing
+    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+  };
+
+  const handleLastNameChange = (text: string) => {
+    setLastName(text);
+    if (lastNameError) setLastNameError(""); // Clear error when user starts typing
+    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+  };
+
+  const validateForm = (): boolean => {
+    let isValid = true;
+
+    if (!firstName.trim()) {
+      setFirstNameError("First name is required");
+      isValid = false;
+    }
+
+    if (!lastName.trim()) {
+      setLastNameError("Last name is required");
+      isValid = false;
+    }
+
+    return isValid;
+  };
 
   const handleComplete = async () => {
-    if (!firstName.trim() || !lastName.trim()) {
-      Alert.alert("Error", "Please enter both first name and last name");
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
+    setGlobalError(""); // Clear any previous errors
     try {
       await userService.updateMe({
         first_name: firstName.trim(),
@@ -34,7 +66,8 @@ export default function OnboardingScreen() {
       await completeOnboarding();
     } catch (error: any) {
       console.error("Error completing onboarding:", error);
-      Alert.alert("Error", error.message || "Failed to save your information");
+      // Show server errors as global error banner (not validation errors)
+      setGlobalError(error.message || "Failed to save your information. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -47,20 +80,34 @@ export default function OnboardingScreen() {
         Let's get started by telling us your name
       </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="First Name"
-        value={firstName}
-        onChangeText={setFirstName}
-        autoCapitalize="words"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Last Name"
-        value={lastName}
-        onChangeText={setLastName}
-        autoCapitalize="words"
-      />
+      {/* Global Error Banner */}
+      {globalError ? (
+        <ErrorBanner
+          message={globalError}
+          onDismiss={() => setGlobalError("")}
+        />
+      ) : null}
+
+      <View>
+        <TextInput
+          style={[styles.input, firstNameError && styles.inputError]}
+          placeholder="First Name"
+          value={firstName}
+          onChangeText={handleFirstNameChange}
+          autoCapitalize="words"
+        />
+        {firstNameError ? <Text style={styles.errorText}>{firstNameError}</Text> : null}
+      </View>
+      <View>
+        <TextInput
+          style={[styles.input, lastNameError && styles.inputError]}
+          placeholder="Last Name"
+          value={lastName}
+          onChangeText={handleLastNameChange}
+          autoCapitalize="words"
+        />
+        {lastNameError ? <Text style={styles.errorText}>{lastNameError}</Text> : null}
+      </View>
 
       <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}
@@ -103,8 +150,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 4,
     backgroundColor: "#f9f9f9",
+  },
+  inputError: {
+    borderColor: "#EF4444",
+    borderWidth: 1,
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 12,
+    marginBottom: 16,
+    marginLeft: 4,
   },
   button: {
     backgroundColor: "#007AFF",

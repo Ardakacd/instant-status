@@ -16,6 +16,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { authService } from "../services/auth.service";
+import { ErrorBanner } from "../components/ErrorBanner";
+import Toast from "react-native-toast-message";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SignIn">;
 
@@ -24,29 +26,65 @@ const GoogleIcon = () => <Text style={styles.googleIcon}>G</Text>;
 export default function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [globalError, setGlobalError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [forgotPasswordModalVisible, setForgotPasswordModalVisible] =
     useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [resetEmailError, setResetEmailError] = useState("");
   const [sendingReset, setSendingReset] = useState(false);
   const { signIn, signInWithGoogle, signInWithApple } = useAuth();
 
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (emailError) setEmailError(""); // Clear error when user starts typing
+    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (passwordError) setPasswordError(""); // Clear error when user starts typing
+    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+  };
+
+  const validateLoginForm = (): boolean => {
+    let isValid = true;
+
+    if (!email.trim()) {
+      setEmailError("Email is required");
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setEmailError("Please enter a valid email address");
+      isValid = false;
+    }
+
+    if (!password.trim()) {
+      setPasswordError("Password is required");
+      isValid = false;
+    }
+
+    return isValid;
+  };
+
   const handleSignIn = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please enter both email and password");
+    if (!validateLoginForm()) {
       return;
     }
 
     setLoading(true);
+    setGlobalError(""); // Clear any previous errors
     try {
-      await signIn(email, password);
+      await signIn(email.trim(), password);
       // Email verification check is handled in AuthContext and navigation
     } catch (error: any) {
       const errorMessage =
         error.message || error.originalError?.message || "Failed to sign in";
-      Alert.alert("Error", errorMessage);
+      // Show server errors as global error banner (not validation errors)
+      setGlobalError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -60,7 +98,10 @@ export default function LoginScreen({ navigation }: Props) {
     } catch (error: any) {
       // Only show error if it's not a cancellation
       if (!error.message?.includes("cancelled")) {
-        Alert.alert("Error", error.message || "Failed to sign in with Google");
+        Toast.show({
+          type: "error",
+          text1: error.message || "Failed to sign in with Google. Please try again.",
+        });
       }
     } finally {
       setGoogleLoading(false);
@@ -74,7 +115,10 @@ export default function LoginScreen({ navigation }: Props) {
     } catch (error: any) {
       // Don't show alert for user cancellation
       if (!error.message?.includes("cancelled")) {
-        Alert.alert("Error", error.message || "Failed to sign in with Apple");
+        Toast.show({
+          type: "error",
+          text1: error.message || "Failed to sign in with Apple. Please try again.",
+        });
       }
     } finally {
       setAppleLoading(false);
@@ -86,33 +130,35 @@ export default function LoginScreen({ navigation }: Props) {
     setForgotPasswordModalVisible(true);
   };
 
+  const handleResetEmailChange = (text: string) => {
+    setResetEmail(text);
+    if (resetEmailError) setResetEmailError(""); // Clear error when user starts typing
+  };
+
   const handleSendPasswordReset = async () => {
     if (!resetEmail.trim()) {
-      Alert.alert("Error", "Please enter your email address");
+      setResetEmailError("Email is required");
+      return;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail.trim())) {
+      setResetEmailError("Please enter a valid email address");
       return;
     }
 
     setSendingReset(true);
     try {
       await authService.resetPassword(resetEmail.trim());
-      Alert.alert(
-        "Password Reset Email Sent",
-        "Please check your email for instructions to reset your password.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              setForgotPasswordModalVisible(false);
-              setResetEmail("");
-            },
-          },
-        ]
-      );
+      Toast.show({
+        type: "success",
+        text1: "Please check your email for instructions to reset your password.",
+      });
+      setForgotPasswordModalVisible(false);
+      setResetEmail("");
+      setResetEmailError("");
     } catch (error: any) {
-      Alert.alert(
-        "Error",
-        error.message || "Failed to send password reset email"
-      );
+      Toast.show({
+        type: "error",
+        text1: error.message || "Failed to send password reset email. Please try again.",
+      });
     } finally {
       setSendingReset(false);
     }
@@ -123,23 +169,37 @@ export default function LoginScreen({ navigation }: Props) {
       <Text style={styles.title}>Welcome Back</Text>
       <Text style={styles.subtitle}>Sign in to your account</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoFocus
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoCapitalize="none"
-      />
+      {/* Global Error Banner */}
+      {globalError ? (
+        <ErrorBanner
+          message={globalError}
+          onDismiss={() => setGlobalError("")}
+        />
+      ) : null}
+
+      <View>
+        <TextInput
+          style={[styles.input, emailError && styles.inputError]}
+          placeholder="Email"
+          value={email}
+          onChangeText={handleEmailChange}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoFocus
+        />
+        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+      </View>
+      <View>
+        <TextInput
+          style={[styles.input, passwordError && styles.inputError]}
+          placeholder="Password"
+          value={password}
+          onChangeText={handlePasswordChange}
+          secureTextEntry
+          autoCapitalize="none"
+        />
+        {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+      </View>
       <TouchableOpacity
         style={styles.forgotPasswordButton}
         onPress={handleForgotPassword}
@@ -214,6 +274,7 @@ export default function LoginScreen({ navigation }: Props) {
         onRequestClose={() => {
           setForgotPasswordModalVisible(false);
           setResetEmail("");
+          setResetEmailError("");
         }}
       >
         <View style={styles.modalOverlay}>
@@ -224,6 +285,7 @@ export default function LoginScreen({ navigation }: Props) {
                 onPress={() => {
                   setForgotPasswordModalVisible(false);
                   setResetEmail("");
+                  setResetEmailError("");
                 }}
                 disabled={sendingReset}
               >
@@ -237,16 +299,19 @@ export default function LoginScreen({ navigation }: Props) {
                 password.
               </Text>
 
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Email"
-                value={resetEmail}
-                onChangeText={setResetEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoFocus
-                editable={!sendingReset}
-              />
+              <View>
+                <TextInput
+                  style={[styles.modalInput, resetEmailError && styles.modalInputError]}
+                  placeholder="Email"
+                  value={resetEmail}
+                  onChangeText={handleResetEmailChange}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoFocus
+                  editable={!sendingReset}
+                />
+                {resetEmailError ? <Text style={styles.modalErrorText}>{resetEmailError}</Text> : null}
+              </View>
 
               <TouchableOpacity
                 style={[
@@ -312,8 +377,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 4,
     backgroundColor: "#f9f9f9",
+  },
+  inputError: {
+    borderColor: "#EF4444",
+    borderWidth: 1,
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 12,
+    marginBottom: 16,
+    marginLeft: 4,
   },
   button: {
     backgroundColor: "#007AFF",
@@ -438,8 +513,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
-    marginBottom: 20,
     backgroundColor: "#F9FAFB",
+    marginBottom: 4,
+  },
+  modalInputError: {
+    borderColor: "#EF4444",
+    borderWidth: 1,
+  },
+  modalErrorText: {
+    color: "#EF4444",
+    fontSize: 12,
+    marginBottom: 16,
+    marginLeft: 4,
   },
   modalButton: {
     backgroundColor: "#007AFF",

@@ -22,6 +22,7 @@ import {
 } from "@react-native-google-signin/google-signin";
 import { userService } from "./user.service";
 import * as AppleAuthentication from "expo-apple-authentication";
+import Purchases from "react-native-purchases";
 
 export class AuthService {
   constructor() {
@@ -58,6 +59,17 @@ export class AuthService {
         "onboarding",
         JSON.stringify(response.data.onboarding)
       );
+
+      // Link RevenueCat with Firebase UID
+      // This ensures subscriptions are associated with the correct user
+      try {
+        await Purchases.logIn(userCredential.user.uid);
+        console.log(`RevenueCat logged in with Firebase UID: ${userCredential.user.uid}`);
+      } catch (revenuecatError: any) {
+        // Log but don't fail auth if RevenueCat login fails
+        // This can happen if RevenueCat SDK isn't initialized yet or network issues
+        console.warn("Failed to log in to RevenueCat:", revenuecatError);
+      }
 
       return {
         user: response.data.user,
@@ -115,6 +127,16 @@ export class AuthService {
 
   async logout() {
     try {
+      // Log out from RevenueCat to disconnect subscription from this device
+      // This ensures subscriptions aren't associated with anonymous users after logout
+      try {
+        await Purchases.logOut();
+        console.log("RevenueCat logged out");
+      } catch (revenuecatError: any) {
+        // Log but don't fail logout if RevenueCat logout fails
+        console.warn("Failed to log out from RevenueCat:", revenuecatError);
+      }
+
       // Unregister device token before logout to prevent ghost notifications
       try {
         const { messagingService } = await import("./messaging.service");

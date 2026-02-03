@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
+
   ActivityIndicator,
   Share,
 } from "react-native";
@@ -14,35 +14,57 @@ import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { inviteService } from "../services/invite.service";
+import { connectionsService } from "../services/connections.service";
+import { useIsPremium } from "../hooks/useIsPremium";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RootStackParamList } from "../../App";
+import Toast from "react-native-toast-message";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Connect">;
 
 export default function ConnectScreen({ navigation, route }: Props) {
   const { user } = useAuth();
+  const { isPremium } = useIsPremium();
   const insets = useSafeAreaInsets();
   const [inviteCode, setInviteCode] = useState("");
   const [myInviteCode, setMyInviteCode] = useState("");
   const [shareableLink, setShareableLink] = useState("");
   const [redeemingCode, setRedeemingCode] = useState(false);
   const [connectingByLink, setConnectingByLink] = useState(false);
+  const [friendCount, setFriendCount] = useState<{
+    count: number;
+    limit: number;
+    freeLimit: number;
+    canAddMore: boolean;
+    isGrandfathered?: boolean;
+    errorMessage?: string;
+  } | null>(null);
 
   useEffect(() => {
     loadMyInviteCode();
     generateShareableLink();
+    loadFriendCount();
   }, [user]);
+
+  const loadFriendCount = async () => {
+    try {
+      const count = await connectionsService.getFriendCount();
+      setFriendCount(count);
+    } catch (error) {
+      console.error("Error loading friend count:", error);
+    }
+  };
 
   // Handle deep link when screen opens with userId parameter
   useEffect(() => {
     const userId = route.params?.userId;
     if (userId && user) {
       if (userId === user.id) {
-        Alert.alert(
-          "Cannot Connect",
-          "You cannot connect with yourself. Share this link with a friend instead!"
-        );
+        Toast.show({
+          type: "info",
+          text1: "You cannot connect with yourself. Share this link with a friend instead!",
+        });
       } else {
         handleConnectByLink(userId);
       }
@@ -71,20 +93,32 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
   const handleCopyCode = async () => {
     if (!myInviteCode) {
-      Alert.alert("Error", "No invite code available");
+      Toast.show({
+        type: "error",
+        text1: "Unable to copy invite code. Please try again.",
+      });
       return;
     }
     try {
       await Clipboard.setStringAsync(myInviteCode);
-      Alert.alert("Copied!", "Invite code copied to clipboard");
+      Toast.show({
+        type: "success",
+        text1: "Invite code copied to clipboard",
+      });
     } catch (error) {
-      Alert.alert("Error", "Failed to copy code");
+      Toast.show({
+        type: "error",
+        text1: "Failed to copy code. Please try again.",
+      });
     }
   };
 
   const handleShareCode = async () => {
     if (!myInviteCode) {
-      Alert.alert("Error", "No invite code available");
+      Toast.show({
+        type: "error",
+        text1: "Unable to share invite code. Please try again.",
+      });
       return;
     }
     try {
@@ -98,20 +132,32 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
   const handleCopyLink = async () => {
     if (!shareableLink) {
-      Alert.alert("Error", "No shareable link available");
+      Toast.show({
+        type: "error",
+        text1: "Unable to copy link. Please try again.",
+      });
       return;
     }
     try {
       await Clipboard.setStringAsync(shareableLink);
-      Alert.alert("Copied!", "Shareable link copied to clipboard");
+      Toast.show({
+        type: "success",
+        text1: "Shareable link copied to clipboard",
+      });
     } catch (error) {
-      Alert.alert("Error", "Failed to copy link");
+      Toast.show({
+        type: "error",
+        text1: "Failed to copy link. Please try again.",
+      });
     }
   };
 
   const handleShareLink = async () => {
     if (!shareableLink) {
-      Alert.alert("Error", "No shareable link available");
+      Toast.show({
+        type: "error",
+        text1: "Unable to share link. Please try again.",
+      });
       return;
     }
     try {
@@ -138,33 +184,32 @@ export default function ConnectScreen({ navigation, route }: Props) {
     }
 
     if (user.id === targetUserId) {
-      Alert.alert(
-        "Cannot Connect",
-        "You cannot connect with yourself. Share this link with a friend instead!"
-      );
+      Toast.show({
+        type: "info",
+        text1: "You cannot connect with yourself. Share this link with a friend instead!",
+      });
       return;
     }
 
     setConnectingByLink(true);
     try {
       const result = await inviteService.connectByLink(targetUserId);
-      Alert.alert(
-        "Success",
-        `Successfully connected with ${result.owner.first_name} ${
+      Toast.show({
+        type: "success",
+        text1: `Successfully connected with ${result.owner.first_name} ${
           result.owner.last_name || ""
         }!`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // Navigate back to home or friends screen
-              navigation.navigate("Main", { screen: "Friends" });
-            },
-          },
-        ]
-      );
+      });
+      loadFriendCount(); // Refresh friend count
+      // Navigate back to home or friends screen after a short delay
+      setTimeout(() => {
+        navigation.navigate("Main", { screen: "Friends" });
+      }, 1500);
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to connect via link");
+      Toast.show({
+        type: "error",
+        text1: error.message || "Failed to connect via link. Check your connection and try again.",
+      });
     } finally {
       setConnectingByLink(false);
     }
@@ -172,23 +217,26 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
   const handleRedeemCode = async () => {
     if (!inviteCode.trim() || inviteCode.length !== 8) {
-      Alert.alert("Error", "Please enter a valid 8-character code");
+      Toast.show({
+        type: "error",
+        text1: "Please enter a valid 8-character code",
+      });
       return;
     }
 
     setRedeemingCode(true);
     try {
       await inviteService.redeemCode(inviteCode.toUpperCase());
-      Alert.alert("Success", "Friend added successfully!", [
-        {
-          text: "OK",
-          onPress: () => {
-            setInviteCode("");
-          },
-        },
-      ]);
+      Toast.show({
+        type: "success",
+        text1: "Friend added successfully!",
+      });
+      setInviteCode("");
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to redeem code");
+      Toast.show({
+        type: "error",
+        text1: error.message || "Check your connection and try again.",
+      });
     } finally {
       setRedeemingCode(false);
     }
@@ -214,6 +262,34 @@ export default function ConnectScreen({ navigation, route }: Props) {
           <Text style={styles.headerTitle}>Connect Friends</Text>
           <View style={styles.backButton} />
         </View>
+
+        {/* Friend Limit Info */}
+        {friendCount && (
+          <View style={styles.limitInfoCard}>
+            <View style={styles.limitInfoHeader}>
+              <Ionicons
+                name={friendCount.canAddMore ? "people-outline" : "lock-closed"}
+                size={20}
+                color={friendCount.canAddMore ? "#10B981" : "#EF4444"}
+              />
+              <Text style={styles.limitInfoTitle}>Your Connections</Text>
+            </View>
+            <Text style={styles.limitInfoText}>
+              {friendCount.count} / {friendCount.limit}{" "}
+              {isPremium ? "(Pro Plan)" : "(Free Plan Limit)"}
+            </Text>
+            {!friendCount.canAddMore && !isPremium && (
+              <TouchableOpacity
+                style={styles.upgradeButton}
+                onPress={() => navigation.navigate("SubscriptionManagement" as never)}
+              >
+                <Text style={styles.upgradeButtonText}>
+                  Upgrade to Pro for up to 24 friends
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* Method 1: Invite Code */}
         <View style={styles.card}>
@@ -538,5 +614,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#10B981",
     fontWeight: "500",
+  },
+  limitInfoCard: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  limitInfoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  limitInfoTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  limitInfoText: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 12,
+  },
+  upgradeButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  upgradeButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
