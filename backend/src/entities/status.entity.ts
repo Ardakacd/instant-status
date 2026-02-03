@@ -10,19 +10,6 @@ import {
 import { User } from "./user.entity";
 import { StatusOption } from "./status-option.entity";
 
-/**
- * Legacy enum kept for backward compatibility during migration
- * @deprecated Use StatusOption instead
- */
-export enum StatusState {
-  AVAILABLE = "AVAILABLE",
-  BUSY = "BUSY",
-  DND = "DND",
-  FOCUS = "FOCUS",
-  SOCIAL = "SOCIAL",
-  COMMUTE = "COMMUTE",
-}
-
 @Entity("statuses")
 export class Status {
   @PrimaryColumn({ type: "uuid" })
