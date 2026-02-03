@@ -49,6 +49,61 @@ export class StatusService {
         userId
       );
 
+      // Check if user is trying to use a custom status without premium
+      // Custom statuses have user_id !== null
+      if (option.user_id !== null) {
+        const user = await this.userRepository.findOne({
+          where: { id: userId },
+        });
+        
+        if (user) {
+          // Check if premium is expired (beyond grace period for custom status - 24 hours)
+          if (user.is_premium && user.premium_until) {
+            const now = new Date();
+            const expirationDate = new Date(user.premium_until);
+            const customStatusGracePeriodMs = 24 * 60 * 60 * 1000; // 24 hours
+            
+            // If more than 24 hours past expiration, reset to default
+            if (now >= new Date(expirationDate.getTime() + customStatusGracePeriodMs)) {
+              // Reset to default "Available" status
+              const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+              if (!defaultOption) {
+                throw new InternalServerErrorException("Default status option not found");
+              }
+              
+              // Update status to default
+              const updateData = {
+                user_id: userId,
+                option_id: defaultOption.id,
+                note: null,
+                expires_at: null,
+              };
+              
+              await this.statusRepository.upsert(updateData, ["user_id"]);
+              
+              // Reload status
+              const reloadedStatus = await this.statusRepository.findOne({
+                where: { user_id: userId },
+                relations: ["option"],
+              });
+              
+              if (!reloadedStatus) {
+                throw new InternalServerErrorException("Failed to reload status after reset");
+              }
+              
+              throw new BadRequestException(
+                "Your premium subscription has expired. Your status has been reset to the default. Upgrade to Pro to use custom statuses again."
+              );
+            }
+          } else if (!user.is_premium) {
+            // User is not premium and trying to use custom status
+            throw new BadRequestException(
+              "Custom statuses are only available with Instant Status Pro. Upgrade to use custom statuses."
+            );
+          }
+        }
+      }
+
       // Validate note length
       if (note && note.length > 200) {
         throw new BadRequestException("Note cannot exceed 200 characters");

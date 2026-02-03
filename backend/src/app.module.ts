@@ -7,6 +7,7 @@ import { ConnectionsModule } from "./connections/connections.module";
 import { StatusModule } from "./status/status.module";
 import { StatusOptionModule } from "./status-option/status-option.module";
 import { InviteCodeModule } from "./invite-code/invite-code.module";
+import { WebhooksModule } from "./webhooks/webhooks.module";
 import { DeviceTokenModule } from "./device-token/device-token.module";
 import { RedirectModule } from "./redirect/redirect.module";
 import { User } from "./entities/user.entity";
@@ -42,6 +43,7 @@ import { DeviceToken } from "./entities/device-token.entity";
     StatusModule,
     StatusOptionModule,
     InviteCodeModule,
+    WebhooksModule,
     DeviceTokenModule,
     RedirectModule,
   ],

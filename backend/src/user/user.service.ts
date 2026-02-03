@@ -147,6 +147,80 @@ export class UserService {
     }
   }
 
+  async updatePremiumStatus(
+    id: string,
+    isPremium: boolean,
+    premiumUntil?: Date | null,
+    revenuecatId?: string | null
+  ): Promise<User> {
+    try {
+      const user = await this.findById(id);
+      if (!user) {
+        throw new NotFoundException("User not found");
+      }
+
+      user.is_premium = isPremium;
+      if (premiumUntil !== undefined) {
+        user.premium_until = premiumUntil;
+      }
+      if (revenuecatId !== undefined) {
+        user.revenuecat_id = revenuecatId;
+      }
+
+      return await this.userRepository.save(user);
+    } catch (error: any) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      this.logger.error(
+        `Error updating premium status: ${error.message}`,
+        error.stack
+      );
+      throw new InternalServerErrorException("Failed to update premium status");
+    }
+  }
+
+  /**
+   * Update premium status by RevenueCat customer ID
+   * Used by webhooks when RevenueCat ID is provided but not user ID
+   */
+  async updatePremiumStatusByRevenueCatId(
+    revenuecatId: string,
+    isPremium: boolean,
+    premiumUntil?: Date | null
+  ): Promise<User | null> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { revenuecat_id: revenuecatId },
+      });
+
+      if (!user) {
+        this.logger.warn(
+          `User not found for RevenueCat ID: ${revenuecatId}`
+        );
+        return null;
+      }
+
+      return await this.updatePremiumStatus(
+        user.id,
+        isPremium,
+        premiumUntil,
+        revenuecatId
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `Error updating premium status by RevenueCat ID: ${error.message}`,
+        error.stack
+      );
+      throw new InternalServerErrorException(
+        "Failed to update premium status by RevenueCat ID"
+      );
+    }
+  }
+
   async delete(id: string): Promise<void> {
     try {
       const user = await this.findById(id);

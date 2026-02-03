@@ -4,11 +4,14 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Logger,
+  forwardRef,
+  Inject,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource, IsNull } from "typeorm";
 import { StatusOption } from "../entities/status-option.entity";
 import { Status } from "../entities/status.entity";
+import { UserService } from "../user/user.service";
 
 @Injectable()
 export class StatusOptionService {
@@ -17,7 +20,9 @@ export class StatusOptionService {
   constructor(
     @InjectRepository(StatusOption)
     private statusOptionRepository: Repository<StatusOption>,
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    @Inject(forwardRef(() => UserService))
+    private userService: UserService
   ) {}
 
   /**
@@ -87,8 +92,33 @@ export class StatusOptionService {
   }
 
   /**
+   * Check if user has premium access (including grace period)
+   * Returns true if user is premium or in grace period
+   */
+  private async hasPremiumAccess(userId: string): Promise<boolean> {
+    const user = await this.userService.findById(userId);
+    if (!user) {
+      return false;
+    }
+    
+    // Check if user is premium
+    if (user.is_premium && user.premium_until) {
+      const now = new Date();
+      const expirationDate = new Date(user.premium_until);
+      const gracePeriodMs = 3 * 24 * 60 * 60 * 1000; // 3 days grace period
+      
+      // User has access if premium is active or within grace period
+      return now < new Date(expirationDate.getTime() + gracePeriodMs);
+    }
+    
+    // If is_premium is true but no expiration date, assume active (lifetime)
+    return user.is_premium;
+  }
+
+  /**
    * Create a custom status option for a user
    * Maximum of 4 custom status options allowed per user
+   * Requires premium access (or grace period)
    */
   async createCustomStatusOption(
     userId: string,
@@ -98,6 +128,14 @@ export class StatusOptionService {
     sortOrder?: number
   ): Promise<StatusOption> {
     try {
+      // Check premium access (including grace period)
+      const hasAccess = await this.hasPremiumAccess(userId);
+      if (!hasAccess) {
+        throw new BadRequestException(
+          "Custom status options are only available with Instant Status Pro. Upgrade to create custom statuses."
+        );
+      }
+
       // Validate input
       if (!label || label.trim().length === 0) {
         throw new BadRequestException("Label is required");
@@ -196,6 +234,14 @@ export class StatusOptionService {
       // User can only update their own custom statuses
       if (option.user_id !== userId) {
         throw new NotFoundException("Status option not found");
+      }
+
+      // Check premium access (including grace period)
+      const hasAccess = await this.hasPremiumAccess(userId);
+      if (!hasAccess) {
+        throw new BadRequestException(
+          "Custom status options are only available with Instant Status Pro. Upgrade to edit custom statuses."
+        );
       }
 
       // Validate updates

@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { ConnectionsService } from "./connections.service";
 import { AuthGuard } from "../auth/auth.guard";
+import { UserService } from "../user/user.service";
 import { z } from "zod";
 
 const FromInviteDtoSchema = z
@@ -22,7 +23,10 @@ const FromInviteDtoSchema = z
 @Controller("connections")
 @UseGuards(AuthGuard)
 export class ConnectionsController {
-  constructor(private connectionsService: ConnectionsService) {}
+  constructor(
+    private connectionsService: ConnectionsService,
+    private userService: UserService
+  ) {}
 
   @Get()
   async getConnections(@Request() req) {
@@ -47,6 +51,20 @@ export class ConnectionsController {
         created_at: conn.created_at,
       };
     });
+  }
+
+  @Get("friend-count")
+  async getFriendCount(@Request() req) {
+    const limitCheck = await this.connectionsService.checkFriendLimit(req.user.id);
+    
+    return {
+      count: limitCheck.currentCount,
+      limit: limitCheck.limit,
+      freeLimit: limitCheck.freeLimit,
+      canAddMore: limitCheck.canAdd,
+      isGrandfathered: limitCheck.isGrandfathered || false,
+      errorMessage: limitCheck.errorMessage,
+    };
   }
 
   @Delete(":friend_id")

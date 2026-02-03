@@ -57,6 +57,181 @@ export class ConnectionsService {
   }
 
   /**
+   * Get the friend count for a user
+   * Counts connections where user appears in either user_id or friend_id position
+   */
+  async getFriendCount(userId: string): Promise<number> {
+    try {
+      const count = await this.connectionRepository.count({
+        where: [{ user_id: userId }, { friend_id: userId }],
+      });
+      return count;
+    } catch (error: any) {
+      this.logger.error(
+        `Error getting friend count: ${error.message}`,
+        error.stack
+      );
+      throw new InternalServerErrorException("Failed to get friend count");
+    }
+  }
+
+  /**
+   * Get the friend limit for a user based on their premium status
+   * Checks both is_premium flag and premium_until expiration date
+   */
+  getFriendLimit(user: User): number {
+    const isPremium = this.isUserPremium(user);
+    return isPremium ? 24 : 6;
+  }
+
+  /**
+   * Check if a user is currently premium
+   * Considers both is_premium flag and premium_until expiration date
+   */
+  isUserPremium(user: User): boolean {
+    if (!user.is_premium) {
+      return false;
+    }
+    
+    // If premium_until is set, check if it's still valid
+    if (user.premium_until) {
+      return new Date() < user.premium_until;
+    }
+    
+    // If is_premium is true but no expiration date, assume active
+    // (for lifetime purchases or when expiration hasn't been set yet)
+    return true;
+  }
+
+  /**
+   * Check if user is in grace period after premium expiration
+   * Grace period: 3 days after expiration date
+   */
+  isInGracePeriod(user: User): boolean {
+    if (!user.is_premium || !user.premium_until) {
+      return false;
+    }
+    
+    const now = new Date();
+    const expirationDate = new Date(user.premium_until);
+    const gracePeriodMs = 3 * 24 * 60 * 60 * 1000; // 3 days
+    
+    // User is in grace period if expired but within 3 days
+    return now >= expirationDate && now < new Date(expirationDate.getTime() + gracePeriodMs);
+  }
+
+  /**
+   * Check if user's custom status should be reset (24 hours after expiration)
+   * Custom status grace period: 24 hours after expiration
+   */
+  shouldResetCustomStatus(user: User): boolean {
+    if (!user.is_premium || !user.premium_until) {
+      return false;
+    }
+    
+    const now = new Date();
+    const expirationDate = new Date(user.premium_until);
+    const customStatusGracePeriodMs = 24 * 60 * 60 * 1000; // 24 hours
+    
+    // Should reset if more than 24 hours past expiration
+    return now >= new Date(expirationDate.getTime() + customStatusGracePeriodMs);
+  }
+
+  /**
+   * Check if a user can add more friends
+   * Returns { canAdd: boolean, currentCount: number, limit: number, errorMessage?: string, isGrandfathered?: boolean }
+   * 
+   * Grandfathering Logic:
+   * - Users who had premium and added 24 friends can keep all 24 friends
+   * - They cannot add NEW friends if they have more than 6 (free limit)
+   * - If they delete a friend and go below 6, they can add again up to 6
+   */
+  async checkFriendLimit(userId: string): Promise<{
+    canAdd: boolean;
+    currentCount: number;
+    limit: number;
+    errorMessage?: string;
+    isGrandfathered?: boolean;
+    freeLimit: number;
+  }> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException("User not found");
+      }
+
+      const currentCount = await this.getFriendCount(userId);
+      const isPremium = this.isUserPremium(user);
+      const isInGrace = this.isInGracePeriod(user);
+      const freeLimit = 6;
+      const premiumLimit = 24;
+      
+      // If user is premium (or in grace period), they can add up to 24
+      if (isPremium || isInGrace) {
+        const limit = premiumLimit;
+        if (currentCount >= limit) {
+          return {
+            canAdd: false,
+            currentCount,
+            limit,
+            freeLimit,
+            errorMessage: "You've reached the limit of 24 friends.",
+          };
+        }
+        return {
+          canAdd: true,
+          currentCount,
+          limit,
+          freeLimit,
+        };
+      }
+
+      // User is not premium - check grandfathering
+      // If they have more than 6 friends, they're grandfathered (can't add new ones)
+      if (currentCount > freeLimit) {
+        return {
+          canAdd: false,
+          currentCount,
+          limit: freeLimit, // Their effective limit for adding new friends
+          freeLimit,
+          isGrandfathered: true,
+          errorMessage: `You've reached the free limit of ${freeLimit} friends. You can keep your existing ${currentCount} friends, but cannot add new ones until you upgrade to Pro or remove friends down to ${freeLimit}.`,
+        };
+      }
+
+      // User has 6 or fewer friends - can add up to 6
+      if (currentCount >= freeLimit) {
+        return {
+          canAdd: false,
+          currentCount,
+          limit: freeLimit,
+          freeLimit,
+          errorMessage: `You've reached the limit of ${freeLimit} friends. Upgrade to Pro for up to 24!`,
+        };
+      }
+
+      return {
+        canAdd: true,
+        currentCount,
+        limit: freeLimit,
+        freeLimit,
+      };
+    } catch (error: any) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `Error checking friend limit: ${error.message}`,
+        error.stack
+      );
+      throw new InternalServerErrorException("Failed to check friend limit");
+    }
+  }
+
+  /**
    * Removes a connection between two users.
    * Since we use normalized pairs, removing the connection removes it from both sides.
    */
@@ -182,6 +357,41 @@ export class ConnectionsService {
 
       if (existing) {
         return existing;
+      }
+
+      // Check friend limits for BOTH users before creating connection
+      // Get both users
+      const [userA, userB] = await Promise.all([
+        this.userRepository.findOne({ where: { id: userId } }),
+        this.userRepository.findOne({ where: { id: friendId } }),
+      ]);
+
+      if (!userA || !userB) {
+        throw new NotFoundException("User not found");
+      }
+
+      // Check friend count for user A (initiator)
+      const friendCountA = await this.getFriendCount(userId);
+      const limitA = this.getFriendLimit(userA);
+      const isPremiumA = this.isUserPremium(userA);
+
+      if (friendCountA >= limitA) {
+        const errorMsg = isPremiumA
+          ? "You've reached the limit of 24 friends."
+          : "You've reached the limit of 6 friends. Upgrade to Pro for up to 24!";
+        throw new BadRequestException(errorMsg);
+      }
+
+      // Check friend count for user B (receiver)
+      const friendCountB = await this.getFriendCount(friendId);
+      const limitB = this.getFriendLimit(userB);
+      const isPremiumB = this.isUserPremium(userB);
+
+      if (friendCountB >= limitB) {
+        const errorMsg = isPremiumB
+          ? "This person has reached the limit of 24 friends and cannot add more friends right now."
+          : "This person has reached the limit of 6 friends and cannot add more friends right now.";
+        throw new BadRequestException(errorMsg);
       }
 
       // Create new connection with normalized pair

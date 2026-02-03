@@ -34,6 +34,15 @@ export class User {
 
   @Column({ type: "timestamp with time zone", nullable: true })
   last_login_at: Date | null;
+
+  @Column({ type: "boolean", default: false, nullable: false })
+  is_premium: boolean;
+
+  @Column({ type: "timestamp with time zone", nullable: true })
+  premium_until: Date | null;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  revenuecat_id: string | null;
   
   @CreateDateColumn()
   created_at: Date;
