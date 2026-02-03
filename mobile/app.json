@@ -35,9 +35,10 @@
       "package": "com.arda.instantstatus.dev",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/ic_launcher/android/mipmap-xxxhdpi/ic_launcher_foreground.png",
         "backgroundColor": "#ffffff"
       },
+      "icon": "./assets/ic_launcher/android/mipmap-xxxhdpi/ic_launcher.png",
       "notification": {
         "icon": "./assets/notification-icon.png",
         "color": "#007AFF"
