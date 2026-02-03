@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "70279102156-0glse6khpuhvnne9dpi7ps6j037f8r79.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.arda.instantstatus.dev",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
           "client_id": "70279102156-aa9dqgogs3kn4cv8p05ilm6j8g5vicqg.apps.googleusercontent.com",
           "client_type": 3
         }
