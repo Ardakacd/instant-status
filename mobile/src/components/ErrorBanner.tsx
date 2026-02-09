@@ -1,6 +1,17 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+/**
+ * Error Banner Component
+ * 
+ * Logic:
+ * - High visibility but grounded
+ * - Matches the LockState/InputError color palette
+ * - Physical presence via borders
+ */
+
+import React from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
+import { Colors, Borders, Spacing, Typography } from '../design';
+import { Text } from './primitives/Text';
 
 interface ErrorBannerProps {
   message: string;
@@ -18,12 +29,16 @@ export function ErrorBanner({
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Ionicons name="alert-circle" size={20} color="#FFFFFF" />
-        <Text style={styles.message}>{message}</Text>
+        {/* Charcoal icon on Yellow feels more "Caution" than "Emergency" */}
+        <Ionicons name="warning" size={20} color={Colors.text.primary} />
+        <View style={styles.textWrapper}>
+          <Text style={styles.message}>{message}</Text>
+        </View>
       </View>
+      
       {dismissible && onDismiss && (
         <TouchableOpacity onPress={onDismiss} style={styles.dismissButton}>
-          <Ionicons name="close" size={20} color="#FFFFFF" />
+          <Ionicons name="close" size={20} color={Colors.text.primary} />
         </TouchableOpacity>
       )}
     </View>
@@ -32,29 +47,32 @@ export function ErrorBanner({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#EF4444",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+    backgroundColor: Colors.interaction.accent, // Yellow/Accent for "Pay Attention"
+    borderWidth: Borders.width,
+    borderColor: Colors.text.primary,
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
   },
   content: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.sm,
+  },
+  textWrapper: {
+    flex: 1,
   },
   message: {
-    color: "#FFFFFF",
+    fontFamily: Typography.fontFamily.medium,
     fontSize: 14,
-    flex: 1,
-    lineHeight: 20,
+    color: Colors.text.primary, // Charcoal text on Yellow is highly readable
+    lineHeight: 18,
   },
   dismissButton: {
-    padding: 4,
-    marginLeft: 8,
+    padding: Spacing.xs,
+    marginLeft: Spacing.sm,
   },
 });
-

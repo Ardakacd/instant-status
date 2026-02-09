@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
   Modal,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
@@ -14,6 +12,12 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { StatusOption } from "../types";
+import { Colors, Borders, Spacing, Typography, getContrastingTextColor } from "../design";
+import { Text } from "./primitives/Text";
+import { TextInput } from "./inputs/TextInput";
+import { Section } from "./containers/Section";
+import { Button } from "./actions/Button";
+import { hapticAction } from "../utils/haptics";
 
 interface StatusChangeModalProps {
   visible: boolean;
@@ -109,12 +113,29 @@ export default function StatusChangeModal({
   };
 
   const handleConfirm = () => {
+    // Haptics for status change (medium strength for action)
+    hapticAction();
+    
     // All statuses can have expiration times
     onConfirm(selectedOption.id, note.trim() || undefined, expiresAt || undefined);
     // Reset form
     setNote("");
     setExpiresAt(null);
     setShowCustomPicker(false);
+  };
+
+  // Format datetime display with "Until Tonight" for end of day
+  const formatDateTimeDisplay = (date: Date): string => {
+    if (isEndOfDay(date)) {
+      return "Until Tonight";
+    }
+    return date.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   };
 
   const handleClose = () => {
@@ -168,15 +189,15 @@ export default function StatusChangeModal({
                     <View
                       style={[
                         styles.statusIndicator,
-                        { backgroundColor: statusColor + "20" },
+                        { backgroundColor: statusColor + "20" }, // 20% opacity background
                       ]}
                     >
                       <Text style={styles.statusIcon}>{statusIcon}</Text>
                     </View>
                     <View style={styles.headerText}>
-                      <Text style={styles.headerTitle}>Change Status</Text>
-                      <Text style={styles.headerSubtitle}>
-                        Set your status to {statusLabel}
+                      <Text variant="primary" style={styles.headerTitle}>Set Status</Text>
+                      <Text variant="secondary" style={styles.headerSubtitle}>
+                        {statusLabel}
                       </Text>
                     </View>
                   </View>
@@ -184,7 +205,7 @@ export default function StatusChangeModal({
                     onPress={handleClose}
                     style={styles.closeButton}
                   >
-                    <Ionicons name="close" size={24} color="#6B7280" />
+                    <Ionicons name="close" size={24} color={Colors.text.secondary} />
                   </TouchableOpacity>
                 </View>
 
@@ -194,243 +215,248 @@ export default function StatusChangeModal({
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
                 >
-                  {/* Note Input */}
-                  <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>Note (Optional)</Text>
-                    <TextInput
-                      style={styles.noteInput}
-                      placeholder="Add a note..."
-                      placeholderTextColor="#9CA3AF"
-                      value={note}
-                      onChangeText={setNote}
-                      multiline
-                      maxLength={200}
-                      textAlignVertical="top"
-                      blurOnSubmit={true}
-                      returnKeyType="done"
-                      onSubmitEditing={Keyboard.dismiss}
-                    />
-                    <Text style={styles.charCount}>{note.length}/200</Text>
-                  </View>
+                  <Section spacing="lg">
+                    {/* Note Input */}
+                    <View>
+                      <Text variant="primary" style={styles.sectionLabel}>Note (Optional)</Text>
+                      <TextInput
+                        style={styles.noteInput}
+                        placeholder="Add a note..."
+                        value={note}
+                        onChangeText={setNote}
+                        multiline
+                        maxLength={200}
+                        textAlignVertical="top"
+                        blurOnSubmit={true}
+                        returnKeyType="done"
+                        onSubmitEditing={Keyboard.dismiss}
+                      />
+                      <Text variant="hint" style={styles.charCount}>{note.length}/200</Text>
+                    </View>
 
-                  {/* Until When Section - All statuses can have expiration times */}
-                  <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>
-                      Until When (Optional)
-                    </Text>
-                    <Text style={styles.sectionHint}>
-                      After this time your status will be changed to available
-                    </Text>
+                    {/* Until When Section - All statuses can have expiration times */}
+                    <View>
+                      <Text variant="primary" style={styles.sectionLabel}>
+                        Until When (Optional)
+                      </Text>
+                      <Text variant="hint" style={styles.sectionHint}>
+                        After this time your status will be changed to available
+                      </Text>
 
-                    {/* Presets */}
-                    <View style={styles.presetsContainer}>
-                      <TouchableOpacity
-                        style={[
-                          styles.presetButton,
-                          expiresAt &&
-                            Math.abs(
-                              expiresAt.getTime() -
-                                getPresetDate("30min").getTime()
-                            ) < 60000 &&
-                            styles.presetButtonActive,
-                        ]}
-                        onPress={() => handlePresetSelect("30min")}
-                      >
-                        <Text
+                      {/* Presets */}
+                      <View style={styles.presetsContainer}>
+                        <TouchableOpacity
                           style={[
-                            styles.presetButtonText,
+                            styles.presetButton,
                             expiresAt &&
                               Math.abs(
                                 expiresAt.getTime() -
                                   getPresetDate("30min").getTime()
                               ) < 60000 &&
-                              styles.presetButtonTextActive,
+                              styles.presetButtonActive,
                           ]}
+                          onPress={() => handlePresetSelect("30min")}
+                          activeOpacity={0.7}
                         >
-                          30 min
-                        </Text>
-                      </TouchableOpacity>
+                          <Text
+                            variant="primary"
+                            style={[
+                              styles.presetButtonText,
+                              expiresAt &&
+                                Math.abs(
+                                  expiresAt.getTime() -
+                                    getPresetDate("30min").getTime()
+                                ) < 60000 &&
+                                styles.presetButtonTextActive,
+                            ]}
+                          >
+                            30 min
+                          </Text>
+                        </TouchableOpacity>
 
-                      <TouchableOpacity
-                        style={[
-                          styles.presetButton,
-                          expiresAt &&
-                            Math.abs(
-                              expiresAt.getTime() -
-                                getPresetDate("1hour").getTime()
-                            ) < 60000 &&
-                            styles.presetButtonActive,
-                        ]}
-                        onPress={() => handlePresetSelect("1hour")}
-                      >
-                        <Text
+                        <TouchableOpacity
                           style={[
-                            styles.presetButtonText,
+                            styles.presetButton,
                             expiresAt &&
                               Math.abs(
                                 expiresAt.getTime() -
                                   getPresetDate("1hour").getTime()
                               ) < 60000 &&
-                              styles.presetButtonTextActive,
+                              styles.presetButtonActive,
                           ]}
+                          onPress={() => handlePresetSelect("1hour")}
+                          activeOpacity={0.7}
                         >
-                          1 hour
-                        </Text>
-                      </TouchableOpacity>
+                          <Text
+                            variant="primary"
+                            style={[
+                              styles.presetButtonText,
+                              expiresAt &&
+                                Math.abs(
+                                  expiresAt.getTime() -
+                                    getPresetDate("1hour").getTime()
+                                ) < 60000 &&
+                                styles.presetButtonTextActive,
+                            ]}
+                          >
+                            1 hour
+                          </Text>
+                        </TouchableOpacity>
 
-                      <TouchableOpacity
-                        style={[
-                          styles.presetButton,
-                          expiresAt &&
-                            Math.abs(
-                              expiresAt.getTime() -
-                                getPresetDate("2hours").getTime()
-                            ) < 60000 &&
-                            styles.presetButtonActive,
-                        ]}
-                        onPress={() => handlePresetSelect("2hours")}
-                      >
-                        <Text
+                        <TouchableOpacity
                           style={[
-                            styles.presetButtonText,
+                            styles.presetButton,
                             expiresAt &&
                               Math.abs(
                                 expiresAt.getTime() -
                                   getPresetDate("2hours").getTime()
                               ) < 60000 &&
-                              styles.presetButtonTextActive,
+                              styles.presetButtonActive,
                           ]}
+                          onPress={() => handlePresetSelect("2hours")}
+                          activeOpacity={0.7}
                         >
-                          2 hours
-                        </Text>
-                      </TouchableOpacity>
+                          <Text
+                            variant="primary"
+                            style={[
+                              styles.presetButtonText,
+                              expiresAt &&
+                                Math.abs(
+                                  expiresAt.getTime() -
+                                    getPresetDate("2hours").getTime()
+                                ) < 60000 &&
+                                styles.presetButtonTextActive,
+                            ]}
+                          >
+                            2 hours
+                          </Text>
+                        </TouchableOpacity>
 
-                      <TouchableOpacity
-                        style={[
-                          styles.presetButton,
-                          expiresAt &&
-                            isEndOfDay(expiresAt) &&
-                            styles.presetButtonActive,
-                        ]}
-                        onPress={() => handlePresetSelect("endOfDay")}
-                      >
-                        <Text
+                        <TouchableOpacity
                           style={[
-                            styles.presetButtonText,
+                            styles.presetButton,
                             expiresAt &&
                               isEndOfDay(expiresAt) &&
-                              styles.presetButtonTextActive,
+                              styles.presetButtonActive,
                           ]}
+                          onPress={() => handlePresetSelect("endOfDay")}
+                          activeOpacity={0.7}
                         >
-                          Until end of day
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Custom Date/Time Picker */}
-                    {!showCustomPicker && (
-                      <TouchableOpacity
-                        style={styles.customPickerButton}
-                        onPress={() => {
-                          setShowCustomPicker(true);
-                          setAndroidPickerMode("date"); // Reset to date mode
-                        }}
-                      >
-                        <Ionicons
-                          name="calendar-outline"
-                          size={20}
-                          color="#007AFF"
-                        />
-                        <Text style={styles.customPickerText}>
-                          Pick custom date & time
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-
-                    {/* Display selected datetime */}
-                    {expiresAt && !showCustomPicker && (
-                      <View style={styles.selectedDateTimeContainer}>
-                        <View style={styles.selectedDateTimeContent}>
-                          <View style={styles.selectedDateTimeTextContainer}>
-                            <Text style={styles.selectedDateTimeLabel}>
-                              Selected:
-                            </Text>
-                            <Text style={styles.selectedDateTimeText}>
-                              {expiresAt.toLocaleString(undefined, {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                                hour: "numeric",
-                                minute: "2-digit",
-                              })}
-                            </Text>
-                          </View>
-                          <TouchableOpacity
-                            onPress={handleClearExpiresAt}
-                            style={styles.clearButton}
+                          <Text
+                            variant="primary"
+                            style={[
+                              styles.presetButtonText,
+                              expiresAt &&
+                                isEndOfDay(expiresAt) &&
+                                styles.presetButtonTextActive,
+                            ]}
                           >
-                            <Ionicons
-                              name="close-circle"
-                              size={20}
-                              color="#EF4444"
-                            />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    )}
-
-                    {showCustomPicker && Platform.OS === "ios" && (
-                      <View style={styles.iosPickerContainer}>
-                        <View style={styles.iosPickerHeader}>
-                          <TouchableOpacity
-                            onPress={() => setShowCustomPicker(false)}
-                            style={styles.iosPickerCancelButton}
-                          >
-                            <Text style={styles.iosPickerCancelText}>
-                              Cancel
-                            </Text>
-                          </TouchableOpacity>
-                          <Text style={styles.iosPickerTitle}>
-                            Select Date & Time
+                            Until Tonight
                           </Text>
-                          <TouchableOpacity
-                            onPress={() => setShowCustomPicker(false)}
-                            style={styles.iosPickerDoneButton}
-                          >
-                            <Text style={styles.iosPickerDoneText}>Done</Text>
-                          </TouchableOpacity>
-                        </View>
-                        <DateTimePicker
-                          value={customDate}
-                          mode="datetime"
-                          is24Hour={false}
-                          display="spinner"
-                          onChange={(event, date) => {
-                            if (date) {
-                              setCustomDate(date);
-                              setExpiresAt(date);
-                            }
-                          }}
-                          minimumDate={new Date()}
-                          style={styles.iosPicker}
-                        />
+                        </TouchableOpacity>
                       </View>
-                    )}
-                  </View>
+
+                      {/* Custom Date/Time Picker */}
+                      {!showCustomPicker && (
+                        <TouchableOpacity
+                          style={styles.customPickerButton}
+                          onPress={() => {
+                            setShowCustomPicker(true);
+                            setAndroidPickerMode("date"); // Reset to date mode
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons
+                            name="calendar-outline"
+                            size={20}
+                            color={Colors.interaction.primary}
+                          />
+                          <Text variant="primary" style={styles.customPickerText}>
+                            Pick custom date & time
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+
+                      {/* Display selected datetime */}
+                      {expiresAt && !showCustomPicker && (
+                        <View style={styles.selectedDateTimeContainer}>
+                          <View style={styles.selectedDateTimeContent}>
+                            <View style={styles.selectedDateTimeTextContainer}>
+                              <Text variant="hint" style={styles.selectedDateTimeLabel}>
+                                Selected:
+                              </Text>
+                              <Text variant="primary" style={styles.selectedDateTimeText}>
+                                {formatDateTimeDisplay(expiresAt)}
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              onPress={handleClearExpiresAt}
+                              style={styles.clearButton}
+                              activeOpacity={0.7}
+                            >
+                              <Ionicons
+                                name="close-circle"
+                                size={20}
+                                color={Colors.text.secondary}
+                              />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
+
+                      {showCustomPicker && Platform.OS === "ios" && (
+                        <View style={styles.iosPickerContainer}>
+                          <View style={styles.iosPickerHeader}>
+                            <TouchableOpacity
+                              onPress={() => setShowCustomPicker(false)}
+                              style={styles.iosPickerCancelButton}
+                              activeOpacity={0.7}
+                            >
+                              <Text variant="secondary" style={styles.iosPickerCancelText}>
+                                Cancel
+                              </Text>
+                            </TouchableOpacity>
+                            <Text variant="primary" style={styles.iosPickerTitle}>
+                              Select Date & Time
+                            </Text>
+                            <TouchableOpacity
+                              onPress={() => setShowCustomPicker(false)}
+                              style={styles.iosPickerDoneButton}
+                              activeOpacity={0.7}
+                            >
+                              <Text variant="primary" style={styles.iosPickerDoneText}>Done</Text>
+                            </TouchableOpacity>
+                          </View>
+                          <DateTimePicker
+                            value={customDate}
+                            mode="datetime"
+                            is24Hour={false}
+                            display="spinner"
+                            onChange={(event, date) => {
+                              if (date) {
+                                setCustomDate(date);
+                                setExpiresAt(date);
+                              }
+                            }}
+                            minimumDate={new Date()}
+                            style={styles.iosPicker}
+                          />
+                        </View>
+                      )}
+                    </View>
+                  </Section>
                 </ScrollView>
 
                 {/* Footer */}
                 <View style={styles.footer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.cancelButton,
-                      loading && styles.buttonDisabled,
-                    ]}
+                  <Button
+                    variant="secondary"
                     onPress={handleClose}
                     disabled={loading}
+                    style={styles.cancelButton}
                   >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
+                    Cancel
+                  </Button>
                   <TouchableOpacity
                     style={[
                       styles.confirmButton,
@@ -439,8 +465,17 @@ export default function StatusChangeModal({
                     ]}
                     onPress={handleConfirm}
                     disabled={loading}
+                    activeOpacity={0.9}
                   >
-                    <Text style={styles.confirmButtonText}>Change Status</Text>
+                    {loading ? (
+                      <Text variant="primary" style={[styles.confirmButtonText, { color: getContrastingTextColor(statusColor) }]}>
+                        Setting...
+                      </Text>
+                    ) : (
+                      <Text variant="primary" style={[styles.confirmButtonText, { color: getContrastingTextColor(statusColor) }]}>
+                        Set Status
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -455,15 +490,24 @@ export default function StatusChangeModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.8)", // Darker backdrop for focus
     justifyContent: "flex-end",
   },
   modalContainer: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: Colors.canvas.background,
+    borderTopLeftRadius: Borders.radius.large,
+    borderTopRightRadius: Borders.radius.large,
+    borderWidth: Borders.width,
+    borderColor: Colors.text.primary,
+    borderBottomWidth: 0, // No bottom border for modal
     maxHeight: "90%",
     paddingBottom: 40,
+    // Physical shadow for Neobrutalist depth
+    shadowColor: Colors.text.primary,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 10, // Necessary for Samsung A15
   },
   modalContainerExpanded: {
     maxHeight: "95%",
@@ -472,9 +516,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    padding: Spacing.lg,
+    borderBottomWidth: Borders.width,
+    borderBottomColor: Colors.text.primary,
   },
   headerContent: {
     flexDirection: "row",
@@ -487,7 +531,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   statusIcon: {
     fontSize: 24,
@@ -497,103 +541,95 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 4,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: Spacing.xs,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "#6B7280",
   },
   closeButton: {
-    padding: 4,
+    padding: Spacing.xs,
   },
   scrollContent: {
     flexGrow: 1,
   },
   content: {
-    padding: 20,
+    padding: Spacing.lg,
     flexGrow: 1,
-  },
-  section: {
-    marginBottom: 24,
   },
   sectionLabel: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 4,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: Spacing.xs,
   },
   sectionHint: {
     fontSize: 12,
-    color: "#6B7280",
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   noteInput: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: Colors.canvas.background,
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.md,
     fontSize: 16,
-    color: "#111827",
     minHeight: 100,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderWidth: Borders.width,
+    borderColor: Colors.text.primary,
   },
   charCount: {
     fontSize: 12,
-    color: "#9CA3AF",
     textAlign: "right",
-    marginTop: 4,
+    marginTop: Spacing.xs,
   },
   presetsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 12,
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   presetButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: "#F3F4F6",
-    borderWidth: 2,
-    borderColor: "transparent",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Borders.radius.medium,
+    backgroundColor: Colors.canvas.background,
+    borderWidth: Borders.width,
+    borderColor: Colors.text.secondary,
   },
   presetButtonActive: {
-    backgroundColor: "#EFF6FF",
-    borderColor: "#007AFF",
+    backgroundColor: Colors.interaction.primary, // Mint background
+    borderColor: Colors.text.primary,
+    // Subtle physical shift when active
+    transform: [{ translateY: 2 }],
   },
   presetButtonText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   presetButtonTextActive: {
-    color: "#007AFF",
+    color: Colors.text.primary, // Charcoal text on Mint
   },
   customPickerButton: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    marginTop: 8,
+    padding: Spacing.md,
+    borderRadius: Borders.radius.medium,
+    backgroundColor: Colors.canvas.background,
+    borderWidth: Borders.width,
+    borderColor: Colors.text.secondary,
+    marginTop: Spacing.sm,
   },
   customPickerText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#007AFF",
-    marginLeft: 8,
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.interaction.primary,
+    marginLeft: Spacing.sm,
   },
   selectedDateTimeContainer: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: "#F0F9FF",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#BAE6FD",
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: Colors.interaction.informational, // Lavender background
+    borderRadius: Borders.radius.medium,
+    borderWidth: Borders.width,
+    borderColor: Colors.text.primary,
   },
   selectedDateTimeContent: {
     flexDirection: "row",
@@ -605,109 +641,96 @@ const styles = StyleSheet.create({
   },
   selectedDateTimeLabel: {
     fontSize: 12,
-    fontWeight: "500",
-    color: "#0369A1",
-    marginBottom: 4,
+    fontFamily: Typography.fontFamily.medium,
+    marginBottom: Spacing.xs,
   },
   selectedDateTimeText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#0C4A6E",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   clearButton: {
-    padding: 4,
-    marginLeft: 8,
+    padding: Spacing.xs,
+    marginLeft: Spacing.sm,
   },
   selectedExpiresContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: "#ECFDF5",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#10B981",
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: Colors.interaction.informational,
+    borderRadius: Borders.radius.medium,
+    borderWidth: Borders.width,
+    borderColor: Colors.text.primary,
   },
   selectedExpiresText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#10B981",
-    marginLeft: 8,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginLeft: Spacing.sm,
     flex: 1,
   },
   footer: {
     flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    gap: Spacing.md,
+    borderTopWidth: Borders.width,
+    borderTopColor: Colors.text.primary,
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: "#F3F4F6",
-    alignItems: "center",
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#374151",
   },
   confirmButton: {
     flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: Spacing.md,
+    borderRadius: Borders.radius.medium,
     alignItems: "center",
+    justifyContent: "center",
   },
   confirmButtonText: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.text.primary, // Charcoal text for contrast on colored backgrounds
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   iosPickerContainer: {
-    marginTop: 12,
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    marginTop: Spacing.md,
+    backgroundColor: Colors.canvas.background,
+    borderRadius: Borders.radius.medium,
+    borderWidth: Borders.width,
+    borderColor: Colors.text.primary,
     overflow: "hidden",
   },
   iosPickerHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
+    padding: Spacing.md,
+    borderBottomWidth: Borders.width,
+    borderBottomColor: Colors.text.primary,
+    backgroundColor: Colors.canvas.background,
   },
   iosPickerTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   iosPickerCancelButton: {
-    padding: 4,
+    padding: Spacing.xs,
   },
   iosPickerCancelText: {
     fontSize: 16,
-    color: "#6B7280",
   },
   iosPickerDoneButton: {
-    padding: 4,
+    padding: Spacing.xs,
   },
   iosPickerDoneText: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#007AFF",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.interaction.primary,
   },
   iosPicker: {
     height: 200,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Colors.canvas.background,
   },
 });

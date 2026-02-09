@@ -22,11 +22,11 @@
 
 import React, { useState } from 'react';
 import { View, TouchableOpacity, TouchableOpacityProps, StyleSheet, ActivityIndicator } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { Colors, Borders, Spacing, PhysicalShift, Haptics as HapticsRules } from '../../design';
+import { Colors, Borders, Spacing, PhysicalShift } from '../../design';
 import { Typography } from '../../design';
 import { createPhysicalShiftTransform } from '../../design/styles';
 import { Text } from '../primitives/Text';
+import { hapticAction } from '../../utils/haptics';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'disabled';
 
@@ -53,9 +53,9 @@ export const Button: React.FC<ButtonProps> = ({
   const handlePress = () => {
     if (isDisabled || !onPress) return;
 
-    // Haptics only on Primary variant (light strength)
+    // Haptics only on Primary variant (medium strength for actions)
     if (variant === 'primary') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      hapticAction();
     }
 
     onPress();

@@ -1,5 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { Colors, Spacing, Typography, getContrastingTextColor } from "../design";
+import { Card } from "./containers/Card";
+import { Text } from "./primitives/Text";
 
 interface StatusPreviewCardProps {
   emoji: string;
@@ -12,60 +15,57 @@ export default function StatusPreviewCard({
   label,
   color,
 }: StatusPreviewCardProps) {
+  const backgroundColor = color || Colors.interaction.primary;
+  const textColor = getContrastingTextColor(backgroundColor);
+  
   return (
     <View style={styles.container}>
-      <Text style={styles.previewLabel}>Preview</Text>
-      <View
-        style={[
-          styles.previewCard,
-          { backgroundColor: color || "#10B981" },
-        ]}
+      <Text variant="secondary" style={styles.previewLabel}>
+        Preview
+      </Text>
+      
+      {/* We use variant="elevated" so the preview looks like 
+          a real physical object the user is "building" 
+      */}
+      <Card 
+        variant="elevated" 
+        style={{ backgroundColor }}
       >
         <View style={styles.previewContent}>
           <Text style={styles.previewEmoji}>{emoji || "🟢"}</Text>
-          <Text style={styles.previewText}>
+          <Text style={[styles.previewText, { color: textColor }]}>
             {label || "Status Label"}
           </Text>
         </View>
-      </View>
+      </Card>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginBottom: Spacing.lg,
   },
   previewLabel: {
+    fontFamily: Typography.fontFamily.semiBold,
     fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
-  },
-  previewCard: {
-    borderRadius: 12,
-    padding: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 80,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase', // Makes it look more like a "label"
   },
   previewContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "center", // Center content for the preview
+    gap: Spacing.md,
+    paddingVertical: Spacing.xs,
   },
   previewEmoji: {
     fontSize: 32,
   },
   previewText: {
+    fontFamily: Typography.fontFamily.semiBold,
     fontSize: 18,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    // Color is set dynamically via getContrastingTextColor for accessibility
   },
 });
-
