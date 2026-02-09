@@ -1,80 +1,93 @@
+/**
+ * Color Picker Component (Full Palette)
+ * 
+ * Rules:
+ * - 4-column grid for thumb reachability
+ * - Selected state uses thick charcoal border
+ * - Charcoal checkmark for maximum contrast
+ */
+
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Colors, Borders, Spacing } from "../design";
 
 interface ColorPickerProps {
   selectedColor: string;
   onSelect: (color: string) => void;
 }
 
-// Curated color palette - colors that work well with white text
 const COLOR_PALETTE = [
-  { hex: "#EF4444", name: "Red" },      // Red
-  { hex: "#F59E0B", name: "Orange" },   // Orange
-  { hex: "#EAB308", name: "Yellow" },   // Yellow
-  { hex: "#10B981", name: "Green" },    // Green
-  { hex: "#06B6D4", name: "Cyan" },     // Cyan
-  { hex: "#3B82F6", name: "Blue" },     // Blue
-  { hex: "#6366F1", name: "Indigo" },   // Indigo
-  { hex: "#8B5CF6", name: "Purple" },   // Purple
-  { hex: "#EC4899", name: "Pink" },     // Pink
-  { hex: "#F43F5E", name: "Rose" },      // Rose
-  { hex: "#84CC16", name: "Lime" },      // Lime
-  { hex: "#14B8A6", name: "Teal" },      // Teal
+  { hex: "#EF4444", name: "Red" },
+  { hex: "#F59E0B", name: "Orange" },
+  { hex: "#EAB308", name: "Yellow" },
+  { hex: "#10B981", name: "Green" },
+  { hex: "#06B6D4", name: "Cyan" },
+  { hex: "#3B82F6", name: "Blue" },
+  { hex: "#6366F1", name: "Indigo" },
+  { hex: "#8B5CF6", name: "Purple" },
+  { hex: "#EC4899", name: "Pink" },
+  { hex: "#F43F5E", name: "Rose" },
+  { hex: "#84CC16", name: "Lime" },
+  { hex: "#14B8A6", name: "Teal" },
 ];
 
-export default function ColorPicker({ selectedColor, onSelect }: ColorPickerProps) {
+export const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onSelect }) => {
   return (
     <View style={styles.container}>
       <View style={styles.colorGrid}>
-        {COLOR_PALETTE.map((color) => (
-          <TouchableOpacity
-            key={color.hex}
-            style={[
-              styles.colorButton,
-              { backgroundColor: color.hex },
-              selectedColor.toUpperCase() === color.hex.toUpperCase() &&
-                styles.colorButtonSelected,
-            ]}
-            onPress={() => onSelect(color.hex)}
-            activeOpacity={0.8}
-          >
-            {selectedColor.toUpperCase() === color.hex.toUpperCase() && (
-              <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-            )}
-          </TouchableOpacity>
-        ))}
+        {COLOR_PALETTE.map((color) => {
+          const isSelected = selectedColor.toUpperCase() === color.hex.toUpperCase();
+          
+          return (
+            <TouchableOpacity
+              key={color.hex}
+              style={[
+                styles.colorButton,
+                { backgroundColor: color.hex },
+                isSelected && styles.colorButtonSelected,
+              ]}
+              onPress={() => onSelect(color.hex)}
+              activeOpacity={1}
+            >
+              {isSelected && (
+                <Ionicons 
+                  name="checkmark" 
+                  size={24} 
+                  color={Colors.text.primary} // High-contrast charcoal
+                />
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    marginVertical: Spacing.md,
+    alignItems: 'center',
   },
   colorGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    width: '100%',
+    justifyContent: "space-between", // Even spacing for the grid
     gap: 12,
   },
   colorButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 60, // Larger touch target for the A15 screen
+    height: 60,
+    borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
-    borderColor: "transparent",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1, // Subtle border for non-selected
+    borderColor: 'rgba(0,0,0,0.05)', 
   },
   colorButtonSelected: {
-    borderColor: "#FFFFFF",
-    transform: [{ scale: 1.1 }],
+    borderWidth: Borders.width, // Thick 2px Neobrutalist border
+    borderColor: Colors.text.primary,
   },
 });
-

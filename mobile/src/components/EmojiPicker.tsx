@@ -1,79 +1,104 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+/**
+ * Pro Emoji Picker for Large Datasets
+ * 
+ * Features: Optimized FlatList, Search logic, Neobrutalist styling
+ */
+import React, { useState, useMemo } from 'react';
+import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { Colors, Spacing, Borders } from '../design';
+import { Text } from './primitives/Text';
+import { TextInput } from './inputs/TextInput';
+import emojiData from 'unicode-emoji-json';
+
+const ALL_EMOJIS = Object.entries(emojiData).map(([emoji, info]) => ({
+  char: emoji,
+  name: info.name,
+}));
 
 interface EmojiPickerProps {
   selectedEmoji: string;
   onSelect: (emoji: string) => void;
 }
 
-// Curated list of commonly used emojis for status
-const EMOJI_CATEGORIES = {
-  "Common": ["🟢", "🟠", "🔴", "🟣", "🔵", "🩷", "💚", "🧡", "❤️", "💜", "💙", "💖"],
-  "Activities": ["🎯", "💼", "📚", "🎨", "🎵", "🎮", "⚽", "🏃", "🧘", "🍕", "☕", "🍔"],
-  "Moods": ["😊", "😴", "🤔", "😎", "🥳", "😤", "😌", "🤯", "😍", "🤗", "🙄", "😅"],
-  "Objects": ["📱", "💻", "🚗", "✈️", "🏠", "🏢", "🎪", "🎭", "📞", "📧", "📺", "🎬"],
-  "Symbols": ["✓", "✗", "!", "?", "⭐", "🔥", "💡", "⚡", "🌟", "✨", "🎉", "🎊"],
-};
+export const EmojiPicker: React.FC<EmojiPickerProps> = ({ selectedEmoji, onSelect }) => {
+  const [searchQuery, setSearchQuery] = useState("");
 
-export default function EmojiPicker({ selectedEmoji, onSelect }: EmojiPickerProps) {
+  const filteredData = useMemo(() => {
+    if (!searchQuery) return ALL_EMOJIS.slice(0, 300); // Limit initial view for speed
+    return ALL_EMOJIS.filter(item => 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ).slice(0, 100); // Limit search results to 100
+  }, [searchQuery]);
+
+  const renderItem = ({ item }: { item: { char: string; name: string } }) => {
+    const isSelected = selectedEmoji === item.char;
+    return (
+      <TouchableOpacity
+        style={[styles.tile, isSelected && styles.tileSelected]}
+        onPress={() => onSelect(item.char)}
+        activeOpacity={1}
+      >
+        <Text style={styles.emojiText}>{item.char}</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {Object.entries(EMOJI_CATEGORIES).map(([category, emojis]) => (
-          <View key={category} style={styles.category}>
-            {emojis.map((emoji) => (
-              <TouchableOpacity
-                key={emoji}
-                style={[
-                  styles.emojiButton,
-                  selectedEmoji === emoji && styles.emojiButtonSelected,
-                ]}
-                onPress={() => onSelect(emoji)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.emoji}>{emoji}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))}
-      </ScrollView>
+      <TextInput
+        placeholder="Search emojis..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        style={styles.searchInput}
+      />
+      
+      <FlatList
+        data={filteredData}
+        renderItem={renderItem}
+        keyExtractor={item => item.char}
+        numColumns={5}
+        columnWrapperStyle={styles.columnWrapper}
+        initialNumToRender={30}
+        windowSize={5} // Helps memory on the A15
+        keyboardShouldPersistTaps="always"
+        contentContainerStyle={styles.listContent}
+      />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    height: 450,
+    marginVertical: Spacing.md,
   },
-  scrollContent: {
-    paddingVertical: 8,
-    gap: 16,
+  searchInput: {
+    marginBottom: Spacing.md,
   },
-  category: {
-    flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 4,
+  listContent: {
+    paddingBottom: Spacing.md,
   },
-  emojiButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "#F3F4F6",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "transparent",
+  columnWrapper: {
+    justifyContent: 'flex-start',
+    gap: 10,
+    paddingBottom: 10,
   },
-  emojiButtonSelected: {
-    backgroundColor: "#EFF6FF",
-    borderColor: "#007AFF",
+  tile: {
+    width: 62,
+    height: 62,
+    backgroundColor: Colors.canvas.background,
+    borderWidth: Borders.width,
+    borderColor: Colors.text.secondary,
+    borderRadius: Borders.radius.medium,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  emoji: {
-    fontSize: 24,
+  tileSelected: {
+    borderColor: Colors.text.primary,
+    backgroundColor: Colors.interaction.disabled,
+    transform: [{ translateY: 2 }], // The physical "pressed" feel
+  },
+  emojiText: {
+    fontSize: 26,
   },
 });
-
