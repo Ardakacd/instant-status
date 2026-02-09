@@ -21,7 +21,10 @@
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["fetch", "remote-notification"]
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
       },
       "entitlements": {
         "aps-environment": "development",
@@ -29,7 +32,9 @@
           "group.com.arda.instantstatus.dev"
         ]
       },
-      "associatedDomains": ["applinks:instantstatus.app"]
+      "associatedDomains": [
+        "applinks:instantstatus.app"
+      ]
     },
     "android": {
       "package": "com.arda.instantstatus.dev",
@@ -45,7 +50,10 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["RECEIVE_BOOT_COMPLETED", "POST_NOTIFICATIONS"],
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "POST_NOTIFICATIONS"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -62,7 +70,10 @@
               "pathPrefix": "/connect"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -109,7 +120,10 @@
           "ios": {
             "useFrameworks": "static",
             "buildReactNativeFromSource": true,
-            "forceStaticLinking": ["RNFBApp", "RNFBMessaging"]
+            "forceStaticLinking": [
+              "RNFBApp",
+              "RNFBMessaging"
+            ]
           }
         }
       ],
@@ -135,7 +149,17 @@
         }
       ],
       "@react-native-firebase/app",
-      "@react-native-firebase/messaging"
+      "@react-native-firebase/messaging",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Inter-Regular.ttf",
+            "./assets/fonts/Inter-Medium.ttf",
+            "./assets/fonts/Inter-SemiBold.ttf"
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {
