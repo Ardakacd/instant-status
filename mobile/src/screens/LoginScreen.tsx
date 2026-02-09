@@ -479,11 +479,7 @@ const styles = StyleSheet.create({
     width: "90%",
     maxWidth: 400,
     padding: 0,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
+    // No shadows, no elevation - using physical shift transform instead
   },
   modalHeader: {
     flexDirection: "row",

@@ -664,11 +664,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     zIndex: 1000,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    // No shadows, no elevation - using physical shift transform instead
   },
   refreshHintContent: {
     flexDirection: "row",
@@ -718,11 +714,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     paddingBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    // No shadows, no elevation - using physical shift transform instead
   },
   cardTitleContainer: {
     flexDirection: "row",
@@ -782,11 +774,7 @@ const styles = StyleSheet.create({
   },
   statusButtonActive: {
     borderColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    // No shadows, no elevation - using physical shift transform instead
   },
   statusIcon: {
     fontSize: 24,
@@ -890,11 +878,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    // No shadows, no elevation - using physical shift transform instead
   },
   avatar: {
     width: 56,
@@ -974,11 +958,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 400,
     minWidth: 280, // Ensure minimum width for readability
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
+    // No shadows, no elevation - using physical shift transform instead
   },
   friendModalHeader: {
     flexDirection: "row",
