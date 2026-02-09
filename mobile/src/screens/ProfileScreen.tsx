@@ -752,16 +752,6 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
-          <View style={styles.divider} />
-
-          {/* Temporary: Widget Preview - Remove later */}
-          <TouchableOpacity
-            style={styles.infoRow}
-            onPress={() => navigation.navigate("WidgetPreview")}
-          >
-            <Text style={styles.infoLabel}>Widget Preview (Dev)</Text>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -995,11 +985,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    // No shadows, no elevation - using physical shift transform instead
   },
   cardTitle: {
     fontSize: 18,
