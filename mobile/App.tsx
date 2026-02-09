@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SplashScreen from "expo-splash-screen";
+import * as Font from "expo-font";
 import notifee from "@notifee/react-native";
 import Purchases, { LOG_LEVEL } from "react-native-purchases";
 import {
@@ -159,7 +160,6 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Main: { screen?: string; params?: { friendId?: string } } | undefined;
   Connect: { userId?: string } | undefined;
-  WidgetPreview: undefined;
   ManageStatus: undefined;
   SubscriptionManagement: undefined;
 };
@@ -498,10 +498,27 @@ export default function App() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Pre-load any fonts or assets here if needed
+        // Keep splash screen visible while we load fonts
+        await SplashScreen.preventAutoHideAsync();
+        
+        // Load Inter font weights
+        // Note: The key becomes the fontFamily name used in styles
+        const fontMap = {
+          'Inter-Regular': require("./assets/fonts/Inter-Regular.ttf"),
+          'Inter-Medium': require("./assets/fonts/Inter-Medium.ttf"),
+          'Inter-SemiBold': require("./assets/fonts/Inter-SemiBold.ttf"),
+        };
+        
+        await Font.loadAsync(fontMap);
+        
+        // Log font loading status
+        console.log('✅ Fonts loaded:', Object.keys(fontMap));
+        
         setAppIsReady(true);
       } catch (e) {
-        console.warn(e);
+        console.error("Error loading fonts:", e);
+        // Continue even if font loading fails (fallback to system font)
+        setAppIsReady(true);
       } finally {
         await SplashScreen.hideAsync();
       }
