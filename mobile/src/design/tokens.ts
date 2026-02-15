@@ -37,6 +37,7 @@ export const Colors = {
     accent: '#F59E0B', // Yellow - Premium highlight, "best value" badge (rare use)
     informational: '#A78BFA', // Lavender - Info boxes, pending state indicators, non-actionable notices
     disabled: '#D1D5DB', // Soft grey - Desaturated, no border emphasis, no physical shift
+    error: '#FF5C5C', // Red - Error messages, validation failures
   },
 } as const;
 
