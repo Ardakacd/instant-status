@@ -22,6 +22,7 @@ export interface InlineActionProps extends Omit<TouchableOpacityProps, 'style'> 
   onPress?: () => void;
   children: React.ReactNode;
   style?: TouchableOpacityProps['style'];
+  fontSize?: number; // Optional fontSize prop, defaults to 16
 }
 
 export const InlineAction: React.FC<InlineActionProps> = ({
@@ -29,6 +30,7 @@ export const InlineAction: React.FC<InlineActionProps> = ({
   children,
   style,
   disabled,
+  fontSize = 16, // Default to 16px
   ...props
 }) => {
   return (
@@ -42,6 +44,7 @@ export const InlineAction: React.FC<InlineActionProps> = ({
       <Text
         style={[
           styles.inlineActionText,
+          { fontSize }, // Apply fontSize from props
           disabled && styles.disabled,
         ]}
       >
@@ -58,9 +61,8 @@ const styles = StyleSheet.create({
   inlineActionText: {
     // Correctly reference the token key 'regular' which maps to 'Inter-Regular'
     fontFamily: Typography.fontFamily.regular,
-    fontSize: 16,
+    // fontSize is set via props, defaults to 16
     color: Colors.interaction.primary, // Mint text
-
   },
   disabled: {
     color: Colors.interaction.disabled,
