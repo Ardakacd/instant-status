@@ -1,26 +1,68 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
   Platform,
+  ScrollView,
 } from "react-native";
-import * as AppleAuthentication from "expo-apple-authentication";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { ErrorBanner } from "../components/ErrorBanner";
 import Toast from "react-native-toast-message";
+import { Colors, Borders, Spacing, Typography, PhysicalShift } from "../design";
+import { createPhysicalShiftTransform } from "../design/styles";
+import { Text } from "../components/primitives/Text";
+import { TextInput } from "../components/inputs/TextInput";
+import { Button } from "../components/actions/Button";
+import { InlineAction } from "../components/actions/InlineAction";
+import { Section } from "../components/containers/Section";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SignUp">;
 
-const GoogleIcon = () => <Text style={styles.googleIcon}>G</Text>;
+const GoogleIcon = () => (
+  <Text variant="primary" style={styles.googleIcon}>G</Text>
+);
+
+/**
+ * SocialButtonWrapper - Wraps social login buttons with Neobrutalist shadow effect
+ * Matches the Button component's primaryWrapper structure for consistent styling
+ */
+const SocialButtonWrapper: React.FC<{
+  children: React.ReactNode;
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}> = ({ children, onPress, disabled, loading }) => {
+  const [isPressed, setIsPressed] = useState(false);
+
+  return (
+    <View style={styles.socialButtonWrapper}>
+      {/* Static shadow block (background layer) - matches Button component */}
+      <View style={styles.socialShadowBlock} />
+      {/* Moving foreground (actual button) */}
+      <TouchableOpacity
+        activeOpacity={1}
+        onPressIn={() => setIsPressed(true)}
+        onPressOut={() => setIsPressed(false)}
+        onPress={onPress}
+        disabled={disabled || loading}
+        style={[
+          styles.socialButton,
+          createPhysicalShiftTransform(isPressed),
+        ]}
+      >
+        {children}
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 export default function SignUpScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -29,24 +71,25 @@ export default function SignUpScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
-  const { signUp, signInWithGoogle, signInWithApple } = useAuth();
+  const { signUp, signInWithGoogle, signInWithApple, authError, clearAuthError } = useAuth();
 
   const handleEmailChange = (text: string) => {
     setEmail(text);
-    if (emailError) setEmailError(""); // Clear error when user starts typing
-    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+    if (emailError) setEmailError("");
+    if (globalError) setGlobalError("");
+    if (authError) clearAuthError();
   };
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
-    if (passwordError) setPasswordError(""); // Clear error when user starts typing
-    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+    if (passwordError) setPasswordError("");
+    if (globalError) setGlobalError("");
+    if (authError) clearAuthError();
   };
 
   const validateForm = (): boolean => {
     let isValid = true;
 
-    // Validate email
     if (!email.trim()) {
       setEmailError("Email is required");
       isValid = false;
@@ -55,7 +98,6 @@ export default function SignUpScreen({ navigation }: Props) {
       isValid = false;
     }
 
-    // Validate password
     if (!password.trim()) {
       setPasswordError("Password is required");
       isValid = false;
@@ -73,13 +115,12 @@ export default function SignUpScreen({ navigation }: Props) {
     }
 
     setLoading(true);
-    setGlobalError(""); // Clear any previous errors
+    setGlobalError("");
     try {
       await signUp(email.trim(), password);
     } catch (error: any) {
       const errorMessage =
         error.message || error.originalError?.message || "Failed to sign up";
-      // Show server errors as global error banner (not validation errors)
       setGlobalError(errorMessage);
     } finally {
       setLoading(false);
@@ -90,9 +131,7 @@ export default function SignUpScreen({ navigation }: Props) {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      // No error means success or cancellation (both handled silently)
     } catch (error: any) {
-      // Only show error if it's not a cancellation
       if (!error.message?.includes("cancelled")) {
         Toast.show({
           type: "error",
@@ -109,7 +148,6 @@ export default function SignUpScreen({ navigation }: Props) {
     try {
       await signInWithApple();
     } catch (error: any) {
-      // Don't show alert for user cancellation
       if (!error.message?.includes("cancelled")) {
         Toast.show({
           type: "error",
@@ -122,100 +160,121 @@ export default function SignUpScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Instant Status</Text>
-      <Text style={styles.subtitle}>Create your account</Text>
-
-      {/* Global Error Banner */}
-      {globalError ? (
-        <ErrorBanner
-          message={globalError}
-          onDismiss={() => setGlobalError("")}
-        />
-      ) : null}
-
-      <View>
-        <TextInput
-          style={[styles.input, emailError && styles.inputError]}
-          placeholder="Email"
-          value={email}
-          onChangeText={handleEmailChange}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-      </View>
-      <View>
-        <TextInput
-          style={[styles.input, passwordError && styles.inputError]}
-          placeholder="Password (min 8 characters)"
-          value={password}
-          onChangeText={handlePasswordChange}
-          secureTextEntry
-          autoCapitalize="none"
-        />
-        {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-      </View>
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSignUp}
-        disabled={loading}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={true}
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Sign Up</Text>
-        )}
-      </TouchableOpacity>
+        <Section spacing="md" style={styles.content}>
+          <View style={styles.header}>
+            <Text variant="primary" style={styles.title}>Create Account</Text>
+            <Text variant="secondary" style={styles.subtitle}>Sign up to get started</Text>
+          </View>
 
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>OR</Text>
-        <View style={styles.dividerLine} />
-      </View>
+          {/* Auth Error (e.g. email not verified) - Bold Red */}
+          {authError && (
+            <Text variant="hint" style={styles.authErrorText}>{authError}</Text>
+          )}
 
-      <TouchableOpacity
-        style={[styles.googleButton, googleLoading && styles.buttonDisabled]}
-        onPress={handleGoogleSignIn}
-        disabled={googleLoading || loading || appleLoading}
-      >
-        {googleLoading ? (
-          <ActivityIndicator color="#333" />
-        ) : (
-          <>
-            <GoogleIcon />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </>
-        )}
-      </TouchableOpacity>
+          {/* Global Error Banner */}
+          {globalError && <ErrorBanner message={globalError} />}
 
-      {Platform.OS === "ios" && !appleLoading && !googleLoading && !loading && (
-        <View style={styles.appleButtonContainer}>
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={
-              AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
-            }
-            buttonStyle={
-              AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-            }
-            cornerRadius={8}
-            style={styles.appleButton}
-            onPress={handleAppleSignIn}
-          />
-        </View>
-      )}
-      {Platform.OS === "ios" && appleLoading && (
-        <View style={[styles.appleButtonContainer, styles.appleButton]}>
-          <ActivityIndicator color="#fff" />
-        </View>
-      )}
+          <Section spacing="sm">
+            <View>
+              <TextInput
+                placeholder="Email"
+                value={email}
+                onChangeText={handleEmailChange}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                error={!!emailError}
+              />
+              {emailError && (
+                <Text variant="hint" style={styles.errorText}>{emailError}</Text>
+              )}
+            </View>
 
-      <TouchableOpacity
-        style={styles.linkButton}
-        onPress={() => navigation.navigate("SignIn")}
-      >
-        <Text style={styles.linkText}>Already have an account? Sign In</Text>
-      </TouchableOpacity>
+            <View>
+              <TextInput
+                placeholder="Password (min 8 characters)"
+                value={password}
+                onChangeText={handlePasswordChange}
+                secureTextEntry
+                autoCapitalize="none"
+                error={!!passwordError}
+              />
+              {passwordError && (
+                <Text variant="hint" style={styles.errorText}>{passwordError}</Text>
+              )}
+            </View>
+
+            <Button
+              variant="primary"
+              onPress={handleSignUp}
+              loading={loading}
+              disabled={loading}
+            >
+              Sign Up
+            </Button>
+          </Section>
+
+          {/* If the screen is small, the OR divider and Social Buttons 
+              will simply move below the fold, which is fine! */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text variant="hint" style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <SocialButtonWrapper
+            onPress={handleGoogleSignIn}
+            disabled={googleLoading || loading || appleLoading}
+            loading={googleLoading}
+          >
+            {googleLoading ? (
+              <Text variant="primary">Loading...</Text>
+            ) : (
+              <>
+                <GoogleIcon />
+                <Text variant="primary" style={styles.socialButtonText}>
+                  Continue with Google
+                </Text>
+              </>
+            )}
+          </SocialButtonWrapper>
+
+          {Platform.OS === "ios" && (
+            <SocialButtonWrapper
+              onPress={handleAppleSignIn}
+              disabled={appleLoading || loading || googleLoading}
+              loading={appleLoading}
+            >
+              {appleLoading ? (
+                <Text variant="primary">Loading...</Text>
+              ) : (
+                <View style={styles.appleButtonContent}>
+                  <Ionicons name="logo-apple" size={20} color={Colors.text.primary} />
+                  <Text variant="primary" style={styles.socialButtonText}>
+                    Continue with Apple
+                  </Text>
+                </View>
+              )}
+            </SocialButtonWrapper>
+          )}
+
+          <View style={styles.signInContainer}>
+            <Text variant="secondary" style={styles.signInPrompt}>
+              Already have an account?{" "}
+            </Text>
+            <InlineAction onPress={() => navigation.navigate("SignIn")}>
+              Sign In
+            </InlineAction>
+          </View>
+
+        </Section>
+      </ScrollView>
     </View>
   );
 }
@@ -223,107 +282,109 @@ export default function SignUpScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.canvas.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center", // Center content vertically
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xxl,
+    paddingBottom: Spacing.xl,
+  },
+  content: {
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+    marginTop: Spacing.md,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
+    fontSize: 28,
+    fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
-    marginBottom: 8,
-    color: "#333",
+    lineHeight: 34,
   },
   subtitle: {
     fontSize: 16,
     textAlign: "center",
-    marginBottom: 40,
-    color: "#666",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 4,
-    backgroundColor: "#f9f9f9",
-  },
-  inputError: {
-    borderColor: "#EF4444",
-    borderWidth: 1,
   },
   errorText: {
-    color: "#EF4444",
-    fontSize: 12,
-    marginBottom: 16,
-    marginLeft: 4,
+    marginTop: Spacing.xs,
+    marginLeft: Spacing.xs,
   },
-  button: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  linkButton: {
-    padding: 12,
-    alignItems: "center",
-  },
-  linkText: {
-    color: "#007AFF",
+  authErrorText: {
+    color: Colors.interaction.error,
+    fontFamily: Typography.fontFamily.semiBold,
     fontSize: 14,
+    textAlign: "center",
+    marginBottom: Spacing.sm,
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 20,
+    marginVertical: Spacing.md,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#ddd",
+    backgroundColor: Colors.text.secondary,
+    opacity: 0.3,
   },
   dividerText: {
-    marginHorizontal: 16,
-    color: "#666",
+    marginHorizontal: Spacing.md,
     fontSize: 14,
+    fontFamily: Typography.fontFamily.semiBold,
+    textTransform: "uppercase",
   },
-  googleButton: {
+  // Social Button Wrapper - Matches Button component's primaryWrapper structure
+  socialButtonWrapper: {
+    marginBottom: Spacing.md + PhysicalShift.offset.y,
+    marginRight: PhysicalShift.offset.x,
+  },
+  socialShadowBlock: {
+    // Static shadow block (background layer) - stays in place
+    position: "absolute",
+    top: PhysicalShift.offset.y,
+    left: PhysicalShift.offset.x,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.text.primary, // Charcoal shadow
+    borderRadius: Borders.radius.medium,
+  },
+  socialButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: Colors.canvas.background, // Clean white for social
+    borderWidth: Borders.width,
+    borderColor: Colors.text.primary, // Black border
+    borderRadius: Borders.radius.medium,
+    height: 56, // Standard Neobrutalist height
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  appleButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
   },
   googleIcon: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontFamily: Typography.fontFamily.semiBold,
     color: "#4285F4",
-    marginRight: 12,
   },
-  googleButtonText: {
-    color: "#333",
+  socialButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: Typography.fontFamily.semiBold,
   },
-  appleButtonContainer: {
-    marginBottom: 12,
+  signInContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: Spacing.md,
   },
-  appleButton: {
-    width: "100%",
-    height: 50,
+  signInPrompt: {
+    fontSize: 14,
   },
 });

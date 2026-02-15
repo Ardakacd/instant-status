@@ -1,18 +1,21 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
+  ScrollView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { userService } from "../services/user.service";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { Colors, Spacing, Typography } from "../design";
+import { Text } from "../components/primitives/Text";
+import { TextInput } from "../components/inputs/TextInput";
+import { Button } from "../components/actions/Button";
+import { Section } from "../components/containers/Section";
 
 export default function OnboardingScreen() {
+  const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [firstNameError, setFirstNameError] = useState("");
@@ -23,14 +26,14 @@ export default function OnboardingScreen() {
 
   const handleFirstNameChange = (text: string) => {
     setFirstName(text);
-    if (firstNameError) setFirstNameError(""); // Clear error when user starts typing
-    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+    if (firstNameError) setFirstNameError("");
+    if (globalError) setGlobalError("");
   };
 
   const handleLastNameChange = (text: string) => {
     setLastName(text);
-    if (lastNameError) setLastNameError(""); // Clear error when user starts typing
-    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+    if (lastNameError) setLastNameError("");
+    if (globalError) setGlobalError("");
   };
 
   const validateForm = (): boolean => {
@@ -55,7 +58,7 @@ export default function OnboardingScreen() {
     }
 
     setLoading(true);
-    setGlobalError(""); // Clear any previous errors
+    setGlobalError("");
     try {
       await userService.updateMe({
         first_name: firstName.trim(),
@@ -66,7 +69,6 @@ export default function OnboardingScreen() {
       await completeOnboarding();
     } catch (error: any) {
       console.error("Error completing onboarding:", error);
-      // Show server errors as global error banner (not validation errors)
       setGlobalError(error.message || "Failed to save your information. Please try again.");
     } finally {
       setLoading(false);
@@ -74,52 +76,66 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome!</Text>
-      <Text style={styles.subtitle}>
-        Let's get started by telling us your name
-      </Text>
-
-      {/* Global Error Banner */}
-      {globalError ? (
-        <ErrorBanner
-          message={globalError}
-          onDismiss={() => setGlobalError("")}
-        />
-      ) : null}
-
-      <View>
-        <TextInput
-          style={[styles.input, firstNameError && styles.inputError]}
-          placeholder="First Name"
-          value={firstName}
-          onChangeText={handleFirstNameChange}
-          autoCapitalize="words"
-        />
-        {firstNameError ? <Text style={styles.errorText}>{firstNameError}</Text> : null}
-      </View>
-      <View>
-        <TextInput
-          style={[styles.input, lastNameError && styles.inputError]}
-          placeholder="Last Name"
-          value={lastName}
-          onChangeText={handleLastNameChange}
-          autoCapitalize="words"
-        />
-        {lastNameError ? <Text style={styles.errorText}>{lastNameError}</Text> : null}
-      </View>
-
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleComplete}
-        disabled={loading}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={true}
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Continue</Text>
-        )}
-      </TouchableOpacity>
+        <Section spacing="md" style={styles.content}>
+          <View style={styles.header}>
+            <Text variant="primary" style={styles.title}>Welcome!</Text>
+            <Text variant="secondary" style={styles.subtitle}>
+              Let's get started by telling us your name
+            </Text>
+          </View>
+
+          {/* Global Error Banner */}
+          {globalError && (
+            <ErrorBanner message={globalError} />
+          )}
+
+          <Section spacing="sm">
+            <View>
+              <TextInput
+                placeholder="First Name"
+                value={firstName}
+                onChangeText={handleFirstNameChange}
+                autoCapitalize="words"
+                editable={!loading}
+                error={!!firstNameError}
+              />
+              {firstNameError && (
+                <Text variant="hint" style={styles.errorText}>{firstNameError}</Text>
+              )}
+            </View>
+
+            <View>
+              <TextInput
+                placeholder="Last Name"
+                value={lastName}
+                onChangeText={handleLastNameChange}
+                autoCapitalize="words"
+                editable={!loading}
+                error={!!lastNameError}
+              />
+              {lastNameError && (
+                <Text variant="hint" style={styles.errorText}>{lastNameError}</Text>
+              )}
+            </View>
+
+            <Button
+              variant="primary"
+              onPress={handleComplete}
+              loading={loading}
+              disabled={loading}
+            >
+              Continue
+            </Button>
+          </Section>
+        </Section>
+      </ScrollView>
     </View>
   );
 }
@@ -127,56 +143,33 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.canvas.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center", // Center content vertically
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl    
+    
+  },
+  content: {
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: Spacing.lg,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
+    fontSize: 28,
+    fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
-    marginBottom: 8,
-    color: "#333",
+    lineHeight: 34,
   },
   subtitle: {
     fontSize: 16,
     textAlign: "center",
-    marginBottom: 40,
-    color: "#666",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 4,
-    backgroundColor: "#f9f9f9",
-  },
-  inputError: {
-    borderColor: "#EF4444",
-    borderWidth: 1,
   },
   errorText: {
-    color: "#EF4444",
-    fontSize: 12,
-    marginBottom: 16,
-    marginLeft: 4,
-  },
-  button: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "center",
-    marginTop: 12,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    marginTop: Spacing.xs,
+    marginLeft: Spacing.xs,
   },
 });
-

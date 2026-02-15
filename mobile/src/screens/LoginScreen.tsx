@@ -1,15 +1,14 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
   Modal,
   Platform,
+  ScrollView,
+  KeyboardAvoidingView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
@@ -18,12 +17,58 @@ import { RootStackParamList } from "../../App";
 import { authService } from "../services/auth.service";
 import { ErrorBanner } from "../components/ErrorBanner";
 import Toast from "react-native-toast-message";
+import { Colors, Borders, Spacing, Typography, PhysicalShift } from "../design";
+import { createPhysicalShiftTransform } from "../design/styles";
+import { Text } from "../components/primitives/Text";
+import { TextInput } from "../components/inputs/TextInput";
+import { Button } from "../components/actions/Button";
+import { InlineAction } from "../components/actions/InlineAction";
+import { Section } from "../components/containers/Section";
+import { Card } from "../components/containers/Card";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SignIn">;
 
-const GoogleIcon = () => <Text style={styles.googleIcon}>G</Text>;
+const GoogleIcon = () => (
+  <Text variant="primary" style={styles.googleIcon}>G</Text>
+);
+
+/**
+ * SocialButtonWrapper - Wraps social login buttons with Neobrutalist shadow effect
+ * Matches the Button component's primaryWrapper structure for consistent styling
+ */
+const SocialButtonWrapper: React.FC<{
+  children: React.ReactNode;
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}> = ({ children, onPress, disabled, loading }) => {
+  const [isPressed, setIsPressed] = useState(false);
+
+  return (
+    <View style={styles.socialButtonWrapper}>
+      {/* Static shadow block (background layer) - matches Button component */}
+      <View style={styles.socialShadowBlock} />
+      {/* Moving foreground (actual button) */}
+      <TouchableOpacity
+        activeOpacity={1}
+        onPressIn={() => setIsPressed(true)}
+        onPressOut={() => setIsPressed(false)}
+        onPress={onPress}
+        disabled={disabled || loading}
+        style={[
+          styles.socialButton,
+          createPhysicalShiftTransform(isPressed),
+          // Don't apply opacity change - let OS handle visual feedback during popup
+        ]}
+      >
+        {children}
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 export default function LoginScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -37,18 +82,20 @@ export default function LoginScreen({ navigation }: Props) {
   const [resetEmail, setResetEmail] = useState("");
   const [resetEmailError, setResetEmailError] = useState("");
   const [sendingReset, setSendingReset] = useState(false);
-  const { signIn, signInWithGoogle, signInWithApple } = useAuth();
+  const { signIn, signInWithGoogle, signInWithApple, authError, clearAuthError } = useAuth();
 
   const handleEmailChange = (text: string) => {
     setEmail(text);
-    if (emailError) setEmailError(""); // Clear error when user starts typing
-    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+    if (emailError) setEmailError("");
+    if (globalError) setGlobalError("");
+    if (authError) clearAuthError();
   };
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
-    if (passwordError) setPasswordError(""); // Clear error when user starts typing
-    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+    if (passwordError) setPasswordError("");
+    if (globalError) setGlobalError("");
+    if (authError) clearAuthError();
   };
 
   const validateLoginForm = (): boolean => {
@@ -100,7 +147,7 @@ export default function LoginScreen({ navigation }: Props) {
       if (!error.message?.includes("cancelled")) {
         Toast.show({
           type: "error",
-          text1: error.message || "Failed to sign in with Google. Please try again.",
+          text1: "Failed to sign in with Google. Please try again.",
         });
       }
     } finally {
@@ -113,11 +160,12 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       await signInWithApple();
     } catch (error: any) {
+      console.log('error geldi')
       // Don't show alert for user cancellation
       if (!error.message?.includes("cancelled")) {
         Toast.show({
           type: "error",
-          text1: error.message || "Failed to sign in with Apple. Please try again.",
+          text1: "Failed to sign in with Apple. Please try again.",
         });
       }
     } finally {
@@ -165,106 +213,136 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome Back</Text>
-      <Text style={styles.subtitle}>Sign in to your account</Text>
-
-      {/* Global Error Banner */}
-      {globalError ? (
-        <ErrorBanner
-          message={globalError}
-          onDismiss={() => setGlobalError("")}
-        />
-      ) : null}
-
-      <View>
-        <TextInput
-          style={[styles.input, emailError && styles.inputError]}
-          placeholder="Email"
-          value={email}
-          onChangeText={handleEmailChange}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoFocus
-        />
-        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-      </View>
-      <View>
-        <TextInput
-          style={[styles.input, passwordError && styles.inputError]}
-          placeholder="Password"
-          value={password}
-          onChangeText={handlePasswordChange}
-          secureTextEntry
-          autoCapitalize="none"
-        />
-        {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-      </View>
-      <TouchableOpacity
-        style={styles.forgotPasswordButton}
-        onPress={handleForgotPassword}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={true}
       >
-        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSignIn}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Sign In</Text>
-        )}
-      </TouchableOpacity>
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>OR</Text>
-        <View style={styles.dividerLine} />
-      </View>
+        <Section spacing="md" style={styles.content}>
+          {/* Spacer to push content down when keyboard is OFF */}
+          
 
-      <TouchableOpacity
-        style={[styles.googleButton, googleLoading && styles.buttonDisabled]}
-        onPress={handleGoogleSignIn}
-        disabled={googleLoading || loading || appleLoading}
-      >
-        {googleLoading ? (
-          <ActivityIndicator color="#333" />
-        ) : (
-          <>
-            <GoogleIcon />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </>
-        )}
-      </TouchableOpacity>
+            <View style={styles.header}>
+              <Text variant="primary" style={styles.title}>Welcome Back</Text>
+              <Text variant="secondary" style={styles.subtitle}>Sign in to your account</Text>
+            </View>
 
-      {Platform.OS === "ios" && !appleLoading && !googleLoading && !loading && (
-        <View style={styles.appleButtonContainer}>
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={
-              AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
-            }
-            buttonStyle={
-              AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-            }
-            cornerRadius={8}
-            style={styles.appleButton}
-            onPress={handleAppleSignIn}
-          />
-        </View>
-      )}
-      {Platform.OS === "ios" && appleLoading && (
-        <View style={[styles.appleButtonContainer, styles.appleButton]}>
-          <ActivityIndicator color="#fff" />
-        </View>
-      )}
+            {/* Auth Error (e.g. email not verified) - Bold Red */}
+            {authError && (
+              <Text variant="hint" style={styles.authErrorText}>{authError}</Text>
+            )}
 
-      <TouchableOpacity
-        style={styles.linkButton}
-        onPress={() => navigation.navigate("SignUp")}
-      >
-        <Text style={styles.linkText}>Don't have an account? Sign Up</Text>
-      </TouchableOpacity>
+            {/* Global Error Banner */}
+            {globalError && (
+              <ErrorBanner message={globalError} />
+            )}
+
+            <Section spacing="sm">
+            <View>
+              <TextInput
+                placeholder="Email"
+                value={email}
+                onChangeText={handleEmailChange}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                error={!!emailError}
+              />
+              {emailError && (
+                <Text variant="hint" style={styles.errorText}>{emailError}</Text>
+              )}
+            </View>
+
+            <View>
+              <TextInput
+                placeholder="Password"
+                value={password}
+                onChangeText={handlePasswordChange}
+                secureTextEntry
+                autoCapitalize="none"
+                error={!!passwordError}
+              />
+              {passwordError && (
+                <Text variant="hint" style={styles.errorText}>{passwordError}</Text>
+              )}
+            </View>
+
+            <View style={styles.forgotPasswordContainer}>
+              <InlineAction
+                onPress={handleForgotPassword}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                fontSize={14}
+              >
+                Forgot Password?
+              </InlineAction>
+            </View>
+
+            <Button
+              variant="primary"
+              onPress={handleSignIn}
+              loading={loading}
+              disabled={loading}
+            >
+              Sign In
+            </Button>
+          </Section>
+
+          {/* If the screen is small, the OR divider and Social Buttons 
+              will simply move below the fold, which is fine! */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text variant="hint" style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <SocialButtonWrapper
+            onPress={handleGoogleSignIn}
+            disabled={googleLoading || loading || appleLoading}
+            loading={googleLoading}
+          >
+            {googleLoading ? (
+              <Text variant="primary">Loading...</Text>
+            ) : (
+              <>
+                <GoogleIcon />
+                <Text variant="primary" style={styles.socialButtonText}>
+                  Continue with Google
+                </Text>
+              </>
+            )}
+          </SocialButtonWrapper>
+
+          {Platform.OS === "ios" && (
+            <SocialButtonWrapper
+              onPress={handleAppleSignIn}
+              disabled={appleLoading || loading || googleLoading}
+              loading={appleLoading}
+            >
+              {appleLoading ? (
+                <Text variant="primary">Loading...</Text>
+              ) : (
+                <View style={styles.appleButtonContent}>
+                  <Ionicons name="logo-apple" size={20} color={Colors.text.primary} />
+                  <Text variant="primary" style={styles.socialButtonText}>
+                    Continue with Apple
+                  </Text>
+                </View>
+              )}
+            </SocialButtonWrapper>
+          )}
+
+          <View style={styles.signUpContainer}>
+            <Text variant="secondary" style={styles.signUpPrompt}>
+              Don't have an account?{" "}
+            </Text>
+            <InlineAction onPress={() => navigation.navigate("SignUp")}>
+              Sign Up
+            </InlineAction>
+          </View>
+
+        </Section>
+      </ScrollView>
 
       {/* Forgot Password Modal */}
       <Modal
@@ -277,70 +355,74 @@ export default function LoginScreen({ navigation }: Props) {
           setResetEmailError("");
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Reset Password</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setForgotPasswordModalVisible(false);
-                  setResetEmail("");
-                  setResetEmailError("");
-                }}
-                disabled={sendingReset}
-              >
-                <Ionicons name="close" size={24} color="#111827" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalBody}>
-              <Text style={styles.modalDescription}>
-                Enter your email address and we'll send you a link to reset your
-                password.
-              </Text>
-
-              <View>
-                <TextInput
-                  style={[styles.modalInput, resetEmailError && styles.modalInputError]}
-                  placeholder="Email"
-                  value={resetEmail}
-                  onChangeText={handleResetEmailChange}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoFocus
-                  editable={!sendingReset}
-                />
-                {resetEmailError ? <Text style={styles.modalErrorText}>{resetEmailError}</Text> : null}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          {/* Modal Content Wrapper with Physical Shift */}
+          <View style={styles.modalContentWrapper}>
+            {/* Physical Shift Shadow Block */}
+            <View style={styles.modalShadowBlock} />
+            
+            {/* Modal Content */}
+            <Card variant="flat" style={styles.modalContent}>
+              {/* Modal Header */}
+              <View style={styles.modalHeader}>
+                <View style={styles.modalHeaderContent}>
+                  <View style={styles.modalIconContainer}>
+                    <Ionicons name="mail-outline" size={20} color={Colors.interaction.primary} />
+                  </View>
+                  <Text variant="primary" style={styles.modalTitle}>Reset Password</Text>
+                </View>
+                {/* Chunky Close Button */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setForgotPasswordModalVisible(false);
+                    setResetEmail("");
+                    setResetEmailError("");
+                  }}
+                  disabled={sendingReset}
+                  activeOpacity={1}
+                  style={styles.modalCloseButton}
+                >
+                  <Ionicons name="close" size={18} color={Colors.text.primary} />
+                </TouchableOpacity>
               </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  sendingReset && styles.modalButtonDisabled,
-                ]}
-                onPress={handleSendPasswordReset}
-                disabled={sendingReset}
-              >
-                {sendingReset ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.modalButtonText}>Send Reset Email</Text>
-                )}
-              </TouchableOpacity>
+              <Section spacing="md" style={styles.modalBody}>
+                <Text variant="secondary" style={styles.modalDescription}>
+                  Enter your email address and we'll send you a link to reset your password.
+                </Text>
 
-              <TouchableOpacity
-                style={styles.modalCancelButton}
-                onPress={() => {
-                  setForgotPasswordModalVisible(false);
-                  setResetEmail("");
-                }}
-                disabled={sendingReset}
-              >
-                <Text style={styles.modalCancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
+                <View>
+                  <TextInput
+                    placeholder="Email"
+                    value={resetEmail}
+                    onChangeText={handleResetEmailChange}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={!sendingReset}
+                    error={!!resetEmailError}
+                  />
+                  {resetEmailError && (
+                    <Text variant="hint" style={styles.modalErrorText}>
+                      {resetEmailError}
+                    </Text>
+                  )}
+                </View>
+
+                <Button
+                  variant="primary"
+                  onPress={handleSendPasswordReset}
+                  loading={sendingReset}
+                  disabled={sendingReset}
+                >
+                  Send Reset Email
+                </Button>
+              </Section>
+            </Card>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -349,200 +431,187 @@ export default function LoginScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.canvas.background,
+  },
+  scrollContent: {
+    flexGrow: 1, // Crucial: allows the spacers to expand
+    justifyContent: "center", // Center content vertically
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xxl,
+    paddingBottom: Spacing.xl,
+  },
+  content: {
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+    marginTop: Spacing.md,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
+    fontSize: 28, // Slightly smaller to prevent overflow
+    fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
-    marginBottom: 8,
-    color: "#333",
+    lineHeight: 34,
   },
   subtitle: {
     fontSize: 16,
     textAlign: "center",
-    marginBottom: 40,
-    color: "#666",
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 8,
-    color: "#333",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 4,
-    backgroundColor: "#f9f9f9",
-  },
-  inputError: {
-    borderColor: "#EF4444",
-    borderWidth: 1,
   },
   errorText: {
-    color: "#EF4444",
-    fontSize: 12,
-    marginBottom: 16,
-    marginLeft: 4,
+    marginTop: Spacing.xs,
+    marginLeft: Spacing.xs,
   },
-  button: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  linkButton: {
-    padding: 12,
-    alignItems: "center",
-  },
-  linkText: {
-    color: "#007AFF",
+  authErrorText: {
+    color: Colors.interaction.error,
+    fontFamily: Typography.fontFamily.semiBold,
     fontSize: 14,
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+  },
+  forgotPasswordContainer: {
+    alignItems: "flex-end",
+    marginTop: -Spacing.sm,
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 20,
+    marginVertical: Spacing.md, // Reduced from lg to md
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#ddd",
+    backgroundColor: Colors.text.secondary,
+    opacity: 0.3,
   },
   dividerText: {
-    marginHorizontal: 16,
-    color: "#666",
+    marginHorizontal: Spacing.md,
     fontSize: 14,
+    fontFamily: Typography.fontFamily.semiBold,
+    textTransform: "uppercase",
   },
-  googleButton: {
+  // Social Button Wrapper - Matches Button component's primaryWrapper structure
+  socialButtonWrapper: {
+    marginBottom: Spacing.md + PhysicalShift.offset.y,
+    marginRight: PhysicalShift.offset.x,
+  },
+  socialShadowBlock: {
+    // Static shadow block (background layer) - stays in place
+    position: "absolute",
+    top: PhysicalShift.offset.y,
+    left: PhysicalShift.offset.x,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.text.primary, // Charcoal shadow
+    borderRadius: Borders.radius.medium,
+  },
+  socialButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: Colors.canvas.background, // Clean white for social
+    borderWidth: Borders.width,
+    borderColor: Colors.text.primary, // Black border
+    borderRadius: Borders.radius.medium,
+    height: 56, // Standard Neobrutalist height
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  appleButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
   },
   googleIcon: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontFamily: Typography.fontFamily.semiBold,
     color: "#4285F4",
-    marginRight: 12,
   },
-  googleButtonText: {
-    color: "#333",
+  socialButtonText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: Typography.fontFamily.semiBold,
   },
-  appleButtonContainer: {
-    marginBottom: 12,
+  buttonDisabled: {
+    opacity: 0.5,
   },
-  appleButton: {
-    width: "100%",
-    height: 50,
+  signUpContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: Spacing.md,
   },
-  forgotPasswordButton: {
-    alignSelf: "flex-end",
-    marginBottom: 20,
-    marginTop: -10,
-  },
-  forgotPasswordText: {
-    color: "#007AFF",
+  signUpPrompt: {
     fontSize: 14,
-    fontWeight: "500",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Lighter overlay for high-energy Neobrutalist vibe
     justifyContent: "center",
     alignItems: "center",
+    padding: Spacing.lg,
+  },
+  modalContentWrapper: {
+    width: "95%",
+    marginBottom: PhysicalShift.offset.y,
+    marginRight: PhysicalShift.offset.x,
+  },
+  modalShadowBlock: {
+    // Static shadow block (background layer) - Neobrutalist physical shift
+    position: "absolute",
+    top: PhysicalShift.offset.y,
+    left: PhysicalShift.offset.x,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.text.primary, // Charcoal shadow
+    borderRadius: Borders.radius.medium,
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    width: "90%",
-    maxWidth: 400,
-    padding: 0,
-    // No shadows, no elevation - using physical shift transform instead
+    width: "100%",
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    padding: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: Borders.width,
+    borderBottomColor: Colors.text.primary,
+  },
+  modalHeaderContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  modalIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: Borders.radius.small,
+    backgroundColor: "rgba(16, 185, 129, 0.15)", // Mint with 15% opacity
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
+    flex: 1,
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalBody: {
-    padding: 20,
+    padding: Spacing.lg,
+    paddingTop: Spacing.md,
   },
   modalDescription: {
     fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 20,
     lineHeight: 20,
   },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    backgroundColor: "#F9FAFB",
-    marginBottom: 4,
-  },
-  modalInputError: {
-    borderColor: "#EF4444",
-    borderWidth: 1,
-  },
   modalErrorText: {
-    color: "#EF4444",
-    fontSize: 12,
-    marginBottom: 16,
-    marginLeft: 4,
-  },
-  modalButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  modalButtonDisabled: {
-    opacity: 0.6,
-  },
-  modalButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  modalCancelButton: {
-    padding: 12,
-    alignItems: "center",
-  },
-  modalCancelButtonText: {
-    color: "#6B7280",
-    fontSize: 14,
+    marginTop: Spacing.xs,
+    marginLeft: Spacing.xs,
   },
 });
