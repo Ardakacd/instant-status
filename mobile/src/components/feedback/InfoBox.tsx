@@ -7,7 +7,7 @@
  * - Gentle warnings
  * 
  * Style:
- * - Lavender background
+ * - Light mint tint background
  * - Flat
  * - No icon unless essential
  * - Never urgent
@@ -15,7 +15,7 @@
 
 import React from 'react';
 import { View, StyleSheet, ViewProps } from 'react-native';
-import { Colors, Borders, Spacing } from '../../design';
+import { Borders, Spacing } from '../../design';
 import { Text } from '../primitives/Text';
 
 export interface InfoBoxProps extends ViewProps {
@@ -48,7 +48,7 @@ export const InfoBox: React.FC<InfoBoxProps> = ({
 
 const styles = StyleSheet.create({
   infoBox: {
-    backgroundColor: Colors.interaction.informational, // Lavender background
+    backgroundColor: '#ECFDF5', // Light mint tint — matches primary palette
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
     flexDirection: 'row', // Horizontal alignment is more "Inline"
