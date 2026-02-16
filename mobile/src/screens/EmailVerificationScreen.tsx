@@ -19,7 +19,7 @@ import Toast from "react-native-toast-message";
 type Props = NativeStackScreenProps<RootStackParamList, "EmailVerification">;
 
 export default function EmailVerificationScreen({ route }: Props) {
-  const { checkEmailVerification, logout } = useAuth();
+  const { checkEmailVerification, logout, authError } = useAuth();
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -163,6 +163,9 @@ export default function EmailVerificationScreen({ route }: Props) {
       </View>
 
       <Text style={styles.title}>Verify Your Email</Text>
+      {authError && (
+        <Text style={styles.authErrorText}>{authError}</Text>
+      )}
       <Text style={styles.subtitle}>
         {verifying
           ? "Verifying your email..."
@@ -234,6 +237,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 16,
     color: "#111827",
+  },
+  authErrorText: {
+    fontSize: 14,
+    fontFamily: "Inter-SemiBold",
+    color: "#FF5C5C",
+    textAlign: "center",
+    marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
