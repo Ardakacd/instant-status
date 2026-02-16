@@ -105,10 +105,8 @@ export const Card: React.FC<CardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.canvas.background,
+    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.primary, // Primary charcoal for punchiness (not muted)
     padding: Spacing.md,
   },
   elevatedWrapper: {
