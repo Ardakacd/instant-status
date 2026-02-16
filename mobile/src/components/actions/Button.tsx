@@ -1,182 +1,280 @@
 /**
  * Button Component
- * 
- * The only way users commit actions.
- * 
+ *
+ * Neobrutalist-style button with shadow layer and spring press animation.
+ * Based on AnimatedButton structure; no icon support.
+ *
  * Variants:
- * - Primary (mint): Set status, confirm actions, primary CTA
- * - Secondary (white + border): Secondary actions
- * - Disabled (soft grey): Unavailable actions
- * 
- * Rules:
- * - Physical offset only for Primary
- * - Haptics only on Primary
- * - Button text is always a verb
- * 
- * Used for:
- * - Sign up
- * - Set status
- * - Add friend
- * - Upgrade
+ * - Primary: Mint bg, charcoal shadow, spring press
+ * - Secondary: White + border, no shadow
+ * - Disabled: Grey, no animation
  */
 
-import React, { useState } from 'react';
-import { View, TouchableOpacity, TouchableOpacityProps, StyleSheet, ActivityIndicator } from 'react-native';
-import { Colors, Borders, Spacing, PhysicalShift } from '../../design';
-import { Typography } from '../../design';
-import { createPhysicalShiftTransform } from '../../design/styles';
-import { Text } from '../primitives/Text';
-import { hapticAction } from '../../utils/haptics';
+import React, { useCallback, useRef, forwardRef } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  Platform,
+  Animated,
+  Pressable,
+  ActivityIndicator,
+  type ViewStyle,
+} from "react-native";
+import { Colors, Borders, Spacing, PhysicalShift, Typography } from "../../design";
+import { Text as DesignText } from "../primitives/Text";
+import { hapticAction } from "../../utils/haptics";
 
-export type ButtonVariant = 'primary' | 'secondary' | 'disabled';
+const isIOS = Platform.OS === "ios";
 
-export interface ButtonProps extends Omit<TouchableOpacityProps, 'style'> {
+export type ButtonVariant = "primary" | "secondary" | "disabled";
+
+export interface ButtonProps {
   variant?: ButtonVariant;
   onPress?: () => void;
-  loading?: boolean;
   children: React.ReactNode;
-  style?: TouchableOpacityProps['style'];
+  loading?: boolean;
+  disabled?: boolean;
+  style?: ViewStyle;
+  fullWidth?: boolean;
 }
 
-export const Button: React.FC<ButtonProps> = ({
-  variant = 'primary',
-  onPress,
-  loading = false,
-  children,
-  disabled,
-  style,
-  ...props
-}) => {
-  const isDisabled = disabled || loading || variant === 'disabled';
-  const [isPressed, setIsPressed] = useState(false); // Track press state for mechanical feel
+export const Button = forwardRef<View, ButtonProps>(
+  (
+    {
+      variant = "primary",
+      onPress,
+      children,
+      loading = false,
+      disabled = false,
+      style,
+      fullWidth = true,
+    },
+    ref
+  ) => {
+    const isDisabled = disabled || loading || variant === "disabled";
+    const pressX = useRef(new Animated.Value(0)).current;
+    const pressY = useRef(new Animated.Value(0)).current;
 
-  const handlePress = () => {
-    if (isDisabled || !onPress) return;
+    const handlePressIn = useCallback(() => {
+      if (isDisabled) return;
+      if (variant === "primary") {
+        hapticAction();
+        Animated.parallel([
+          Animated.spring(pressX, {
+            toValue: PhysicalShift.offset.x,
+            stiffness: 300,
+            damping: 20,
+            mass: 0.4,
+            useNativeDriver: true,
+          }),
+          Animated.spring(pressY, {
+            toValue: PhysicalShift.offset.y,
+            stiffness: 300,
+            damping: 20,
+            mass: 0.4,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+    }, [isDisabled, variant]);
 
-    // Haptics only on Primary variant (medium strength for actions)
-    if (variant === 'primary') {
-      hapticAction();
-    }
+    const handlePressOut = useCallback(() => {
+      if (isDisabled) return;
+      if (variant === "primary") {
+        Animated.parallel([
+          Animated.spring(pressX, {
+            toValue: 0,
+            stiffness: 300,
+            damping: 20,
+            mass: 0.4,
+            useNativeDriver: true,
+          }),
+          Animated.spring(pressY, {
+            toValue: 0,
+            stiffness: 300,
+            damping: 20,
+            mass: 0.4,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+    }, [isDisabled, variant]);
 
-    onPress();
-  };
+    const handlePress = useCallback(() => {
+      if (isDisabled || !onPress) return;
+      onPress();
+    }, [isDisabled, onPress]);
 
-  // Primary button with physical shift uses two-layer effect
-  if (variant === 'primary' && !isDisabled) {
-    return (
-      <View style={styles.primaryWrapper}>
-        {/* Static shadow block (background layer) */}
-        <View style={styles.shadowBlock} />
-        {/* Moving foreground (actual button) */}
-        <TouchableOpacity
-          activeOpacity={1} // Set to 1 so the shift does the work, not a fade
-          onPressIn={() => setIsPressed(true)} // Shift "down" to cover shadow
-          onPressOut={() => setIsPressed(false)} // Snap back "up"
-          onPress={handlePress}
-          disabled={isDisabled}
+    const isPrimaryWithShadow = variant === "primary" && !isDisabled;
+
+    const backgroundColor =
+      variant === "primary"
+        ? Colors.interaction.primary
+        : variant === "secondary"
+          ? Colors.canvas.background
+          : Colors.interaction.disabled;
+
+    const borderColor =
+      variant === "secondary"
+        ? Colors.text.secondary
+        : Colors.interaction.disabled;
+
+    const hasBorder = variant !== "primary";
+
+    const textColor =
+      variant === "primary"
+        ? Colors.text.primary
+        : variant === "secondary"
+          ? Colors.text.primary
+          : Colors.text.secondary;
+
+    const spinnerColor = textColor;
+
+    if (isPrimaryWithShadow) {
+      return (
+        <View
+          ref={ref}
           style={[
-            styles.button,
-            styles[variant],
-            createPhysicalShiftTransform(isPressed), // Toggle based on press state
+            styles.container,
+            fullWidth && styles.fullWidth,
+            styles.primaryWrapper,
             style,
           ]}
-          {...props}
         >
-          {loading ? (
-            <ActivityIndicator size="small" color={Colors.text.primary} />
-          ) : (
-            <Text
-              variant="primary"
-              style={[styles.buttonText, styles.primaryText]}
+          <View
+            pointerEvents="none"
+            style={[
+              styles.shadowLayer,
+              {
+                top: PhysicalShift.offset.y,
+                left: PhysicalShift.offset.x,
+                borderRadius: Borders.radius.medium,
+                backgroundColor: Colors.text.primary,
+              },
+            ]}
+          />
+          <Pressable
+            onPress={handlePress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            disabled={isDisabled}
+            style={styles.pressable}
+          >
+            <Animated.View
+              style={[
+                styles.button,
+                isIOS && styles.iosBorderCurve,
+                {
+                  minHeight: 48,
+                  paddingVertical: Spacing.md,
+                  paddingHorizontal: Spacing.lg,
+                  borderRadius: Borders.radius.medium,
+                  backgroundColor,
+                  ...(hasBorder && {
+                    borderWidth: Borders.width,
+                    borderColor,
+                  }),
+                  transform: [
+                    { translateX: pressX },
+                    { translateY: pressY },
+                  ],
+                },
+              ]}
             >
-              {children}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
+              {loading ? (
+                <ActivityIndicator size="small" color={spinnerColor} />
+              ) : (
+                <DesignText
+                  variant="primary"
+                  style={[styles.buttonText, { color: textColor }]}
+                >
+                  {children}
+                </DesignText>
+              )}
+            </Animated.View>
+          </Pressable>
+        </View>
+      );
+    }
+
+    return (
+      <Pressable
+        ref={ref as any}
+        onPress={handlePress}
+        disabled={isDisabled}
+        style={[
+          styles.container,
+          fullWidth && styles.fullWidth,
+          styles.button,
+          isIOS && styles.iosBorderCurve,
+          {
+            minHeight: 48,
+            paddingVertical: Spacing.md,
+            paddingHorizontal: Spacing.lg,
+            borderRadius: Borders.radius.medium,
+            backgroundColor,
+            ...(hasBorder && {
+              borderWidth: Borders.width,
+              borderColor,
+            }),
+          },
+          (disabled || loading) && styles.disabledOpacity,
+          style,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={spinnerColor} />
+        ) : (
+          <DesignText
+            variant={variant === "primary" ? "primary" : "secondary"}
+            style={[styles.buttonText, { color: textColor }]}
+          >
+            {children}
+          </DesignText>
+        )}
+      </Pressable>
     );
   }
+);
 
-  // Secondary and disabled buttons - no physical shift
-  return (
-    <TouchableOpacity
-      activeOpacity={0.95}
-      onPress={handlePress}
-      disabled={isDisabled}
-      style={[
-        styles.button,
-        styles[variant],
-        style,
-      ]}
-      {...props}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color={variant === 'primary' ? Colors.text.primary : Colors.text.primary} />
-      ) : (
-        <Text
-          variant={variant === 'primary' ? 'primary' : 'secondary'}
-          style={[
-            styles.buttonText,
-            variant === 'primary' && styles.primaryText,
-            variant === 'secondary' && styles.secondaryText,
-            variant === 'disabled' && styles.disabledText,
-          ]}
-        >
-          {children}
-        </Text>
-      )}
-    </TouchableOpacity>
-  );
-};
+Button.displayName = "Button";
 
 const styles = StyleSheet.create({
-  button: {
-    borderRadius: Borders.radius.medium,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
+  container: {
+    position: "relative",
   },
-  primary: {
-    backgroundColor: Colors.interaction.primary,
-  },
-  secondary: {
-    backgroundColor: Colors.canvas.background,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.secondary,
-  },
-  disabled: {
-    backgroundColor: Colors.interaction.disabled,
+  fullWidth: {
+    width: "100%",
   },
   primaryWrapper: {
-    // Wrapper for two-layer physical shift effect on primary buttons
     marginBottom: PhysicalShift.offset.y,
     marginRight: PhysicalShift.offset.x,
   },
-  shadowBlock: {
-    // Static shadow block (background layer) - stays in place
-    position: 'absolute',
-    top: PhysicalShift.offset.y,
+  shadowLayer: {
+    position: "absolute",
     left: PhysicalShift.offset.x,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.text.primary, // Charcoal shadow
-    borderRadius: Borders.radius.medium,
+  },
+  pressable: {
+    width: "100%",
+    position: "relative",
+    zIndex: 3,
+  },
+  button: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iosBorderCurve: {
+    borderCurve: "continuous" as any,
   },
   buttonText: {
-    fontFamily: Typography.fontFamily.medium, // CTA uses medium weight (500)
+    fontFamily: Typography.fontFamily.medium,
     fontSize: 16,
   },
-  primaryText: {
-    // Charcoal text on mint background for better contrast (especially on AMOLED screens)
-    color: Colors.text.primary,
-  },
-  secondaryText: {
-    color: Colors.text.primary,
-  },
-  disabledText: {
-    color: Colors.text.secondary,
+  disabledOpacity: {
+    opacity: 0.6,
   },
 });
-
