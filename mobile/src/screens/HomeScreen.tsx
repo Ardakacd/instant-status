@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -26,6 +25,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import { useIsPremium } from "../hooks/useIsPremium";
 import { presentPaywall } from "../services/purchases.service";
+import { Colors, Borders, Spacing, Typography } from "../design";
+import { Text } from "../components/primitives/Text";
+import { Button } from "../components/actions/Button";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -45,8 +47,11 @@ export default function HomeScreen() {
   const [friendModalVisible, setFriendModalVisible] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<Status | null>(null);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
+  const [friendLayoutMode, setFriendLayoutMode] = useState<"large" | "compact">("large");
   const slideAnim = React.useRef(new Animated.Value(-100)).current;
   const pendingFriendIdRef = React.useRef<string | null>(null);
+
+  const FRIEND_LAYOUT_STORAGE_KEY = "home_friend_layout_mode";
 
   const currentOptionId = myStatus?.option?.id || null;
 
@@ -81,6 +86,17 @@ export default function HomeScreen() {
     loadSignMethods();
     checkRefreshHint();
   }, []);
+
+  useEffect(() => {
+    AsyncStorage.getItem(FRIEND_LAYOUT_STORAGE_KEY).then((value) => {
+      if (value === "compact" || value === "large") setFriendLayoutMode(value);
+    });
+  }, []);
+
+  const setFriendLayoutModeAndPersist = (mode: "large" | "compact") => {
+    setFriendLayoutMode(mode);
+    AsyncStorage.setItem(FRIEND_LAYOUT_STORAGE_KEY, mode);
+  };
 
   const loadStatusOptions = async () => {
     try {
@@ -327,52 +343,57 @@ export default function HomeScreen() {
           ]}
         >
           <View style={styles.refreshHintContent}>
-            <Ionicons name="arrow-down" size={20} color="#007AFF" />
-            <Text style={styles.refreshHintText}>
-              Pull down to refresh your friends' statuses
+            <Ionicons
+              name="arrow-down"
+              size={20}
+              color={Colors.interaction.primary}
+            />
+            <Text variant="primary" style={styles.refreshHintText}>
+              Pull down to refresh
             </Text>
           </View>
           <TouchableOpacity
             onPress={dismissRefreshHint}
             style={styles.refreshHintClose}
           >
-            <Ionicons name="close" size={20} color="#6B7280" />
+            <Ionicons
+              name="close"
+              size={20}
+              color={Colors.text.secondary}
+            />
           </TouchableOpacity>
         </Animated.View>
       )}
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            flexGrow: 1,
+            paddingTop:
+              insets.top +
+              Spacing.md +
+              (showRefreshHint ? 56 : 0),
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#007AFF"
-            colors={["#007AFF"]}
+            tintColor={Colors.interaction.primary}
+            colors={[Colors.interaction.primary]}
             progressViewOffset={showRefreshHint ? 130 : 80}
           />
         }
       >
-        {/* Header */}
-        <View
-          style={[
-            styles.header,
-            { paddingTop: Math.max(insets.top + 10, 40) },
-            showRefreshHint && { marginTop: 50 },
-          ]}
-        >
-          <View style={styles.headerContent}>
-            <Text style={styles.greeting}>Hello, </Text>
-            <Text style={styles.userName}>{user?.first_name || "User"}</Text>
-          </View>
-        </View>
-
         {/* My Status Card */}
         <View style={styles.statusCard}>
           <View style={styles.cardTitleContainer}>
-            <Text style={styles.cardTitle}>Your Status</Text>
+            <Text variant="primary" style={styles.cardTitle}>
+              Your Status
+            </Text>
             <TouchableOpacity
               style={[
                 styles.manageButton,
@@ -383,25 +404,18 @@ export default function HomeScreen() {
               disabled={premiumLoading}
             >
               {premiumLoading ? (
-                <ActivityIndicator size="small" color="#007AFF" />
+                <ActivityIndicator size="small" color={Colors.interaction.primary} />
               ) : (
                 <>
                   {!isPremium && (
                     <Ionicons
                       name="lock-closed"
                       size={14}
-                      color="#007AFF"
+                      color={Colors.interaction.primary}
                       style={styles.lockIcon}
                     />
                   )}
-                  <Text
-                    style={[
-                      styles.manageButtonText,
-                      !isPremium && styles.manageButtonTextLocked,
-                    ]}
-                  >
-                    Manage Status
-                  </Text>
+                  <Text style={styles.manageButtonText}>Manage Status</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -436,7 +450,7 @@ export default function HomeScreen() {
             })}
           </View>
           {myStatus && myStatus.expires_at && (
-            <Text style={styles.expirationText}>
+            <Text variant="secondary" style={styles.expirationText}>
               {formatExpirationTime(myStatus.expires_at)}
             </Text>
           )}
@@ -445,14 +459,63 @@ export default function HomeScreen() {
         {/* Friends Section */}
         <View style={styles.friendsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Friends</Text>
+            <Text variant="primary" style={styles.sectionTitle}>
+              Friends
+            </Text>
             <View style={styles.headerRight}>
-              <Text style={styles.friendCount}>{friendsStatus.length}</Text>
+              {friendsStatus.length > 0 && (
+                <View style={styles.layoutToggle}>
+                  <TouchableOpacity
+                    style={[
+                      styles.layoutToggleButton,
+                      friendLayoutMode === "large" && styles.layoutToggleButtonActive,
+                    ]}
+                    onPress={() => setFriendLayoutModeAndPersist("large")}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="list"
+                      size={16}
+                      color={friendLayoutMode === "large" ? Colors.canvas.background : Colors.text.secondary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.layoutToggleButton,
+                      friendLayoutMode === "compact" && styles.layoutToggleButtonActive,
+                    ]}
+                    onPress={() => setFriendLayoutModeAndPersist("compact")}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="grid"
+                      size={16}
+                      color={friendLayoutMode === "compact" ? Colors.canvas.background : Colors.text.secondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+              )}
+              <View style={styles.friendCount}>
+                <Ionicons
+                  name="people-outline"
+                  size={14}
+                  color={Colors.text.secondary}
+                  style={styles.friendCountIcon}
+                />
+                <Text style={styles.friendCountText}>{friendsStatus.length}</Text>
+              </View>
               <TouchableOpacity
                 style={styles.connectButton}
-                onPress={() => navigation.navigate("Connect" as never)}
+                onPress={() =>
+                  (navigation.getParent() as any)?.navigate("Connect")
+                }
+                activeOpacity={0.7}
               >
-                <Ionicons name="person-add" size={16} color="#007AFF" />
+                <Ionicons
+                  name="person-add"
+                  size={16}
+                  color={Colors.interaction.primary}
+                />
                 <Text style={styles.connectButtonText}>Connect</Text>
               </TouchableOpacity>
             </View>
@@ -460,15 +523,85 @@ export default function HomeScreen() {
 
           {refreshing ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#007AFF" />
+              <ActivityIndicator size="small" color={Colors.interaction.primary} />
             </View>
           ) : friendsStatus.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>👥</Text>
-              <Text style={styles.emptyTitle}>No friends yet</Text>
-              <Text style={styles.emptyText}>
+              <View style={styles.emptyIconContainer}>
+                <Text style={styles.emptyIcon}>👥</Text>
+              </View>
+              <Text variant="primary" style={styles.emptyTitle}>
+                No friends yet
+              </Text>
+              <Text variant="secondary" style={styles.emptyText}>
                 Add friends to see their status
               </Text>
+              <Button
+                variant="primary"
+                onPress={() =>
+                  (navigation.getParent() as any)?.navigate("Connect")
+                }
+                style={styles.emptyConnectButton}
+              >
+                Connect
+              </Button>
+            </View>
+          ) : friendLayoutMode === "compact" ? (
+            <View style={styles.friendsGrid}>
+              {friendsStatus.map((status) => {
+                const displayName = getDisplayName(
+                  status.first_name,
+                  status.last_name
+                );
+                const initials = getInitials(
+                  status.first_name,
+                  status.last_name
+                );
+                return (
+                  <TouchableOpacity
+                    key={status.user_id}
+                    style={styles.friendCardCompact}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setSelectedFriend(status);
+                      setFriendModalVisible(true);
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.avatarCompact,
+                        {
+                          backgroundColor:
+                            (status.option?.color || Colors.interaction.primary) + "20",
+                        },
+                      ]}
+                    >
+                      <Text variant="primary" style={styles.avatarTextCompact}>
+                        {status.avatar_url ? "IMG" : initials}
+                      </Text>
+                      <View
+                        style={[
+                          styles.statusBadgeCompact,
+                          {
+                            backgroundColor:
+                              status.option?.color || Colors.interaction.primary,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text
+                      variant="primary"
+                      style={styles.friendNameCompact}
+                      numberOfLines={1}
+                    >
+                      {displayName}
+                    </Text>
+                    <Text variant="secondary" style={styles.friendEmojiCompact}>
+                      {status.option?.emoji || "🟢"}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           ) : (
             <View style={styles.friendsList}>
@@ -496,37 +629,40 @@ export default function HomeScreen() {
                         styles.avatar,
                         {
                           backgroundColor:
-                            (status.option?.color || "#10B981") + "20",
+                            (status.option?.color || Colors.interaction.primary) + "20",
                         },
                       ]}
                     >
-                      {status.avatar_url ? (
-                        <Text style={styles.avatarText}>IMG</Text>
-                      ) : (
-                        <Text style={styles.avatarText}>{initials}</Text>
-                      )}
+                      <Text variant="primary" style={styles.avatarText}>
+                        {status.avatar_url ? "IMG" : initials}
+                      </Text>
                       <View
                         style={[
                           styles.statusBadge,
                           {
-                            backgroundColor: status.option?.color || "#10B981",
+                            backgroundColor:
+                              status.option?.color || Colors.interaction.primary,
                           },
                         ]}
                       />
                     </View>
                     <View style={styles.friendInfo}>
-                      <Text style={styles.friendName} numberOfLines={1}>
+                      <Text
+                        variant="primary"
+                        style={styles.friendName}
+                        numberOfLines={1}
+                      >
                         {displayName}
                       </Text>
                       <View style={styles.friendStatusRow}>
                         <View style={styles.friendStatusContent}>
-                          <Text style={styles.friendStatus} numberOfLines={1}>
+                          <Text variant="secondary" numberOfLines={1}>
                             {status.option?.emoji || "🟢"}{" "}
                             {status.option?.label || "Available"}
                             {status.note && ` • ${status.note}`}
                           </Text>
                           {status.expires_at && (
-                            <Text style={styles.friendExpirationText}>
+                            <Text variant="secondary" style={styles.friendExpirationText}>
                               {formatExpirationTime(status.expires_at)}
                             </Text>
                           )}
@@ -570,7 +706,7 @@ export default function HomeScreen() {
                   <>
                     {/* Header */}
                     <View style={styles.friendModalHeader}>
-                      <Text style={styles.friendModalTitle}>
+                      <Text variant="primary" style={styles.friendModalTitle}>
                         {getDisplayName(
                           selectedFriend.first_name,
                           selectedFriend.last_name
@@ -580,13 +716,19 @@ export default function HomeScreen() {
                         onPress={closeFriendModal}
                         style={styles.friendModalCloseButton}
                       >
-                        <Ionicons name="close" size={24} color="#6B7280" />
+                        <Ionicons
+                          name="close"
+                          size={24}
+                          color={Colors.text.secondary}
+                        />
                       </TouchableOpacity>
                     </View>
 
                     {/* Status */}
                     <View style={styles.friendModalSection}>
-                      <Text style={styles.friendModalLabel}>Status</Text>
+                      <Text variant="secondary" style={styles.friendModalLabel}>
+                        Status
+                      </Text>
                       <View style={styles.friendModalStatusRow}>
                         <Text style={styles.friendModalStatusEmoji}>
                           {selectedFriend.option?.emoji || "🟢"}
@@ -596,11 +738,12 @@ export default function HomeScreen() {
                             styles.friendModalStatusDot,
                             {
                               backgroundColor:
-                                selectedFriend.option?.color || "#10B981",
+                                selectedFriend.option?.color ||
+                                Colors.interaction.primary,
                             },
                           ]}
                         />
-                        <Text style={styles.friendModalStatusText}>
+                        <Text variant="primary" style={styles.friendModalStatusText}>
                           {selectedFriend.option?.label || "Available"}
                         </Text>
                       </View>
@@ -609,8 +752,10 @@ export default function HomeScreen() {
                     {/* Note */}
                     {selectedFriend.note && (
                       <View style={styles.friendModalSection}>
-                        <Text style={styles.friendModalLabel}>Note</Text>
-                        <Text style={styles.friendModalNote}>
+                        <Text variant="secondary" style={styles.friendModalLabel}>
+                          Note
+                        </Text>
+                        <Text variant="primary" style={styles.friendModalNote}>
                           {selectedFriend.note}
                         </Text>
                       </View>
@@ -619,20 +764,19 @@ export default function HomeScreen() {
                     {/* Expires At */}
                     {selectedFriend.expires_at && (
                       <View style={styles.friendModalSection}>
-                        <Text style={styles.friendModalLabel}>Expires At</Text>
-                        <Text style={styles.friendModalExpiration}>
+                        <Text variant="secondary" style={styles.friendModalLabel}>
+                          Expires
+                        </Text>
+                        <Text variant="secondary">
                           {formatExpirationTime(selectedFriend.expires_at)}
                         </Text>
                       </View>
                     )}
 
                     {/* Close Button */}
-                    <TouchableOpacity
-                      style={styles.friendModalButton}
-                      onPress={closeFriendModal}
-                    >
-                      <Text style={styles.friendModalButtonText}>Close</Text>
-                    </TouchableOpacity>
+                    <Button variant="primary" onPress={closeFriendModal}>
+                      Close
+                    </Button>
                   </>
                 )}
               </View>
@@ -647,93 +791,66 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Colors.canvas.background,
   },
   refreshHintBanner: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#EFF6FF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#DBEAFE",
-    paddingTop: 50, // Account for status bar
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    backgroundColor: "#ECFDF5",
+    paddingTop: 50,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     zIndex: 1000,
-    // No shadows, no elevation - using physical shift transform instead
   },
   refreshHintContent: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    gap: 8,
+    gap: Spacing.sm,
   },
   refreshHintText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#007AFF",
+    fontFamily: Typography.fontFamily.medium,
   },
   refreshHintClose: {
-    padding: 4,
+    padding: Spacing.xs,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
-  },
-  header: {
-    paddingTop: 60, // Base padding, will be overridden by inline style
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    backgroundColor: "#FFFFFF",
-  },
-  headerContent: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    flexWrap: "wrap",
-  },
-  greeting: {
-    fontSize: 16,
-    color: "#6B7280",
-  },
-  userName: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#111827",
+    paddingBottom: Spacing.lg,
   },
   statusCard: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 8,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
-    paddingBottom: 20,
-    // No shadows, no elevation - using physical shift transform instead
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: "#F9FAFB",
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.md,
   },
   cardTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   manageButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: "#EFF6FF",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Borders.radius.medium,
+    backgroundColor: Colors.interaction.primary + "15",
   },
   manageButtonLocked: {
     opacity: 0.6,
@@ -742,30 +859,27 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   lockIcon: {
-    marginRight: 4,
+    marginRight: Spacing.xs,
   },
   manageButtonText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#007AFF",
-  },
-  manageButtonTextLocked: {
-    // Keep same styling, opacity is handled by parent
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.interaction.primary,
   },
   statusButtonsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginHorizontal: -4, // Negative margin to offset button margins
+    marginHorizontal: -Spacing.xs,
   },
   statusButton: {
     width: "31%",
-    height: 100, // Fixed height to ensure all buttons are the same size
-    marginHorizontal: 4, // Add horizontal margin for spacing
-    marginBottom: 12,
+    height: 100,
+    marginHorizontal: Spacing.xs,
+    marginBottom: Spacing.sm,
     backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.md,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -773,112 +887,189 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   statusButtonActive: {
-    borderColor: "#FFFFFF",
-    // No shadows, no elevation - using physical shift transform instead
+    borderColor: Colors.canvas.background,
   },
   statusIcon: {
-    fontSize: 24,
-    marginBottom: 8,
+    fontSize: 22,
+    lineHeight: 26,
+    includeFontPadding: false,
+    marginBottom: Spacing.sm,
   },
   statusButtonText: {
-    color: "#374151",
+    color: Colors.text.secondary,
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
   },
   statusButtonTextActive: {
-    color: "#FFFFFF",
-    fontWeight: "700",
+    color: Colors.canvas.background,
   },
   activeIndicator: {
     position: "absolute",
-    top: 8,
-    right: 8,
+    top: Spacing.sm,
+    right: Spacing.sm,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Colors.canvas.background,
   },
   friendsSection: {
-    marginTop: 24,
-    paddingHorizontal: 20,
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.sm,
   },
   friendCount: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#6B7280",
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Borders.radius.medium,
+    minWidth: 44,
+    justifyContent: "center",
+  },
+  friendCountIcon: {
+    marginRight: Spacing.xs,
+  },
+  friendCountText: {
+    fontSize: 14,
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.text.primary,
   },
   connectButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EFF6FF",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
   },
   connectButtonText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#007AFF",
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.interaction.primary,
   },
   loadingContainer: {
-    padding: 40,
-    paddingTop: 20,
+    padding: Spacing.xxl,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 200,
   },
   emptyState: {
     alignItems: "center",
-    paddingVertical: 60,
-    paddingHorizontal: 40,
+    paddingVertical: Spacing.xxl,
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyIconContainer: {
+    height: 64,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.md,
   },
   emptyIcon: {
-    fontSize: 48,
-    marginBottom: 16,
+    fontSize: 52,
+    lineHeight: 64,
+    includeFontPadding: false,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 8,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: Spacing.sm,
   },
   emptyText: {
-    fontSize: 14,
-    color: "#6B7280",
     textAlign: "center",
+    marginBottom: Spacing.lg,
+  },
+  emptyConnectButton: {
+    marginTop: Spacing.sm,
+  },
+  layoutToggle: {
+    flexDirection: "row",
+    backgroundColor: "#F9FAFB",
+    borderRadius: Borders.radius.small,
+    padding: 2,
+    borderWidth: Borders.width,
+    borderColor: Colors.text.secondary + "40",
+  },
+  layoutToggleButton: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: Borders.radius.small - 2,
+  },
+  layoutToggleButtonActive: {
+    backgroundColor: Colors.text.primary,
   },
   friendsList: {
-    gap: 12,
+    gap: Spacing.md,
+  },
+  friendsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  friendCardCompact: {
+    width: "47%",
+    backgroundColor: "#F9FAFB",
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.sm,
+    alignItems: "center",
+    minWidth: 0,
+  },
+  avatarCompact: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.xs,
+    position: "relative",
+  },
+  avatarTextCompact: {
+    fontSize: 16,
+    fontFamily: Typography.fontFamily.semiBold,
+  },
+  statusBadgeCompact: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: Colors.canvas.background,
+  },
+  friendNameCompact: {
+    fontSize: 13,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: 2,
+    textAlign: "center",
+  },
+  friendEmojiCompact: {
+    fontSize: 18,
+    lineHeight: 22,
+    includeFontPadding: false,
   },
   friendCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    // No shadows, no elevation - using physical shift transform instead
+    backgroundColor: "#F9FAFB",
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.md,
   },
   avatar: {
     width: 56,
@@ -886,13 +1077,12 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: Spacing.sm,
     position: "relative",
   },
   avatarText: {
     fontSize: 20,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   statusBadge: {
     position: "absolute",
@@ -902,89 +1092,70 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 8,
     borderWidth: 3,
-    borderColor: "#FFFFFF",
+    borderColor: Colors.canvas.background,
   },
   friendInfo: {
     flex: 1,
-    minWidth: 0, // Allow flex shrinking for text truncation
+    minWidth: 0,
   },
   friendName: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 6,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: Spacing.xs,
   },
   friendStatusRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
-  },
   friendStatusContent: {
     flex: 1,
-    minWidth: 0, // Allow flex shrinking for text truncation
-  },
-  friendStatus: {
-    fontSize: 14,
-    color: "#6B7280",
+    minWidth: 0,
   },
   friendExpirationText: {
     fontSize: 12,
-    color: "#9CA3AF",
     marginTop: 2,
   },
   expirationText: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 12,
+    marginTop: Spacing.sm,
     textAlign: "center",
     fontStyle: "italic",
   },
   friendModalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
     justifyContent: "center",
     alignItems: "center",
-    padding: Math.min(20, 12), // Reduce padding on very small screens
+    padding: Spacing.lg,
   },
   friendModalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 24,
+    backgroundColor: Colors.canvas.background,
+    borderRadius: Borders.radius.large,
+    padding: Spacing.lg,
     width: "100%",
     maxWidth: 400,
-    minWidth: 280, // Ensure minimum width for readability
-    // No shadows, no elevation - using physical shift transform instead
+    minWidth: 280,
   },
   friendModalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   friendModalTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: 20,
+    fontFamily: Typography.fontFamily.semiBold,
     flex: 1,
   },
   friendModalCloseButton: {
-    padding: 4,
+    padding: Spacing.xs,
   },
   friendModalSection: {
-    marginBottom: 20,
+    marginBottom: Spacing.md,
   },
   friendModalLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#6B7280",
-    marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontFamily: Typography.fontFamily.medium,
+    marginBottom: Spacing.xs,
   },
   friendModalStatusRow: {
     flexDirection: "row",
@@ -992,39 +1163,19 @@ const styles = StyleSheet.create({
   },
   friendModalStatusEmoji: {
     fontSize: 20,
-    marginRight: 8,
+    marginRight: Spacing.sm,
   },
   friendModalStatusDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    marginRight: 10,
+    marginRight: Spacing.sm,
   },
   friendModalStatusText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
+    fontSize: 16,
+    fontFamily: Typography.fontFamily.semiBold,
   },
   friendModalNote: {
-    fontSize: 16,
-    color: "#374151",
-    lineHeight: 24,
-  },
-  friendModalExpiration: {
-    fontSize: 16,
-    color: "#6B7280",
-    fontStyle: "italic",
-  },
-  friendModalButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  friendModalButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    lineHeight: 22,
   },
 });

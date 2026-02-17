@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -23,6 +22,8 @@ import {
   presentCustomerCenter,
 } from "../services/purchases.service";
 import { useIsPremium } from "../hooks/useIsPremium";
+import { Colors, Borders, Spacing, Typography } from "../design";
+import { Text } from "../components/primitives/Text";
 
 export default function SubscriptionManagementScreen() {
   const navigation = useNavigation();
@@ -57,6 +58,7 @@ export default function SubscriptionManagementScreen() {
 
       // Get current customer info to find active package
       const customerInfo = await getCustomerInfo();
+      console.log("Customer info from SubscriptionManagementScreen", customerInfo);
       const entitlement = customerInfo.entitlements.active['Instant Status Premium'];
       
       if (entitlement) {
@@ -189,6 +191,7 @@ export default function SubscriptionManagementScreen() {
     try {
       // Try to get the management URL from RevenueCat
       const customerInfo = await getCustomerInfo();
+      console.log("Customer info from handleCancelMembership", customerInfo);
       const managementURL = customerInfo.managementURL;
 
       if (managementURL) {
@@ -274,14 +277,14 @@ export default function SubscriptionManagementScreen() {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#111827" />
+            <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Subscription</Text>
+          <Text variant="primary" style={styles.headerTitle}>Subscription</Text>
           <View style={styles.backButton} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading subscription options...</Text>
+          <ActivityIndicator size="large" color={Colors.interaction.primary} />
+          <Text variant="secondary" style={styles.loadingText}>Loading subscription options...</Text>
         </View>
       </View>
     );
@@ -336,9 +339,9 @@ export default function SubscriptionManagementScreen() {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Subscription</Text>
+        <Text variant="primary" style={styles.headerTitle}>Subscription</Text>
         <View style={styles.backButton} />
       </View>
 
@@ -346,9 +349,9 @@ export default function SubscriptionManagementScreen() {
         {/* Lifetime Access Message */}
         {hasLifetime && (
           <View style={styles.lifetimeCard}>
-            <Ionicons name="infinite" size={32} color="#10B981" />
-            <Text style={styles.lifetimeTitle}>You already have lifetime access to this app</Text>
-            <Text style={styles.lifetimeDescription}>
+            <Ionicons name="infinite" size={32} color={Colors.interaction.primary} />
+            <Text variant="primary" style={styles.lifetimeTitle}>You already have lifetime access to this app</Text>
+            <Text variant="secondary" style={styles.lifetimeDescription}>
               Enjoy all premium features forever, no subscription needed.
             </Text>
           </View>
@@ -358,26 +361,26 @@ export default function SubscriptionManagementScreen() {
         {isPremium && !hasLifetime && (
           <View style={styles.currentPlanCard}>
             <View style={styles.currentPlanHeader}>
-              <Ionicons name="star" size={24} color="#FFD700" />
-              <Text style={styles.currentPlanTitle}>Current Plan</Text>
+              <Ionicons name="star" size={24} color={Colors.interaction.accent} />
+              <Text variant="primary" style={styles.currentPlanTitle}>Current Plan</Text>
             </View>
             {currentPackageId && (
-              <Text style={styles.currentPlanName}>
+              <Text variant="primary" style={styles.currentPlanName}>
                 {currentPackage 
                   ? getPackageLabel(currentPackage)
-                  : "Premium" // Fallback if package not found
+                  : "Premium"
                 }
               </Text>
             )}
             {expirationDate && (
-              <Text style={styles.expirationText}>
+              <Text variant="secondary" style={styles.expirationText}>
                 Expires: {expirationDate.toLocaleDateString()}
               </Text>
             )}
             {willRenew === false && (
               <View style={styles.cancellationWarning}>
-                <Ionicons name="information-circle" size={16} color="#F59E0B" />
-                <Text style={styles.cancellationWarningText}>
+                <Ionicons name="information-circle" size={16} color={Colors.interaction.accent} />
+                <Text variant="primary" style={styles.cancellationWarningText}>
                   Your subscription will not renew
                 </Text>
               </View>
@@ -386,10 +389,10 @@ export default function SubscriptionManagementScreen() {
             {/* Plan Switch Information */}
             {availablePackages.length > 0 && currentPackage && expirationDate && (
               <View style={styles.switchInfoBox}>
-                <Ionicons name="swap-horizontal-outline" size={20} color="#007AFF" />
+                <Ionicons name="swap-horizontal-outline" size={20} color={Colors.interaction.primary} />
                 <View style={styles.switchInfoContent}>
-                  <Text style={styles.switchInfoTitle}>Switching Plans</Text>
-                  <Text style={styles.switchInfoText}>
+                  <Text variant="primary" style={styles.switchInfoTitle}>Switching Plans</Text>
+                  <Text variant="secondary" style={styles.switchInfoText}>
                     {(() => {
                       const currentLabel = getPackageLabel(currentPackage);
                       const isYearly = currentLabel.toLowerCase().includes("yearly");
@@ -419,7 +422,7 @@ export default function SubscriptionManagementScreen() {
         {/* Available Plans (only show if not lifetime and there are other plans) */}
         {!hasLifetime && availablePackages.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
+            <Text variant="primary" style={styles.sectionTitle}>
               {isPremium ? "Change Plan" : "Choose a Plan"}
             </Text>
             
@@ -441,29 +444,29 @@ export default function SubscriptionManagementScreen() {
                 >
                   <View style={styles.packageHeader}>
                     <View style={styles.packageInfo}>
-                      <Text style={styles.packageLabel}>{label}</Text>
+                      <Text variant="primary" style={styles.packageLabel}>{label}</Text>
                       {isAnnual && savings && (
                         <View style={styles.savingsBadge}>
-                          <Text style={styles.savingsBadgeText}>
+                          <Text variant="primary" style={styles.savingsBadgeText}>
                             Save {savings.percentage}%
                           </Text>
                         </View>
                       )}
                     </View>
-                    <Text style={styles.packagePrice}>{formatPrice(pkg)}</Text>
+                    <Text variant="primary" style={styles.packagePrice}>{formatPrice(pkg)}</Text>
                   </View>
                   
                   {isAnnual && savings && (
-                    <Text style={styles.savingsText}>
+                    <Text variant="secondary" style={styles.savingsText}>
                       {savings.percentage}% off compared to monthly billing
                     </Text>
                   )}
 
                   {isPurchasing ? (
-                    <ActivityIndicator size="small" color="#007AFF" style={styles.packageButton} />
+                    <ActivityIndicator size="small" color={Colors.interaction.primary} style={styles.packageButton} />
                   ) : (
                     <View style={styles.packageButton}>
-                      <Text style={styles.packageButtonText}>
+                      <Text variant="primary" style={styles.packageButtonText}>
                         {isPremium ? "Switch to this plan" : "Subscribe"}
                       </Text>
                     </View>
@@ -482,11 +485,11 @@ export default function SubscriptionManagementScreen() {
             disabled={restoring}
           >
             {restoring ? (
-              <ActivityIndicator size="small" color="#007AFF" />
+              <ActivityIndicator size="small" color={Colors.interaction.primary} />
             ) : (
               <>
-                <Ionicons name="refresh-outline" size={20} color="#007AFF" />
-                <Text style={styles.actionButtonText}>Restore Purchases</Text>
+                <Ionicons name="refresh-outline" size={20} color={Colors.interaction.primary} />
+                <Text variant="primary" style={styles.actionButtonText}>Restore Purchases</Text>
               </>
             )}
           </TouchableOpacity>
@@ -496,8 +499,8 @@ export default function SubscriptionManagementScreen() {
               style={[styles.actionButton, styles.cancelButton]}
               onPress={handleCancelMembership}
             >
-              <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
-              <Text style={[styles.actionButtonText, styles.cancelButtonText]}>
+              <Ionicons name="close-circle-outline" size={20} color={Colors.interaction.error} />
+              <Text variant="primary" style={[styles.actionButtonText, styles.cancelButtonText]}>
                 Cancel Membership
               </Text>
             </TouchableOpacity>
@@ -518,9 +521,9 @@ export default function SubscriptionManagementScreen() {
               <Ionicons 
                 name={planChangeInfo?.isUpgrade ? "checkmark-circle" : "information-circle"} 
                 size={48} 
-                color={planChangeInfo?.isUpgrade ? "#10B981" : "#007AFF"} 
+                color={planChangeInfo?.isUpgrade ? Colors.interaction.primary : Colors.interaction.primary} 
               />
-              <Text style={styles.modalTitle}>
+              <Text variant="primary" style={styles.modalTitle}>
                 {planChangeInfo?.isUpgrade 
                   ? "Plan Upgraded Successfully!" 
                   : "Plan Change Saved"}
@@ -530,15 +533,15 @@ export default function SubscriptionManagementScreen() {
             <ScrollView style={styles.modalBody}>
               {planChangeInfo?.isUpgrade ? (
                 <>
-                  <Text style={styles.modalMessage}>
-                    Congratulations! You're now on the <Text style={styles.boldText}>{planChangeInfo.toPlan} Pro</Text> plan.
+                  <Text variant="secondary" style={styles.modalMessage}>
+                    Congratulations! You're now on the <Text variant="primary" style={styles.boldText}>{planChangeInfo.toPlan} Pro</Text> plan.
                   </Text>
                   
                   <View style={styles.infoBox}>
-                    <Ionicons name="time-outline" size={20} color="#6B7280" />
+                    <Ionicons name="time-outline" size={20} color={Colors.text.secondary} />
                     <View style={styles.infoBoxContent}>
-                      <Text style={styles.infoBoxTitle}>Prorated Billing</Text>
-                      <Text style={styles.infoBoxText}>
+                      <Text variant="primary" style={styles.infoBoxTitle}>Prorated Billing</Text>
+                      <Text variant="secondary" style={styles.infoBoxText}>
                         Your remaining time from the previous plan has been applied to your new plan.
                       </Text>
                     </View>
@@ -546,10 +549,10 @@ export default function SubscriptionManagementScreen() {
 
                   {planChangeInfo.newExpirationDate && (
                     <View style={styles.infoBox}>
-                      <Ionicons name="calendar-outline" size={20} color="#6B7280" />
+                      <Ionicons name="calendar-outline" size={20} color={Colors.text.secondary} />
                       <View style={styles.infoBoxContent}>
-                        <Text style={styles.infoBoxTitle}>Next Billing Date</Text>
-                        <Text style={styles.infoBoxText}>
+                        <Text variant="primary" style={styles.infoBoxTitle}>Next Billing Date</Text>
+                        <Text variant="secondary" style={styles.infoBoxText}>
                           {planChangeInfo.newExpirationDate.toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
@@ -562,15 +565,15 @@ export default function SubscriptionManagementScreen() {
                 </>
               ) : (
                 <>
-                  <Text style={styles.modalMessage}>
-                    Your plan change from <Text style={styles.boldText}>{planChangeInfo?.fromPlan}</Text> to <Text style={styles.boldText}>{planChangeInfo?.toPlan}</Text> has been saved.
+                  <Text variant="secondary" style={styles.modalMessage}>
+                    Your plan change from <Text variant="primary" style={styles.boldText}>{planChangeInfo?.fromPlan}</Text> to <Text variant="primary" style={styles.boldText}>{planChangeInfo?.toPlan}</Text> has been saved.
                   </Text>
                   
                   <View style={styles.infoBox}>
-                    <Ionicons name="information-circle-outline" size={20} color="#F59E0B" />
+                    <Ionicons name="information-circle-outline" size={20} color={Colors.interaction.accent} />
                     <View style={styles.infoBoxContent}>
-                      <Text style={styles.infoBoxTitle}>Transition Process</Text>
-                      <Text style={styles.infoBoxText}>
+                      <Text variant="primary" style={styles.infoBoxTitle}>Transition Process</Text>
+                      <Text variant="secondary" style={styles.infoBoxText}>
                         {planChangeInfo?.newExpirationDate 
                           ? `Your current ${planChangeInfo.fromPlan} benefits will continue until ${planChangeInfo.newExpirationDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}. After that date, your ${planChangeInfo.toPlan} subscription will begin.`
                           : `Your current plan benefits will continue until the end of your billing period. After that, your new ${planChangeInfo?.toPlan} subscription will begin.`
@@ -580,10 +583,10 @@ export default function SubscriptionManagementScreen() {
                   </View>
 
                   <View style={styles.infoBox}>
-                    <Ionicons name="checkmark-circle-outline" size={20} color="#10B981" />
+                    <Ionicons name="checkmark-circle-outline" size={20} color={Colors.interaction.primary} />
                     <View style={styles.infoBoxContent}>
-                      <Text style={styles.infoBoxTitle}>Not a Cancellation</Text>
-                      <Text style={styles.infoBoxText}>
+                      <Text variant="primary" style={styles.infoBoxTitle}>Not a Cancellation</Text>
+                      <Text variant="secondary" style={styles.infoBoxText}>
                         Your subscription is not being cancelled. Only your billing period is changing. You'll continue to have access to all premium features.
                       </Text>
                     </View>
@@ -599,7 +602,7 @@ export default function SubscriptionManagementScreen() {
                 setPlanChangeInfo(null);
               }}
             >
-              <Text style={styles.modalButtonText}>Got it</Text>
+              <Text variant="primary" style={styles.modalButtonText}>Got it</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -617,11 +620,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.canvas.background,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: Colors.text.secondary + "40",
   },
   backButton: {
     width: 40,
@@ -631,8 +634,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   scrollView: {
     flex: 1,
@@ -641,131 +643,123 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 40,
+    paddingVertical: Spacing.xl,
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: Spacing.md,
     fontSize: 14,
-    color: "#6B7280",
   },
   currentPlanCard: {
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 8,
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#FEF3C7",
+    backgroundColor: Colors.canvas.background,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+    padding: Spacing.lg,
+    borderRadius: Borders.radius.medium,
+    borderWidth: Borders.width,
+    borderColor: Colors.interaction.accent + "40",
   },
   currentPlanHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
   },
   currentPlanTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   currentPlanName: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 4,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: Spacing.xs,
   },
   expirationText: {
     fontSize: 14,
-    color: "#6B7280",
-    marginTop: 4,
+    marginTop: Spacing.xs,
   },
   cancellationWarning: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFBEB",
+    backgroundColor: Colors.interaction.accent + "20",
     borderWidth: 1,
-    borderColor: "#FDE68A",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    gap: 8,
+    borderColor: Colors.interaction.accent + "60",
+    borderRadius: Borders.radius.small,
+    padding: Spacing.sm,
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
   },
   cancellationWarningText: {
     flex: 1,
     fontSize: 14,
-    color: "#92400E",
+    color: Colors.interaction.accent,
   },
   switchInfoBox: {
     flexDirection: "row",
-    backgroundColor: "#EFF6FF",
+    backgroundColor: Colors.interaction.primary + "15",
     borderWidth: 1,
-    borderColor: "#DBEAFE",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 16,
-    gap: 12,
+    borderColor: Colors.interaction.primary + "40",
+    borderRadius: Borders.radius.small,
+    padding: Spacing.sm,
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
   },
   switchInfoContent: {
     flex: 1,
   },
   switchInfoTitle: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#1E40AF",
-    marginBottom: 4,
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.interaction.primary,
+    marginBottom: Spacing.xs,
   },
   switchInfoText: {
     fontSize: 13,
-    color: "#1E3A8A",
     lineHeight: 18,
   },
   lifetimeCard: {
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 8,
-    padding: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#10B981",
+    backgroundColor: Colors.canvas.background,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+    padding: Spacing.lg,
+    borderRadius: Borders.radius.medium,
+    borderWidth: Borders.width,
+    borderColor: Colors.interaction.primary,
     alignItems: "center",
   },
   lifetimeTitle: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginTop: 12,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginTop: Spacing.sm,
     textAlign: "center",
   },
   lifetimeDescription: {
     fontSize: 14,
-    color: "#6B7280",
-    marginTop: 8,
+    marginTop: Spacing.sm,
     textAlign: "center",
     lineHeight: 20,
   },
   section: {
-    marginTop: 24,
-    paddingHorizontal: 20,
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 16,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: Spacing.md,
   },
   packageCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: "#E5E7EB",
+    backgroundColor: Colors.canvas.background,
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
+    borderWidth: Borders.width,
+    borderColor: Colors.text.secondary + "30",
   },
   packageCardCurrent: {
-    borderColor: "#FEF3C7",
-    backgroundColor: "#FFFBEB",
+    borderColor: Colors.interaction.accent + "40",
+    backgroundColor: Colors.interaction.accent + "15",
   },
   packageCardPurchasing: {
     opacity: 0.6,
@@ -774,182 +768,174 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: Spacing.sm,
   },
   packageInfo: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.sm,
     flexWrap: "wrap",
   },
   packageLabel: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   currentBadge: {
-    backgroundColor: "#10B981",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: Colors.interaction.primary,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Borders.radius.small,
   },
   currentBadgeText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.canvas.background,
   },
   savingsBadge: {
-    backgroundColor: "#EF4444",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: Colors.interaction.error,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Borders.radius.small,
   },
   savingsBadgeText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.canvas.background,
   },
   packagePrice: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   savingsText: {
     fontSize: 14,
-    color: "#10B981",
-    fontWeight: "500",
-    marginBottom: 12,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.interaction.primary,
+    marginBottom: Spacing.sm,
   },
   packageButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: "#007AFF",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Borders.radius.small,
+    backgroundColor: Colors.interaction.primary,
     alignItems: "center",
   },
   packageButtonCurrent: {
-    backgroundColor: "#E5E7EB",
+    backgroundColor: Colors.interaction.disabled,
   },
   packageButtonText: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.canvas.background,
   },
   packageButtonTextCurrent: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#6B7280",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.text.secondary,
   },
   actionsSection: {
-    marginTop: 24,
-    marginBottom: 40,
-    paddingHorizontal: 20,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    backgroundColor: Colors.canvas.background,
+    borderRadius: Borders.radius.medium,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+    borderWidth: Borders.width,
+    borderColor: Colors.text.secondary + "30",
   },
   actionButtonText: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#007AFF",
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.interaction.primary,
   },
   cancelButton: {
-    borderColor: "#FEE2E2",
-    backgroundColor: "#FEF2F2",
+    borderColor: Colors.interaction.error + "40",
+    backgroundColor: Colors.interaction.error + "15",
   },
   cancelButtonText: {
-    color: "#EF4444",
+    color: Colors.interaction.error,
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: Spacing.lg,
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    backgroundColor: Colors.canvas.background,
+    borderRadius: Borders.radius.large,
     width: "100%",
     maxWidth: 400,
     maxHeight: "80%",
-    // No shadows, no elevation - using physical shift transform instead
   },
   modalHeader: {
     alignItems: "center",
-    paddingTop: 24,
-    paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
   modalTitle: {
     fontSize: 22,
-    fontWeight: "700",
-    color: "#111827",
-    marginTop: 12,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginTop: Spacing.sm,
     textAlign: "center",
   },
   modalBody: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
     maxHeight: 400,
   },
   modalMessage: {
     fontSize: 16,
-    color: "#374151",
     lineHeight: 24,
-    marginBottom: 20,
+    marginBottom: Spacing.lg,
     textAlign: "center",
   },
   boldText: {
-    fontWeight: "700",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   infoBox: {
     flexDirection: "row",
     backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    gap: 12,
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
   },
   infoBoxContent: {
     flex: 1,
   },
   infoBoxTitle: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 4,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: Spacing.xs,
   },
   infoBoxText: {
     fontSize: 13,
-    color: "#6B7280",
     lineHeight: 18,
   },
   modalButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    margin: 24,
-    marginTop: 8,
+    backgroundColor: Colors.interaction.primary,
+    borderRadius: Borders.radius.medium,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    margin: Spacing.lg,
+    marginTop: Spacing.sm,
     alignItems: "center",
   },
   modalButtonText: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.canvas.background,
   },
 });
 

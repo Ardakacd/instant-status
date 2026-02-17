@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -27,10 +26,16 @@ import { deviceTokenService } from "../services/device-token.service";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../App";
-import { presentPaywall, presentCustomerCenter } from "../services/purchases.service";
+import {
+  presentPaywall,
+} from "../services/purchases.service";
 import { useIsPremium } from "../hooks/useIsPremium";
-import Purchases from "react-native-purchases";
 import Toast from "react-native-toast-message";
+
+import { Colors, Borders, Spacing, Typography } from "../design";
+import { Text } from "../components/primitives/Text";
+import { Button } from "../components/actions/Button";
+import { TextInput as DesignTextInput } from "../components/inputs/TextInput";
 
 type ProfileScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList>;
@@ -39,7 +44,12 @@ export default function ProfileScreen() {
   const { user, logout, deleteAccount, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
-  const { isPremium, loading: premiumLoading, willRenew, expirationDate, managementURL } = useIsPremium();
+  const {
+    isPremium,
+    loading: premiumLoading,
+    willRenew,
+    expirationDate,
+  } = useIsPremium();
   const [firstName, setFirstName] = useState(user?.first_name || "");
   const [lastName, setLastName] = useState(user?.last_name || "");
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -62,24 +72,14 @@ export default function ProfileScreen() {
   useEffect(() => {
     checkNotificationState();
     checkAuthProvider();
-
-    // Check notification state when app comes to foreground
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (nextAppState === "active") {
         checkNotificationState();
         checkAuthProvider();
       }
     });
-
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, []);
-
-  const checkAuthProvider = () => {
-    const provider = authService.getAuthProvider();
-    setAuthProvider(provider);
-  };
 
   useEffect(() => {
     if (user) {
@@ -87,6 +87,10 @@ export default function ProfileScreen() {
       setLastName(user.last_name || "");
     }
   }, [user]);
+
+  const checkAuthProvider = () => {
+    setAuthProvider(authService.getAuthProvider());
+  };
 
   const checkNotificationState = async () => {
     try {
@@ -97,66 +101,46 @@ export default function ProfileScreen() {
     }
   };
 
-  /**
-   * Opens the notification settings page for the app
-   * Uses Android Intent URI for Android 8.0+ to go directly to notification settings
-   * This intent opens the specific notification toggles for your app
-   */
   const openNotificationSettings = async () => {
     if (Platform.OS === "android") {
       const packageName =
         Constants.expoConfig?.android?.package ||
         "com.arda.instantstatus.dev";
       try {
-        // Android 8.0+ (API 26+): Use Intent URI to open notification settings directly
-        // This takes the user directly to the app's notification toggle
         const intentUri = `intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;data=package:${packageName};end`;
         const canOpen = await Linking.canOpenURL(intentUri);
         if (canOpen) {
           await Linking.openURL(intentUri);
         } else {
-          // Fallback: Try opening app info page
           await Linking.openURL(`package:${packageName}`);
         }
-      } catch (error) {
-        // Final fallback: Open general app settings
+      } catch {
         try {
           await Linking.openSettings();
-        } catch (fallbackError) {
-          console.error("Failed to open settings:", fallbackError);
+        } catch (e) {
+          console.error("Failed to open settings", e);
         }
       }
     } else {
-      // iOS - open app settings
       await Linking.openSettings();
     }
   };
 
   const handleSaveFirstName = async () => {
     if (!firstName.trim()) {
-      Toast.show({
-        type: "error",
-        text1: "First name cannot be empty",
-      });
+      Toast.show({ type: "error", text1: "First name cannot be empty" });
       setFirstName(user?.first_name || "");
       setEditingFirstName(false);
       return;
     }
-
     setSaving(true);
     try {
       await userService.updateMe({ first_name: firstName.trim() });
       await refreshUser();
       setEditingFirstName(false);
-      Toast.show({
-        type: "success",
-        text1: "First name updated successfully",
-      });
+      Toast.show({ type: "success", text1: "First name updated" });
     } catch (error: any) {
-      Toast.show({
-        type: "error",
-        text1: error.message || "Failed to update first name. Check your connection and try again.",
-      });
+      Toast.show({ type: "error", text1: error.message || "Failed to update" });
       setFirstName(user?.first_name || "");
     } finally {
       setSaving(false);
@@ -165,29 +149,19 @@ export default function ProfileScreen() {
 
   const handleSaveLastName = async () => {
     if (!lastName.trim()) {
-      Toast.show({
-        type: "error",
-        text1: "Last name cannot be empty",
-      });
+      Toast.show({ type: "error", text1: "Last name cannot be empty" });
       setLastName(user?.last_name || "");
       setEditingLastName(false);
       return;
     }
-
     setSaving(true);
     try {
       await userService.updateMe({ last_name: lastName.trim() });
       await refreshUser();
       setEditingLastName(false);
-      Toast.show({
-        type: "success",
-        text1: "Last name updated successfully",
-      });
+      Toast.show({ type: "success", text1: "Last name updated" });
     } catch (error: any) {
-      Toast.show({
-        type: "error",
-        text1: error.message || "Failed to update last name. Check your connection and try again.",
-      });
+      Toast.show({ type: "error", text1: error.message || "Failed to update" });
       setLastName(user?.last_name || "");
     } finally {
       setSaving(false);
@@ -197,94 +171,56 @@ export default function ProfileScreen() {
   const handleTogglePushNotifications = async (value: boolean) => {
     try {
       const hasPermission = await messagingService.hasPermission();
-
       if (value) {
-        // User wants to enable notifications
         if (!hasPermission) {
-          // Request permissions
           const granted = await messagingService.requestPermission();
           if (granted) {
             setPushNotifications(true);
-            // Get and register new token
-            try {
-              const token = await messagingService.getToken();
-
-              if (token && user) {
-                await deviceTokenService.registerToken(token);
-              }
-            } catch (error) {
-              console.error("Error registering device token:", error);
-              // Don't crash the UI, but show a warning
+            const token = await messagingService.getToken();
+            if (token && user) {
+              await deviceTokenService.registerToken(token);
             }
           } else {
-            // Permission denied, offer to open settings
-            // On Android 13+, if user denied twice, system won't show popup again
             Alert.alert(
               "Permission Required",
-              "It looks like notifications are blocked. Please enable them in settings to stay updated.",
+              "Enable notifications in settings to stay updated.",
               [
                 { text: "Cancel", style: "cancel" },
                 {
                   text: "Open Settings",
                   onPress: async () => {
                     await openNotificationSettings();
-                    // Re-check after a delay (AppState listener will also check when user returns)
-                    setTimeout(() => {
-                      checkNotificationState();
-                    }, 1000);
+                    setTimeout(checkNotificationState, 1000);
                   },
                 },
               ]
             );
-            // Keep switch in current state since permission wasn't granted
             setPushNotifications(false);
           }
         } else {
-          // User already has permission, ensure token is registered
           setPushNotifications(true);
-          try {
-            const token = await messagingService.getToken();
-            if (token && user) {
-              await deviceTokenService.registerToken(token);
-            }
-          } catch (error) {
-            console.error("Error registering device token:", error);
-            // Don't crash the UI, but log the error
-            // Token might already be registered, so this is not critical
-          }
+          const token = await messagingService.getToken();
+          if (token && user) await deviceTokenService.registerToken(token);
         }
       } else {
-        // User wants to disable notifications
         Alert.alert(
-          "Disable Push Notifications",
-          "With push notifications off, you may not get instant widget updates. To disable, please turn off notifications in your device settings.",
+          "Disable Notifications",
+          "To disable, turn off notifications in your device settings.",
           [
-            {
-              text: "Cancel",
-              style: "cancel",
-              onPress: () => setPushNotifications(true),
-            },
+            { text: "Cancel", style: "cancel", onPress: () => setPushNotifications(true) },
             {
               text: "Open Settings",
               onPress: async () => {
                 await openNotificationSettings();
-                // Re-check after a delay
-                setTimeout(() => {
-                  checkNotificationState();
-                }, 1000);
+                setTimeout(checkNotificationState, 1000);
               },
             },
           ]
         );
-        // Keep switch enabled since we can't programmatically disable
         setPushNotifications(true);
       }
     } catch (error: any) {
-      console.error("Error handling push notifications:", error);
-      Toast.show({
-        type: "error",
-        text1: error.message || "Failed to update push notifications setting. Please try again.",
-      });
+      Toast.show({ type: "error", text1: error.message || "Failed to update" });
     }
   };
 
@@ -298,10 +234,7 @@ export default function ProfileScreen() {
           try {
             await logout();
           } catch (error: any) {
-            Toast.show({
-              type: "error",
-              text1: error.message || "Failed to logout. Please try again.",
-            });
+            Toast.show({ type: "error", text1: error.message || "Failed to logout" });
           }
         },
       },
@@ -317,54 +250,31 @@ export default function ProfileScreen() {
 
   const handleSavePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Toast.show({
-        type: "error",
-        text1: "Please fill in all fields",
-      });
+      Toast.show({ type: "error", text1: "Please fill in all fields" });
       return;
     }
-
     if (newPassword.length < 8) {
-      Toast.show({
-        type: "error",
-        text1: "Password must be at least 8 characters",
-      });
+      Toast.show({ type: "error", text1: "Password must be at least 8 characters" });
       return;
     }
-
     if (newPassword !== confirmPassword) {
-      Toast.show({
-        type: "error",
-        text1: "New passwords do not match",
-      });
+      Toast.show({ type: "error", text1: "Passwords do not match" });
       return;
     }
-
     if (currentPassword === newPassword) {
-      Toast.show({
-        type: "error",
-        text1: "New password must be different from current password",
-      });
+      Toast.show({ type: "error", text1: "New password must be different" });
       return;
     }
-
     setChangingPassword(true);
     try {
       await authService.changePassword(currentPassword, newPassword);
-
-      Toast.show({
-        type: "success",
-        text1: "Your password has been updated successfully",
-      });
+      Toast.show({ type: "success", text1: "Password updated" });
       setChangePasswordModalVisible(false);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
-      Toast.show({
-        type: "error",
-        text1: error.message || "Check your connection and try again.",
-      });
+      Toast.show({ type: "error", text1: error.message || "Failed to update" });
     } finally {
       setChangingPassword(false);
     }
@@ -373,18 +283,16 @@ export default function ProfileScreen() {
   const handleDeleteAccount = () => {
     Alert.alert(
       "Delete Account",
-      "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.",
+      "This cannot be undone. All your data will be permanently deleted.",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            // If password user, show password input modal
             if (authProvider === "password") {
               setDeleteAccountModalVisible(true);
             } else {
-              // For Google users, delete directly after first confirmation
               handleConfirmDeleteAccount();
             }
           },
@@ -395,22 +303,14 @@ export default function ProfileScreen() {
 
   const handleConfirmDeleteAccount = async (password?: string) => {
     if (authProvider === "password" && !password?.trim()) {
-      Toast.show({
-        type: "error",
-        text1: "Please enter your password to confirm account deletion",
-      });
+      Toast.show({ type: "error", text1: "Enter your password to confirm" });
       return;
     }
-
     setDeletingAccount(true);
     try {
       await deleteAccount(authProvider === "password" ? password : undefined);
-      // Navigation will happen automatically via auth state change
     } catch (error: any) {
-      Toast.show({
-        type: "error",
-        text1: error.message || "Check your connection and try again.",
-      });
+      Toast.show({ type: "error", text1: error.message || "Failed to delete" });
     } finally {
       setDeletingAccount(false);
       setDeleteAccountModalVisible(false);
@@ -430,342 +330,283 @@ export default function ProfileScreen() {
     try {
       setOpeningPaywall(true);
       const success = await presentPaywall();
-      if (success) {
-        Toast.show({
-          type: "success",
-          text1: "Welcome to Premium!",
-        });
-      }
+      if (success) Toast.show({ type: "success", text1: "Welcome to Premium!" });
     } catch (error: any) {
-      console.error("Paywall error:", error);
-      Toast.show({
-        type: "error",
-        text1: error.message || "Please try again later.",
-      });
+      Toast.show({ type: "error", text1: error.message || "Please try again" });
     } finally {
       setOpeningPaywall(false);
     }
   };
 
-  const handleManageSubscription = async () => {
-    // Navigate to subscription management screen for plan changes
-    navigation.navigate("SubscriptionManagement" as never);
-  };
+  const displayName =
+    [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "Profile";
 
   return (
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + Spacing.lg },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View
-          style={[styles.header, { paddingTop: Math.max(insets.top + 10, 40) }]}
-        >
-          <View style={styles.headerContent}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {user?.first_name?.[0]?.toUpperCase() ||
-                  user?.last_name?.[0]?.toUpperCase() ||
-                  "U"}
-              </Text>
-            </View>
-            <View style={styles.headerText}>
-              <Text style={styles.userName}>
-                {user?.first_name || ""} {user?.last_name || ""}
-              </Text>
-              <Text style={styles.userEmail}>{user?.email || "No email"}</Text>
-            </View>
-          </View>
+        {/* Profile Header */}
+        <View style={styles.header}>
+          <Text variant="primary" style={styles.displayName}>
+            {displayName}
+          </Text>
+          <Text variant="secondary" style={styles.email}>
+            {user?.email}
+          </Text>
         </View>
 
-        {/* Profile Information Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Profile Information</Text>
-
-          {/* First Name */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>First Name</Text>
-            {editingFirstName ? (
-              <View style={styles.editRow}>
-                <TextInput
-                  style={styles.input}
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  placeholder="Enter first name"
-                  autoFocus
-                  editable={!saving}
-                />
-                <TouchableOpacity
-                  onPress={handleSaveFirstName}
-                  disabled={saving}
-                  style={styles.saveButton}
-                >
-                  {saving ? (
-                    <ActivityIndicator size="small" color="#007AFF" />
-                  ) : (
-                    <Ionicons name="checkmark" size={24} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    setFirstName(user?.first_name || "");
-                    setEditingFirstName(false);
-                  }}
-                  style={styles.cancelButton}
-                >
-                  <Ionicons name="close" size={24} color="#999" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.valueRow}
-                onPress={() => setEditingFirstName(true)}
-              >
-                <Text style={styles.valueText}>
-                  {user?.first_name || "Not set"}
-                </Text>
-                <Ionicons name="pencil" size={18} color="#999" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Last Name */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Last Name</Text>
-            {editingLastName ? (
-              <View style={styles.editRow}>
-                <TextInput
-                  style={styles.input}
-                  value={lastName}
-                  onChangeText={setLastName}
-                  placeholder="Enter last name"
-                  autoFocus
-                  editable={!saving}
-                />
-                <TouchableOpacity
-                  onPress={handleSaveLastName}
-                  disabled={saving}
-                  style={styles.saveButton}
-                >
-                  {saving ? (
-                    <ActivityIndicator size="small" color="#007AFF" />
-                  ) : (
-                    <Ionicons name="checkmark" size={24} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    setLastName(user?.last_name || "");
-                    setEditingLastName(false);
-                  }}
-                  style={styles.cancelButton}
-                >
-                  <Ionicons name="close" size={24} color="#999" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.valueRow}
-                onPress={() => setEditingLastName(true)}
-              >
-                <Text style={styles.valueText}>
-                  {user?.last_name || "Not set"}
-                </Text>
-                <Ionicons name="pencil" size={18} color="#999" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Email (Read-only) */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Email</Text>
-            <View style={styles.valueRow}>
-              <Text style={[styles.valueText, styles.readOnlyText]}>
-                {user?.email || "Not set"}
+        {/* Profile Info */}
+        <View style={styles.section}>
+          <Text variant="primary" style={styles.sectionTitle}>
+            Profile
+          </Text>
+          <View style={styles.card}>
+            {/* First Name */}
+            <View style={styles.row}>
+              <Text variant="secondary" style={styles.rowLabel}>
+                First name
               </Text>
-              <Ionicons name="lock-closed" size={18} color="#999" />
+              {editingFirstName ? (
+                <View style={styles.editRow}>
+                  <DesignTextInput
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder="First name"
+                    editable={!saving}
+                    style={styles.input}
+                  />
+                  <TouchableOpacity
+                    onPress={handleSaveFirstName}
+                    disabled={saving}
+                    style={styles.iconBtn}
+                  >
+                    {saving ? (
+                      <ActivityIndicator size="small" color={Colors.interaction.primary} />
+                    ) : (
+                      <Ionicons name="checkmark" size={22} color={Colors.interaction.primary} />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setFirstName(user?.first_name || "");
+                      setEditingFirstName(false);
+                    }}
+                    style={styles.iconBtn}
+                  >
+                    <Ionicons name="close" size={22} color={Colors.text.secondary} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.valueRow}
+                  onPress={() => setEditingFirstName(true)}
+                >
+                  <Text variant="primary">{user?.first_name || "Add"}</Text>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+                </TouchableOpacity>
+              )}
             </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Password / Auth Provider */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Password</Text>
-            {authProvider === "password" ? (
-              <TouchableOpacity
-                style={styles.valueRow}
-                onPress={handleChangePassword}
-              >
-                <Text style={styles.valueText}>Change Password</Text>
-                <Ionicons name="chevron-forward" size={18} color="#999" />
-              </TouchableOpacity>
-            ) : authProvider === "google.com" ? (
-              <View style={styles.valueRow}>
-                <Text style={[styles.valueText, styles.readOnlyText]}>
-                  Signed up with Google
-                </Text>
-                <Ionicons name="logo-google" size={18} color="#4285F4" />
-              </View>
-            ) : authProvider === "apple.com" ? (
-              <View style={styles.valueRow}>
-                <Text style={[styles.valueText, styles.readOnlyText]}>
-                  Signed up with Apple
-                </Text>
-                <Ionicons name="logo-apple" size={18} color="#000" />
-              </View>
-            ) : (
-              <View style={styles.valueRow}>
-                <Text style={[styles.valueText, styles.readOnlyText]}>
-                  Not available
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Subscription Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Subscription</Text>
-
-          {premiumLoading ? (
-            <View style={styles.premiumLoadingContainer}>
-              <ActivityIndicator size="small" color="#007AFF" />
-              <Text style={styles.premiumLoadingText}>Checking status...</Text>
+            <View style={styles.divider} />
+            {/* Last Name */}
+            <View style={styles.row}>
+              <Text variant="secondary" style={styles.rowLabel}>
+                Last name
+              </Text>
+              {editingLastName ? (
+                <View style={styles.editRow}>
+                  <DesignTextInput
+                    value={lastName}
+                    onChangeText={setLastName}
+                    placeholder="Last name"
+                    editable={!saving}
+                    style={styles.input}
+                  />
+                  <TouchableOpacity
+                    onPress={handleSaveLastName}
+                    disabled={saving}
+                    style={styles.iconBtn}
+                  >
+                    {saving ? (
+                      <ActivityIndicator size="small" color={Colors.interaction.primary} />
+                    ) : (
+                      <Ionicons name="checkmark" size={22} color={Colors.interaction.primary} />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setLastName(user?.last_name || "");
+                      setEditingLastName(false);
+                    }}
+                    style={styles.iconBtn}
+                  >
+                    <Ionicons name="close" size={22} color={Colors.text.secondary} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.valueRow}
+                  onPress={() => setEditingLastName(true)}
+                >
+                  <Text variant="primary">{user?.last_name || "Add"}</Text>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+                </TouchableOpacity>
+              )}
             </View>
-          ) : isPremium ? (
-            <>
-              <View style={styles.premiumBadge}>
-                <Ionicons name="star" size={20} color="#FFD700" />
-                <Text style={styles.premiumBadgeText}>Premium Member</Text>
-              </View>
-              
-              {/* Show expiration warning if subscription is cancelled but still active */}
-              {willRenew === false && expirationDate && (
-                <View style={styles.expirationWarning}>
-                  <Ionicons name="information-circle" size={16} color="#F59E0B" />
-                  <Text style={styles.expirationWarningText}>
-                    Your subscription will expire on {expirationDate.toLocaleDateString()}
+            <View style={styles.divider} />
+            {/* Password / Auth */}
+            <View style={styles.row}>
+              <Text variant="secondary" style={styles.rowLabel}>
+                Password
+              </Text>
+              {authProvider === "password" ? (
+                <TouchableOpacity style={styles.valueRow} onPress={handleChangePassword}>
+                  <Text variant="primary">Change password</Text>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.valueRow}>
+                  <Text variant="secondary">
+                    {authProvider === "google.com"
+                      ? "Signed in with Google"
+                      : authProvider === "apple.com"
+                        ? "Signed in with Apple"
+                        : "—"}
                   </Text>
                 </View>
               )}
-
-              <TouchableOpacity
-                style={styles.subscriptionButton}
-                onPress={handleManageSubscription}
-              >
-                <Ionicons name="settings-outline" size={20} color="#007AFF" />
-                <Text style={styles.subscriptionButtonText}>
-                  Manage Subscription
-                </Text>
-                <Ionicons name="chevron-forward" size={18} color="#999" />
-              </TouchableOpacity>
-            </>
-          ) : (
-            <TouchableOpacity
-              style={[styles.subscriptionButton, styles.upgradeButton]}
-              onPress={handleUpgradeToPremium}
-              disabled={openingPaywall}
-            >
-              {openingPaywall ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="star-outline" size={20} color="#FFFFFF" />
-                  <Text style={[styles.subscriptionButtonText, styles.upgradeButtonText]}>
-                    Upgrade to Premium
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Settings Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Settings</Text>
-
-          {/* Push Notifications */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Push Notifications</Text>
-              <Text style={styles.settingDescription}>
-                With push notifications off, you may not get instant widget
-                updates
-              </Text>
             </View>
-            <Switch
-              value={pushNotifications}
-              onValueChange={handleTogglePushNotifications}
-              trackColor={{ false: "#E5E5E5", true: "#007AFF" }}
-              thumbColor="#FFFFFF"
-            />
           </View>
         </View>
 
-        {/* Actions Card */}
-        <View style={styles.card}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-            <Text style={styles.actionButtonText}>Logout</Text>
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity
-            style={[styles.actionButton, styles.dangerButton]}
-            onPress={handleDeleteAccount}
-          >
-            <Ionicons name="trash-outline" size={20} color="#EF4444" />
-            <Text style={[styles.actionButtonText, styles.dangerText]}>
-              Delete Account
-            </Text>
-          </TouchableOpacity>
+        {/* Subscription */}
+        <View style={styles.section}>
+          <Text variant="primary" style={styles.sectionTitle}>
+            Subscription
+          </Text>
+          <View style={styles.card}>
+            {premiumLoading ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color={Colors.interaction.primary} />
+                <Text variant="secondary">Checking status…</Text>
+              </View>
+            ) : isPremium ? (
+              <>
+                <View style={styles.premiumBadge}>
+                  <Ionicons name="star" size={18} color={Colors.interaction.accent} />
+                  <Text style={styles.premiumBadgeText}>Premium</Text>
+                </View>
+                {willRenew === false && expirationDate && (
+                  <Text variant="secondary" style={styles.expiryText}>
+                    Expires {expirationDate.toLocaleDateString()}
+                  </Text>
+                )}
+                <TouchableOpacity
+                  style={styles.linkRow}
+                  onPress={() => navigation.navigate("SubscriptionManagement" as never)}
+                >
+                  <Text variant="primary">Manage subscription</Text>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <Button
+                variant="primary"
+                onPress={handleUpgradeToPremium}
+                loading={openingPaywall}
+                disabled={openingPaywall}
+                fullWidth={true}
+              >
+                Upgrade to Premium
+              </Button>
+            )}
+          </View>
         </View>
 
-        {/* App Info Card */}
-        <View style={styles.card}>
-          <TouchableOpacity style={styles.infoRow} onPress={() => {}} disabled>
-            <Text style={styles.infoLabel}>App Version</Text>
-            <Text style={styles.infoValue}>
-              {Constants.expoConfig?.version || "1.0.0"}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity style={styles.infoRow} onPress={openPrivacyPolicy}>
-            <Text style={styles.infoLabel}>Privacy Policy</Text>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity style={styles.infoRow} onPress={openTermsOfUse}>
-            <Text style={styles.infoLabel}>Terms of Use</Text>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-
+        {/* Settings */}
+        <View style={styles.section}>
+          <Text variant="primary" style={styles.sectionTitle}>
+            Settings
+          </Text>
+          <View style={styles.card}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text variant="primary">Push notifications</Text>
+                <Text variant="secondary" style={styles.settingHint}>
+                  Get status updates
+                </Text>
+              </View>
+              <Switch
+                value={pushNotifications}
+                onValueChange={handleTogglePushNotifications}
+                trackColor={{
+                  false: Colors.interaction.disabled,
+                  true: Colors.interaction.primary,
+                }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </View>
         </View>
+
+        {/* Actions */}
+        <View style={styles.section}>
+          <View style={styles.card}>
+            <TouchableOpacity style={styles.actionRow} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={20} color={Colors.text.primary} />
+              <Text variant="primary">Log out</Text>
+            </TouchableOpacity>
+            <View style={styles.divider} />
+            <TouchableOpacity style={styles.actionRow} onPress={handleDeleteAccount}>
+              <Ionicons name="trash-outline" size={20} color={Colors.interaction.error} />
+              <Text style={styles.dangerText}>Delete account</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* App Info */}
+        <View style={styles.section}>
+          <View style={styles.card}>
+            <View style={styles.infoRow}>
+              <Text variant="secondary">Version</Text>
+              <Text variant="secondary">
+                {Constants.expoConfig?.version || "1.0.0"}
+              </Text>
+            </View>
+            <View style={styles.divider} />
+            <TouchableOpacity style={styles.infoRow} onPress={openPrivacyPolicy}>
+              <Text variant="primary">Privacy Policy</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+            </TouchableOpacity>
+            <View style={styles.divider} />
+            <TouchableOpacity style={styles.infoRow} onPress={openTermsOfUse}>
+              <Text variant="primary">Terms of Use</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={{ height: Spacing.xxl }} />
       </ScrollView>
 
       {/* Change Password Modal */}
       <Modal
         visible={changePasswordModalVisible}
         animationType="slide"
-        transparent={true}
+        transparent
         onRequestClose={() => setChangePasswordModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Change Password</Text>
+              <Text variant="primary" style={styles.modalTitle}>
+                Change password
+              </Text>
               <TouchableOpacity
                 onPress={() => {
                   setChangePasswordModalVisible(false);
@@ -775,41 +616,41 @@ export default function ProfileScreen() {
                 }}
                 disabled={changingPassword}
               >
-                <Ionicons name="close" size={24} color="#111827" />
+                <Ionicons name="close" size={24} color={Colors.text.primary} />
               </TouchableOpacity>
             </View>
-
-            <ScrollView style={styles.modalBody}>
-              <View style={styles.modalInputContainer}>
-                <Text style={styles.modalInputLabel}>Current Password</Text>
-                <TextInput
-                  style={styles.modalInput}
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <View style={styles.modalField}>
+                <Text variant="secondary" style={styles.modalLabel}>
+                  Current password
+                </Text>
+                <DesignTextInput
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
-                  placeholder="Enter current password"
+                  placeholder="Current password"
                   secureTextEntry
                   autoCapitalize="none"
                   editable={!changingPassword}
                 />
               </View>
-
-              <View style={styles.modalInputContainer}>
-                <Text style={styles.modalInputLabel}>New Password</Text>
-                <TextInput
-                  style={styles.modalInput}
+              <View style={styles.modalField}>
+                <Text variant="secondary" style={styles.modalLabel}>
+                  New password
+                </Text>
+                <DesignTextInput
                   value={newPassword}
                   onChangeText={setNewPassword}
-                  placeholder="Enter new password (min 8 characters)"
+                  placeholder="Min 8 characters"
                   secureTextEntry
                   autoCapitalize="none"
                   editable={!changingPassword}
                 />
               </View>
-
-              <View style={styles.modalInputContainer}>
-                <Text style={styles.modalInputLabel}>Confirm New Password</Text>
-                <TextInput
-                  style={styles.modalInput}
+              <View style={styles.modalField}>
+                <Text variant="secondary" style={styles.modalLabel}>
+                  Confirm password
+                </Text>
+                <DesignTextInput
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="Confirm new password"
@@ -818,21 +659,14 @@ export default function ProfileScreen() {
                   editable={!changingPassword}
                 />
               </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  changingPassword && styles.modalButtonDisabled,
-                ]}
+              <Button
+                variant="primary"
                 onPress={handleSavePassword}
+                loading={changingPassword}
                 disabled={changingPassword}
               >
-                {changingPassword ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.modalButtonText}>Change Password</Text>
-                )}
-              </TouchableOpacity>
+                Update password
+              </Button>
             </ScrollView>
           </View>
         </View>
@@ -842,7 +676,7 @@ export default function ProfileScreen() {
       <Modal
         visible={deleteAccountModalVisible}
         animationType="slide"
-        transparent={true}
+        transparent
         onRequestClose={() => {
           setDeleteAccountModalVisible(false);
           setDeletePassword("");
@@ -851,12 +685,13 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
             style={{ flex: 1, justifyContent: "flex-end" }}
           >
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Delete Account</Text>
+                <Text variant="primary" style={styles.modalTitle}>
+                  Delete account
+                </Text>
                 <TouchableOpacity
                   onPress={() => {
                     setDeleteAccountModalVisible(false);
@@ -864,43 +699,37 @@ export default function ProfileScreen() {
                   }}
                   disabled={deletingAccount}
                 >
-                  <Ionicons name="close" size={24} color="#111827" />
+                  <Ionicons name="close" size={24} color={Colors.text.primary} />
                 </TouchableOpacity>
               </View>
-
               <ScrollView
                 style={styles.modalBody}
                 contentContainerStyle={styles.modalBodyContent}
-                keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
               >
-                <Text style={styles.deleteWarningText}>
-                  This action cannot be undone. All your data will be permanently
-                  deleted.
+                <Text variant="secondary" style={styles.deleteWarning}>
+                  This cannot be undone. All data will be permanently deleted.
                 </Text>
-
                 {authProvider === "password" && (
-                  <View style={styles.modalInputContainer}>
-                    <Text style={styles.modalInputLabel}>
-                      Enter your password to confirm
+                  <View style={styles.modalField}>
+                    <Text variant="secondary" style={styles.modalLabel}>
+                      Enter password to confirm
                     </Text>
-                    <TextInput
-                      style={styles.modalInput}
+                    <DesignTextInput
                       value={deletePassword}
                       onChangeText={setDeletePassword}
-                      placeholder="Enter your password"
+                      placeholder="Your password"
                       secureTextEntry
                       autoCapitalize="none"
                       editable={!deletingAccount}
                     />
                   </View>
                 )}
-
                 <TouchableOpacity
                   style={[
-                    styles.modalButton,
-                    styles.deleteButton,
-                    deletingAccount && styles.modalButtonDisabled,
+                    styles.destructiveButton,
+                    deletingAccount && styles.buttonDisabled,
                   ]}
                   onPress={() => handleConfirmDeleteAccount(deletePassword)}
                   disabled={deletingAccount}
@@ -908,19 +737,20 @@ export default function ProfileScreen() {
                   {deletingAccount ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.modalButtonText}>Delete Account</Text>
+                    <Text style={styles.destructiveButtonText}>
+                      Delete account
+                    </Text>
                   )}
                 </TouchableOpacity>
-
                 <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelDeleteButton]}
+                  style={styles.cancelButton}
                   onPress={() => {
                     setDeleteAccountModalVisible(false);
                     setDeletePassword("");
                   }}
                   disabled={deletingAccount}
                 >
-                  <Text style={styles.cancelDeleteButtonText}>Cancel</Text>
+                  <Text variant="primary">Cancel</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>
@@ -934,112 +764,94 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Colors.canvas.background,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
   header: {
-    paddingTop: 60,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    backgroundColor: "#FFFFFF",
-  },
-  headerContent: {
-    flexDirection: "row",
     alignItems: "center",
+    paddingVertical: Spacing.xl,
   },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#007AFF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
+  displayName: {
+    fontSize: 20,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: Spacing.xs,
   },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  headerText: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 4,
-  },
-  userEmail: {
+  email: {
     fontSize: 14,
-    color: "#6B7280",
+  },
+  section: {
+    marginTop: Spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontFamily: Typography.fontFamily.medium,
+    marginBottom: Spacing.sm,
   },
   card: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
-    // No shadows, no elevation - using physical shift transform instead
+    backgroundColor: "#F9FAFB",
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.md,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 20,
+  row: {
+    marginBottom: Spacing.sm,
   },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#374151",
-    marginBottom: 8,
+  rowLabel: {
+    fontSize: 13,
+    marginBottom: Spacing.xs,
   },
   valueRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  valueText: {
-    fontSize: 16,
-    color: "#111827",
-    flex: 1,
-  },
-  readOnlyText: {
-    color: "#6B7280",
-  },
   editRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.sm,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    color: "#111827",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: "#F9FAFB",
   },
-  saveButton: {
-    padding: 8,
-  },
-  cancelButton: {
-    padding: 8,
+  iconBtn: {
+    padding: Spacing.xs,
   },
   divider: {
-    height: 1,
-    backgroundColor: "#F3F4F6",
-    marginVertical: 16,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.text.secondary + "40",
+    marginVertical: Spacing.sm,
+  },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.xs,
+  },
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+  premiumBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  premiumBadgeText: {
+    fontSize: 16,
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.text.primary,
+  },
+  expiryText: {
+    fontSize: 13,
+    marginBottom: Spacing.sm,
   },
   settingRow: {
     flexDirection: "row",
@@ -1048,205 +860,84 @@ const styles = StyleSheet.create({
   },
   settingInfo: {
     flex: 1,
-    marginRight: 16,
   },
-  settingLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#111827",
-    marginBottom: 4,
+  settingHint: {
+    fontSize: 13,
+    marginTop: 2,
   },
-  settingDescription: {
-    fontSize: 14,
-    color: "#6B7280",
-    lineHeight: 20,
-  },
-  actionButton: {
+  actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    gap: 12,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#111827",
-  },
-  dangerButton: {
-    // Additional styling if needed
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   dangerText: {
-    color: "#EF4444",
+    fontSize: 16,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.interaction.error,
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 4,
-  },
-  infoLabel: {
-    fontSize: 16,
-    color: "#111827",
-  },
-  infoValue: {
-    fontSize: 16,
-    color: "#6B7280",
+    paddingVertical: Spacing.xs,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "80%",
+    backgroundColor: Colors.canvas.background,
+    borderTopLeftRadius: Borders.radius.large,
+    borderTopRightRadius: Borders.radius.large,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    marginBottom: Spacing.md,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#111827",
+    fontSize: 18,
+    fontFamily: Typography.fontFamily.semiBold,
   },
   modalBody: {
-    maxHeight: "100%",
+    maxHeight: 400,
   },
   modalBodyContent: {
-    padding: 20,
-    paddingBottom: 20,
+    paddingBottom: Spacing.lg,
   },
-  modalInputContainer: {
-    marginBottom: 20,
+  modalField: {
+    marginBottom: Spacing.md,
   },
-  modalInputLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#374151",
-    marginBottom: 8,
+  modalLabel: {
+    fontSize: 13,
+    marginBottom: Spacing.xs,
   },
-  modalInput: {
-    fontSize: 16,
-    color: "#111827",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: "#F9FAFB",
+  deleteWarning: {
+    marginBottom: Spacing.md,
   },
-  modalButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    padding: 16,
+  destructiveButton: {
+    backgroundColor: Colors.interaction.error,
+    borderRadius: Borders.radius.medium,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: Spacing.sm,
   },
-  modalButtonDisabled: {
+  buttonDisabled: {
     opacity: 0.6,
   },
-  modalButtonText: {
+  destructiveButtonText: {
+    fontSize: 16,
+    fontFamily: Typography.fontFamily.semiBold,
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
   },
-  deleteWarningText: {
-    fontSize: 14,
-    color: "#EF4444",
-    marginBottom: 20,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  deleteButton: {
-    backgroundColor: "#EF4444",
-    marginTop: 10,
-  },
-  cancelDeleteButton: {
-    backgroundColor: "#F3F4F6",
-    marginTop: 8,
-  },
-  cancelDeleteButtonText: {
-    color: "#111827",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  premiumLoadingContainer: {
-    flexDirection: "row",
+  cancelButton: {
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 20,
-    gap: 12,
-  },
-  premiumLoadingText: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  premiumBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    gap: 8,
-  },
-  premiumBadgeText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#92400E",
-  },
-  subscriptionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    gap: 12,
-  },
-  upgradeButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    padding: 16,
-    justifyContent: "center",
-    marginTop: 8,
-  },
-  subscriptionButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#111827",
-    flex: 1,
-  },
-  cancelMembershipButton: {
-    backgroundColor: "#FEF2F2",
-    borderWidth: 1,
-    borderColor: "#FEE2E2",
-  },
-  cancelMembershipButtonText: {
-    color: "#EF4444",
-  },
-  expirationWarning: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFBEB",
-    borderWidth: 1,
-    borderColor: "#FDE68A",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    gap: 8,
-  },
-  expirationWarningText: {
-    flex: 1,
-    fontSize: 14,
-    color: "#92400E",
-    lineHeight: 20,
-  },
-  upgradeButtonText: {
-    color: "#FFFFFF",
+    paddingVertical: Spacing.md,
   },
 });

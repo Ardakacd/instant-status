@@ -1,25 +1,29 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  ScrollView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Linking from "expo-linking";
 import { authService } from "../services/auth.service";
 import { RootStackParamList } from "../../App";
 import { ErrorBanner } from "../components/ErrorBanner";
+import Toast from "react-native-toast-message";
+import { Colors, Spacing, Typography } from "../design";
+import { Text } from "../components/primitives/Text";
+import { TextInput } from "../components/inputs/TextInput";
+import { Button } from "../components/actions/Button";
+import { InlineAction } from "../components/actions/InlineAction";
+import { Section } from "../components/containers/Section";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ResetPassword">;
 
 export default function ResetPasswordScreen({ route, navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -59,7 +63,6 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
     }
 
     // If we have mode but no oobCode, it's invalid
-    // The screen will render the invalid link UI automatically (no Alert needed)
     if (finalMode === "resetPassword" && !finalOobCode) {
       setHasHandledReset(true);
     }
@@ -67,14 +70,14 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
-    if (passwordError) setPasswordError(""); // Clear error when user starts typing
-    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+    if (passwordError) setPasswordError("");
+    if (globalError) setGlobalError("");
   };
 
   const handleConfirmPasswordChange = (text: string) => {
     setConfirmPassword(text);
-    if (confirmPasswordError) setConfirmPasswordError(""); // Clear error when user starts typing
-    if (globalError) setGlobalError(""); // Clear global error when user starts typing
+    if (confirmPasswordError) setConfirmPasswordError("");
+    if (globalError) setGlobalError("");
   };
 
   const validateForm = (): boolean => {
@@ -112,19 +115,18 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
     }
 
     setResetting(true);
-    setGlobalError(""); // Clear any previous errors
+    setGlobalError("");
     try {
       await authService.confirmPasswordReset(finalOobCode, password);
-      Alert.alert(
-        "Password Reset Successful",
-        "Your password has been reset successfully. You can now sign in with your new password.",
-        [
-          {
-            text: "OK",
-            onPress: () => navigation.navigate("SignIn"),
-          },
-        ]
-      );
+      Toast.show({
+        type: "success",
+        text1: "Password Reset Successful",
+        text2: "Your password has been reset successfully. You can now sign in.",
+      });
+      // Navigate to sign in after a brief delay
+      setTimeout(() => {
+        navigation.navigate("SignIn");
+      }, 1500);
     } catch (error: any) {
       if (error.code === "auth/expired-action-code") {
         setGlobalError("This password reset link has expired. Please request a new one.");
@@ -147,230 +149,174 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
 
   if (!isValidLink) {
     return (
-      <View style={styles.container}>
-        <View style={styles.invalidLinkContent}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="lock-closed-outline" size={80} color="#FF3B30" />
-          </View>
-          <Text style={styles.title}>Invalid Reset Link</Text>
-          <Text style={styles.subtitle}>
-            This password reset link is invalid or has expired. Please request a new one.
-          </Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate("SignIn")}
-          >
-            <Text style={styles.buttonText}>Go to Sign In</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+        >
+          <Section spacing="md" style={styles.content}>
+            <View style={styles.header}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="lock-closed-outline" size={64} color={Colors.interaction.accent} />
+              </View>
+              <Text variant="primary" style={styles.title}>Invalid Reset Link</Text>
+              <Text variant="secondary" style={styles.subtitle}>
+                This password reset link is invalid or has expired. Please request a new one.
+              </Text>
+            </View>
+
+            <Button
+              variant="primary"
+              onPress={() => navigation.navigate("SignIn")}
+            >
+              Go to Sign In
+            </Button>
+          </Section>
+        </ScrollView>
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <View style={styles.content}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.navigate("SignIn")}
-        >
-          <Ionicons name="arrow-back" size={24} color="#111827" />
-          <Text style={styles.backButtonText}>Back to Sign In</Text>
-        </TouchableOpacity>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
+        <Section spacing="md" style={styles.content}>
+          {/* Back Button */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.navigate("SignIn")}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={20} color={Colors.text.primary} />
+            <InlineAction fontSize={14}>Back to Sign In</InlineAction>
+          </TouchableOpacity>
 
-        <View style={styles.iconContainer}>
-          <Ionicons name="lock-closed-outline" size={80} color="#007AFF" />
-        </View>
-
-        <Text style={styles.title}>Reset Your Password</Text>
-        <Text style={styles.subtitle}>
-          Enter your new password below. Make sure it's at least 8 characters long.
-        </Text>
-
-        {/* Global Error Banner */}
-        {globalError ? (
-          <ErrorBanner
-            message={globalError}
-            onDismiss={() => setGlobalError("")}
-          />
-        ) : null}
-
-        <View>
-          <View style={styles.inputContainer}>
-            <Ionicons
-              name="lock-closed"
-              size={20}
-              color="#6B7280"
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, passwordError && styles.inputError]}
-              placeholder="New Password"
-              value={password}
-              onChangeText={handlePasswordChange}
-              secureTextEntry
-              autoCapitalize="none"
-              editable={!resetting}
-            />
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="lock-closed-outline" size={64} color={Colors.interaction.primary} />
+            </View>
+            <Text variant="primary" style={styles.title}>Reset Your Password</Text>
+            <Text variant="secondary" style={styles.subtitle}>
+              Enter your new password below. Make sure it's at least 8 characters long.
+            </Text>
           </View>
-          {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-        </View>
 
-        <View>
-          <View style={styles.inputContainer}>
-            <Ionicons
-              name="lock-closed"
-              size={20}
-              color="#6B7280"
-              style={styles.inputIcon}
+          {/* Global Error Banner */}
+          {globalError && (
+            <ErrorBanner
+              message={globalError}
+              onDismiss={() => setGlobalError("")}
             />
-            <TextInput
-              style={[styles.input, confirmPasswordError && styles.inputError]}
-              placeholder="Confirm New Password"
-              value={confirmPassword}
-              onChangeText={handleConfirmPasswordChange}
-              secureTextEntry
-              autoCapitalize="none"
-              editable={!resetting}
-            />
-          </View>
-          {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
-        </View>
-
-        <TouchableOpacity
-          style={[styles.button, resetting && styles.buttonDisabled]}
-          onPress={handleResetPassword}
-          disabled={resetting}
-        >
-          {resetting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons
-                name="checkmark-circle"
-                size={20}
-                color="#fff"
-                style={styles.buttonIcon}
-              />
-              <Text style={styles.buttonText}>Reset Password</Text>
-            </>
           )}
-        </TouchableOpacity>
 
-        <Text style={styles.securityNote}>
-          ⚠️ This link expires in 15 minutes for your security.
-        </Text>
-      </View>
-    </KeyboardAvoidingView>
+          <Section spacing="sm">
+            <View>
+              <TextInput
+                placeholder="New Password"
+                value={password}
+                onChangeText={handlePasswordChange}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!resetting}
+                error={!!passwordError}
+              />
+              {passwordError && (
+                <Text variant="hint" style={styles.errorText}>{passwordError}</Text>
+              )}
+            </View>
+
+            <View>
+              <TextInput
+                placeholder="Confirm New Password"
+                value={confirmPassword}
+                onChangeText={handleConfirmPasswordChange}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!resetting}
+                error={!!confirmPasswordError}
+              />
+              {confirmPasswordError && (
+                <Text variant="hint" style={styles.errorText}>{confirmPasswordError}</Text>
+              )}
+            </View>
+
+            <Button
+              variant="primary"
+              onPress={handleResetPassword}
+              loading={resetting}
+              disabled={resetting}
+            >
+              Reset Password
+            </Button>
+          </Section>
+
+          <Text variant="hint" style={styles.securityNote}>
+            ⚠️ This link expires in 15 minutes for your security.
+          </Text>
+
+          {/* Bottom spacer for balanced centering */}
+          <View style={{ flex: 1, minHeight: Spacing.xl }} />
+        </Section>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.canvas.background,
   },
-  invalidLinkContent: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 24,
-    paddingTop: 100, // Add extra padding at the top
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xxl,
+    paddingBottom: Spacing.xl,
   },
   content: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 24,
   },
   backButton: {
-    position: "absolute",
-    top: 60,
-    left: 24,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    zIndex: 1,
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+    alignSelf: "flex-start",
   },
-  backButtonText: {
-    fontSize: 16,
-    color: "#111827",
-    fontWeight: "500",
+  header: {
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+    marginTop: Spacing.md,
   },
   iconContainer: {
-    alignItems: "center",
-    marginBottom: 32,
+    marginBottom: Spacing.lg,
   },
   title: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
-    marginBottom: 16,
-    color: "#111827",
+    lineHeight: 34,
+    marginBottom: Spacing.sm,
   },
   subtitle: {
     fontSize: 16,
     textAlign: "center",
-    marginBottom: 32,
-    color: "#6B7280",
     lineHeight: 24,
   },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    marginBottom: 16,
-    backgroundColor: "#F9FAFB",
-  },
-  inputIcon: {
-    marginLeft: 16,
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    padding: 16,
-    fontSize: 16,
-    color: "#111827",
-  },
-  inputError: {
-    borderColor: "#EF4444",
-    borderWidth: 1,
-  },
   errorText: {
-    color: "#EF4444",
-    fontSize: 12,
-    marginTop: 4,
-    marginBottom: 16,
-    marginLeft: 4,
-  },
-  button: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    marginTop: Spacing.xs,
+    marginLeft: Spacing.xs,
   },
   securityNote: {
     fontSize: 13,
-    color: "#86868b",
     textAlign: "center",
-    marginTop: 24,
+    marginTop: Spacing.md,
   },
 });
-

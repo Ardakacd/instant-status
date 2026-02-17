@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
   Alert,
-  TextInput,
   Modal,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -19,11 +17,15 @@ import {
 } from "../services/status-option.service";
 import Toast from "react-native-toast-message";
 import { ErrorBanner } from "../components/ErrorBanner";
-import EmojiPicker from "../components/EmojiPicker";
-import ColorPicker from "../components/ColorPicker";
+import { EmojiPicker } from "../components/EmojiPicker";
+import { ColorPicker } from "../components/ColorPicker";
 import StatusPreviewCard from "../components/StatusPreviewCard";
 import { useIsPremium } from "../hooks/useIsPremium";
 import { PurchasesService } from "../services/purchases.service";
+import { Colors, Borders, Spacing, Typography } from "../design";
+import { Text } from "../components/primitives/Text";
+import { Button } from "../components/actions/Button";
+import { TextInput } from "../components/inputs/TextInput";
 
 const MAX_CUSTOM_OPTIONS = 4;
 
@@ -36,13 +38,13 @@ export default function ManageStatusScreen() {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedOption, setSelectedOption] = useState<StatusOption | null>(
-    null
+    null,
   );
 
   // Form state
   const [label, setLabel] = useState("");
-  const [emoji, setEmoji] = useState("");
-  const [color, setColor] = useState("#10B981");
+  const [emoji, setEmoji] = useState("😎");
+  const [color, setColor] = useState("#3B82F6");
   const [saving, setSaving] = useState(false);
   const [labelError, setLabelError] = useState("");
   const [emojiError, setEmojiError] = useState("");
@@ -60,7 +62,7 @@ export default function ManageStatusScreen() {
       setStatusOptions(options);
     } catch (error: any) {
       setGlobalError(
-        error.message || "Failed to load status options. Please try again."
+        error.message || "Failed to load status options. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -69,8 +71,8 @@ export default function ManageStatusScreen() {
 
   const handleCreate = () => {
     setLabel("");
-    setEmoji("");
-    setColor("#10B981");
+    setEmoji("😎");
+    setColor("#3B82F6");
     setSelectedOption(null);
     setSaving(false); // Reset saving state
     setCreateModalVisible(true);
@@ -122,12 +124,13 @@ export default function ManageStatusScreen() {
               loadStatusOptions();
             } catch (error: any) {
               setGlobalError(
-                error.message || "Failed to delete status option. Please try again."
+                error.message ||
+                  "Failed to delete status option. Please try again.",
               );
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -169,7 +172,7 @@ export default function ManageStatusScreen() {
 
     // Check if user has reached the limit
     const customOptionsCount = statusOptions.filter(
-      (opt) => opt.user_id !== null
+      (opt) => opt.user_id !== null,
     ).length;
     if (customOptionsCount >= MAX_CUSTOM_OPTIONS) {
       Toast.show({
@@ -194,7 +197,7 @@ export default function ManageStatusScreen() {
       loadStatusOptions();
     } catch (error: any) {
       setGlobalError(
-        error.message || "Failed to create status option. Please try again."
+        error.message || "Failed to create status option. Please try again.",
       );
     } finally {
       setSaving(false);
@@ -234,7 +237,7 @@ export default function ManageStatusScreen() {
       loadStatusOptions();
     } catch (error: any) {
       setGlobalError(
-        error.message || "Failed to update status option. Please try again."
+        error.message || "Failed to update status option. Please try again.",
       );
     } finally {
       setSaving(false);
@@ -252,13 +255,15 @@ export default function ManageStatusScreen() {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#111827" />
+            <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Manage Status</Text>
+          <Text variant="primary" style={styles.headerTitle}>
+            Manage Status
+          </Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={Colors.interaction.primary} />
         </View>
       </View>
     );
@@ -271,13 +276,18 @@ export default function ManageStatusScreen() {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Manage Status</Text>
+        <Text variant="primary" style={styles.headerTitle}>
+          Manage Status
+        </Text>
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+      >
         {/* Global Error Banner */}
         {globalError ? (
           <ErrorBanner
@@ -288,12 +298,16 @@ export default function ManageStatusScreen() {
 
         {/* Default Statuses */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Default Statuses</Text>
+          <Text variant="primary" style={styles.sectionTitle}>
+            Default Statuses
+          </Text>
           <View style={styles.optionsGrid}>
             {systemOptions.map((option) => (
               <View key={option.id} style={styles.optionCard}>
                 <Text style={styles.optionEmoji}>{option.emoji}</Text>
-                <Text style={styles.optionLabel}>{option.label}</Text>
+                <Text variant="primary" style={styles.optionLabel}>
+                  {option.label}
+                </Text>
               </View>
             ))}
           </View>
@@ -302,28 +316,28 @@ export default function ManageStatusScreen() {
         {/* Custom Status Options */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Your Custom Statuses</Text>
+            <Text variant="primary" style={styles.sectionTitle}>
+              Your Custom Statuses
+            </Text>
             {customOptions.length < MAX_CUSTOM_OPTIONS && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={handleCreate}
-              >
-                <Ionicons name="add" size={20} color="#007AFF" />
+              <TouchableOpacity style={styles.addButton} onPress={handleCreate}>
+                <Ionicons
+                  name="add"
+                  size={20}
+                  color={Colors.interaction.primary}
+                />
                 <Text style={styles.addButtonText}>Add</Text>
               </TouchableOpacity>
             )}
           </View>
           {customOptions.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>
+              <Text variant="secondary" style={styles.emptyStateText}>
                 No custom status options yet
               </Text>
-              <TouchableOpacity
-                style={styles.createButton}
-                onPress={handleCreate}
-              >
-                <Text style={styles.createButtonText}>Create Your First</Text>
-              </TouchableOpacity>
+              <Button variant="primary" onPress={handleCreate}>
+                Create Your First
+              </Button>
             </View>
           ) : (
             <View style={styles.optionsGrid}>
@@ -335,7 +349,9 @@ export default function ManageStatusScreen() {
                   activeOpacity={0.7}
                 >
                   <Text style={styles.optionEmoji}>{option.emoji}</Text>
-                  <Text style={styles.optionLabel}>{option.label}</Text>
+                  <Text variant="primary" style={styles.optionLabel}>
+                    {option.label}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -356,7 +372,9 @@ export default function ManageStatusScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create Custom Status</Text>
+              <Text variant="primary" style={styles.modalTitle}>
+                Create Custom Status
+              </Text>
               <TouchableOpacity
                 onPress={() => {
                   setCreateModalVisible(false);
@@ -367,7 +385,11 @@ export default function ManageStatusScreen() {
                 }}
                 style={styles.modalCloseButton}
               >
-                <Ionicons name="close" size={24} color="#6B7280" />
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={Colors.text.secondary}
+                />
               </TouchableOpacity>
             </View>
 
@@ -384,48 +406,59 @@ export default function ManageStatusScreen() {
               <StatusPreviewCard emoji={emoji} label={label} color={color} />
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Label</Text>
+                <Text variant="secondary" style={styles.label}>
+                  Label
+                </Text>
                 <TextInput
-                  style={[styles.input, labelError && styles.inputError]}
                   value={label}
                   onChangeText={handleLabelChange}
-                  placeholder="e.g., In a Meeting"
+                  placeholder="e.g., In the gym"
                   maxLength={25}
+                  error={!!labelError}
                 />
-                {labelError ? <Text style={styles.errorText}>{labelError}</Text> : null}
+                {labelError ? (
+                  <Text variant="secondary" style={styles.errorText}>
+                    {labelError}
+                  </Text>
+                ) : null}
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Emoji</Text>
-                <EmojiPicker selectedEmoji={emoji} onSelect={handleEmojiSelect} />
-                {emojiError ? <Text style={styles.errorText}>{emojiError}</Text> : null}
-                {emoji && (
-                  <View style={styles.selectedEmojiContainer}>
-                    <Text style={styles.selectedEmojiText}>
-                      Selected: {emoji}
-                    </Text>
-                  </View>
-                )}
+                <Text variant="secondary" style={styles.label}>
+                  Emoji
+                </Text>
+                <EmojiPicker
+                  selectedEmoji={emoji}
+                  onSelect={handleEmojiSelect}
+                />
+                {emojiError ? (
+                  <Text variant="secondary" style={styles.errorText}>
+                    {emojiError}
+                  </Text>
+                ) : null}
               </View>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Color</Text>
+              <View style={[styles.formGroup, styles.formGroupColor]}>
+                <Text variant="secondary" style={styles.label}>
+                  Color
+                </Text>
                 <ColorPicker selectedColor={color} onSelect={setColor} />
               </View>
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.cancelButton}
+              <Button
+                variant="secondary"
                 onPress={() => {
                   setCreateModalVisible(false);
                   setSaving(false);
                   setLabelError("");
                   setEmojiError("");
                 }}
+                style={styles.modalFooterButton}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+                Cancel
+              </Button>
               <TouchableOpacity
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}
                 onPress={handleSaveCreate}
@@ -457,7 +490,9 @@ export default function ManageStatusScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Custom Status</Text>
+              <Text variant="primary" style={styles.modalTitle}>
+                Edit Custom Status
+              </Text>
               <TouchableOpacity
                 onPress={() => {
                   setEditModalVisible(false);
@@ -466,7 +501,11 @@ export default function ManageStatusScreen() {
                 }}
                 style={styles.modalCloseButton}
               >
-                <Ionicons name="close" size={24} color="#6B7280" />
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={Colors.text.secondary}
+                />
               </TouchableOpacity>
             </View>
 
@@ -483,32 +522,42 @@ export default function ManageStatusScreen() {
               <StatusPreviewCard emoji={emoji} label={label} color={color} />
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Label</Text>
+                <Text variant="secondary" style={styles.label}>
+                  Label
+                </Text>
                 <TextInput
-                  style={[styles.input, labelError && styles.inputError]}
                   value={label}
                   onChangeText={handleLabelChange}
-                  placeholder="e.g., In a Meeting"
+                  placeholder="e.g., In the gym"
                   maxLength={25}
+                  error={!!labelError}
                 />
-                {labelError ? <Text style={styles.errorText}>{labelError}</Text> : null}
+                {labelError ? (
+                  <Text variant="secondary" style={styles.errorText}>
+                    {labelError}
+                  </Text>
+                ) : null}
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Emoji</Text>
-                <EmojiPicker selectedEmoji={emoji} onSelect={handleEmojiSelect} />
-                {emojiError ? <Text style={styles.errorText}>{emojiError}</Text> : null}
-                {emoji && (
-                  <View style={styles.selectedEmojiContainer}>
-                    <Text style={styles.selectedEmojiText}>
-                      Selected: {emoji}
-                    </Text>
-                  </View>
-                )}
+                <Text variant="secondary" style={styles.label}>
+                  Emoji
+                </Text>
+                <EmojiPicker
+                  selectedEmoji={emoji}
+                  onSelect={handleEmojiSelect}
+                />
+                {emojiError ? (
+                  <Text variant="secondary" style={styles.errorText}>
+                    {emojiError}
+                  </Text>
+                ) : null}
               </View>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Color</Text>
+              <View style={[styles.formGroup, styles.formGroupColor]}>
+                <Text variant="secondary" style={styles.label}>
+                  Color
+                </Text>
                 <ColorPicker selectedColor={color} onSelect={setColor} />
               </View>
             </ScrollView>
@@ -525,15 +574,16 @@ export default function ManageStatusScreen() {
               >
                 <Text style={styles.deleteButtonText}>Delete</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelButton}
+              <Button
+                variant="secondary"
                 onPress={() => {
                   setEditModalVisible(false);
                   setSaving(false);
                 }}
+                style={styles.modalFooterButton}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+                Cancel
+              </Button>
               <TouchableOpacity
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}
                 onPress={handleSaveEdit}
@@ -556,34 +606,34 @@ export default function ManageStatusScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Colors.canvas.background,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
   },
   backButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   placeholder: {
-    width: 32,
+    width: 40,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xxl,
   },
   loadingContainer: {
     flex: 1,
@@ -591,178 +641,139 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   section: {
-    marginBottom: 32,
+    marginBottom: Spacing.xl,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 16,
+    fontSize: 18,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: Spacing.md,
   },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EFF6FF",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 4,
+    backgroundColor: Colors.interaction.primary + "15",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Borders.radius.medium,
+    gap: Spacing.xs,
   },
   addButtonText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#007AFF",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.interaction.primary,
   },
   optionsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: Spacing.md,
   },
   optionCard: {
     width: "47%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: "#F9FAFB",
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.md,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    position: "relative",
   },
   optionEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
+    fontSize: 26,
+    lineHeight: 30,
+    includeFontPadding: false,
+    marginBottom: Spacing.sm,
   },
   optionLabel: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
   },
   emptyState: {
     alignItems: "center",
-    paddingVertical: 40,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: "#F9FAFB",
+    borderRadius: Borders.radius.medium,
   },
   emptyStateText: {
     fontSize: 16,
-    color: "#6B7280",
-    marginBottom: 16,
-  },
-  createButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  createButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    marginBottom: Spacing.md,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: Colors.canvas.background,
+    borderTopLeftRadius: Borders.radius.large,
+    borderTopRightRadius: Borders.radius.large,
     maxHeight: "90%",
   },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    padding: Spacing.lg,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   modalCloseButton: {
-    padding: 4,
+    padding: Spacing.xs,
   },
   modalBody: {
-    padding: 20,
+    padding: Spacing.lg,
   },
   formGroup: {
-    marginBottom: 20,
+    marginBottom: Spacing.md,
+  },
+  formGroupColor: {
+    marginTop: -Spacing.sm,
   },
   label: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  inputError: {
-    borderColor: "#EF4444",
-    borderWidth: 1,
+    fontFamily: Typography.fontFamily.medium,
+    marginBottom: Spacing.xs,
   },
   errorText: {
-    color: "#EF4444",
+    color: Colors.interaction.error,
     fontSize: 12,
-    marginTop: 4,
-    marginLeft: 4,
-    backgroundColor: "#FFFFFF",
+    marginTop: Spacing.xs,
   },
   modalFooter: {
     flexDirection: "row",
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    gap: 12,
+    padding: Spacing.lg,
+    gap: Spacing.md,
     alignItems: "center",
   },
+  modalFooterButton: {
+    flex: 1,
+  },
   deleteButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: "#FEE2E2",
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Borders.radius.medium,
+    backgroundColor: Colors.interaction.error + "15",
     alignItems: "center",
     justifyContent: "center",
   },
   deleteButtonText: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#DC2626",
-  },
-  cancelButton: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    backgroundColor: "#F3F4F6",
-    alignItems: "center",
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#374151",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.interaction.error,
   },
   saveButton: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    backgroundColor: "#007AFF",
+    flex: 2,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Borders.radius.medium,
+    backgroundColor: Colors.interaction.primary,
     alignItems: "center",
   },
   saveButtonDisabled: {
@@ -770,19 +781,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  selectedEmojiContainer: {
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  selectedEmojiText: {
-    fontSize: 16,
-    color: "#374151",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.text.primary,
   },
 });
-

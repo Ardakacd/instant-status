@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-
   ActivityIndicator,
   Share,
 } from "react-native";
@@ -14,49 +11,31 @@ import * as Clipboard from "expo-clipboard";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { inviteService } from "../services/invite.service";
-import { connectionsService } from "../services/connections.service";
-import { useIsPremium } from "../hooks/useIsPremium";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RootStackParamList } from "../../App";
 import Toast from "react-native-toast-message";
 
+import { Colors, Borders, Spacing, Typography } from "../design";
+import { Text } from "../components/primitives/Text";
+import { Button } from "../components/actions/Button";
+import { TextInput } from "../components/inputs/TextInput";
+
 type Props = NativeStackScreenProps<RootStackParamList, "Connect">;
 
 export default function ConnectScreen({ navigation, route }: Props) {
   const { user } = useAuth();
-  const { isPremium } = useIsPremium();
   const insets = useSafeAreaInsets();
   const [inviteCode, setInviteCode] = useState("");
   const [myInviteCode, setMyInviteCode] = useState("");
   const [shareableLink, setShareableLink] = useState("");
   const [redeemingCode, setRedeemingCode] = useState(false);
   const [connectingByLink, setConnectingByLink] = useState(false);
-  const [friendCount, setFriendCount] = useState<{
-    count: number;
-    limit: number;
-    freeLimit: number;
-    canAddMore: boolean;
-    isGrandfathered?: boolean;
-    errorMessage?: string;
-  } | null>(null);
-
   useEffect(() => {
     loadMyInviteCode();
     generateShareableLink();
-    loadFriendCount();
   }, [user]);
 
-  const loadFriendCount = async () => {
-    try {
-      const count = await connectionsService.getFriendCount();
-      setFriendCount(count);
-    } catch (error) {
-      console.error("Error loading friend count:", error);
-    }
-  };
-
-  // Handle deep link when screen opens with userId parameter
   useEffect(() => {
     const userId = route.params?.userId;
     if (userId && user) {
@@ -73,7 +52,6 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
   const loadMyInviteCode = async () => {
     try {
-      // Generate or get existing invite code
       const result = await inviteService.generateCode();
       setMyInviteCode(result.code);
     } catch (error) {
@@ -83,9 +61,6 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
   const generateShareableLink = () => {
     if (user?.id) {
-      // Generate universal link using Firebase Hosting domain
-      // This will be intercepted by iOS/Android if app is installed
-      // Otherwise, it will open the web page which redirects to the app
       const universalLink = `https://instantstatus.app/connect/${user.id}`;
       setShareableLink(universalLink);
     }
@@ -161,28 +136,15 @@ export default function ConnectScreen({ navigation, route }: Props) {
       return;
     }
     try {
-      // WhatsApp link detection requirements:
-      // 1. URL must start with http:// or https://
-      // 2. URL should be on its own line or at sentence boundaries
-      // 3. No extra characters or spaces around the URL
-      // 4. URL should be a complete, valid URL
-
-      // Put URL first on its own line for best recognition
       const shareMessage = `${shareableLink}\n\nConnect with me on Instant Status!`;
-
-      await Share.share({
-        message: shareMessage,
-      });
+      await Share.share({ message: shareMessage });
     } catch (error) {
       console.error("Error sharing:", error);
     }
   };
 
   const handleConnectByLink = async (targetUserId: string) => {
-    if (!user) {
-      return;
-    }
-
+    if (!user) return;
     if (user.id === targetUserId) {
       Toast.show({
         type: "info",
@@ -190,18 +152,13 @@ export default function ConnectScreen({ navigation, route }: Props) {
       });
       return;
     }
-
     setConnectingByLink(true);
     try {
       const result = await inviteService.connectByLink(targetUserId);
       Toast.show({
         type: "success",
-        text1: `Successfully connected with ${result.owner.first_name} ${
-          result.owner.last_name || ""
-        }!`,
+        text1: `Successfully connected with ${result.owner.first_name} ${result.owner.last_name || ""}!`,
       });
-      loadFriendCount(); // Refresh friend count
-      // Navigate back to home or friends screen after a short delay
       setTimeout(() => {
         navigation.navigate("Main", { screen: "Friends" });
       }, 1500);
@@ -223,7 +180,6 @@ export default function ConnectScreen({ navigation, route }: Props) {
       });
       return;
     }
-
     setRedeemingCode(true);
     try {
       await inviteService.redeemCode(inviteCode.toUpperCase());
@@ -246,70 +202,52 @@ export default function ConnectScreen({ navigation, route }: Props) {
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { flexGrow: 1, paddingTop: insets.top + Spacing.sm },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View
-          style={[styles.header, { paddingTop: Math.max(insets.top + 10, 40) }]}
-        >
+        <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#111827" />
+            <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Connect Friends</Text>
+          <Text variant="primary" style={styles.headerTitle}>
+            Connect Friends
+          </Text>
           <View style={styles.backButton} />
         </View>
 
-        {/* Friend Limit Info */}
-        {friendCount && (
-          <View style={styles.limitInfoCard}>
-            <View style={styles.limitInfoHeader}>
-              <Ionicons
-                name={friendCount.canAddMore ? "people-outline" : "lock-closed"}
-                size={20}
-                color={friendCount.canAddMore ? "#10B981" : "#EF4444"}
-              />
-              <Text style={styles.limitInfoTitle}>Your Connections</Text>
-            </View>
-            <Text style={styles.limitInfoText}>
-              {friendCount.count} / {friendCount.limit}{" "}
-              {isPremium ? "(Pro Plan)" : "(Free Plan Limit)"}
-            </Text>
-            {!friendCount.canAddMore && !isPremium && (
-              <TouchableOpacity
-                style={styles.upgradeButton}
-                onPress={() => navigation.navigate("SubscriptionManagement" as never)}
-              >
-                <Text style={styles.upgradeButtonText}>
-                  Upgrade to Pro for up to 24 friends
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        {/* Method 1: Invite Code */}
+        {/* Invite Code */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.iconContainer}>
-              <Ionicons name="keypad" size={24} color="#007AFF" />
+              <Ionicons
+                name="keypad"
+                size={20}
+                color={Colors.interaction.primary}
+              />
             </View>
             <View style={styles.cardHeaderText}>
-              <Text style={styles.cardTitle}>Add Friends With Invite Code</Text>
-              <Text style={styles.cardDescription}>
+              <Text variant="primary" style={styles.cardTitle}>
+                Add Friends With Invite Code
+              </Text>
+              <Text variant="secondary" style={styles.cardDescription}>
                 Share your code or enter a friend's code to connect
               </Text>
             </View>
           </View>
 
-          {/* My Invite Code */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Your Invite Code</Text>
+            <Text variant="secondary" style={styles.sectionLabel}>
+              Your Invite Code
+            </Text>
             <View style={styles.codeContainer}>
-              <Text style={styles.codeText}>
+              <Text variant="primary" style={styles.codeText}>
                 {myInviteCode || "Loading..."}
               </Text>
               <View style={styles.codeActions}>
@@ -317,13 +255,21 @@ export default function ConnectScreen({ navigation, route }: Props) {
                   style={styles.iconButton}
                   onPress={handleCopyCode}
                 >
-                  <Ionicons name="copy-outline" size={20} color="#007AFF" />
+                  <Ionicons
+                    name="copy-outline"
+                    size={20}
+                    color={Colors.interaction.primary}
+                  />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.iconButton}
                   onPress={handleShareCode}
                 >
-                  <Ionicons name="share-outline" size={20} color="#007AFF" />
+                  <Ionicons
+                    name="share-outline"
+                    size={20}
+                    color={Colors.interaction.primary}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -331,57 +277,63 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
           <View style={styles.divider} />
 
-          {/* Enter Code */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Enter a Code</Text>
+            <Text variant="secondary" style={styles.sectionLabel}>
+              Enter a Code
+            </Text>
             <View style={styles.inputContainer}>
               <TextInput
-                style={styles.input}
                 placeholder="Enter invite code"
                 value={inviteCode}
                 onChangeText={setInviteCode}
                 maxLength={8}
                 autoCapitalize="characters"
-                placeholderTextColor="#9CA3AF"
+                style={styles.input}
               />
-              <TouchableOpacity
-                style={[
-                  styles.redeemButton,
-                  redeemingCode && styles.redeemButtonDisabled,
-                ]}
+              <Button
+                variant="primary"
                 onPress={handleRedeemCode}
+                loading={redeemingCode}
                 disabled={redeemingCode || !inviteCode.trim()}
+                fullWidth={false}
+                style={styles.redeemButton}
               >
-                {redeemingCode ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.redeemButtonText}>Connect</Text>
-                )}
-              </TouchableOpacity>
+                Connect
+              </Button>
             </View>
           </View>
         </View>
 
-        {/* Method 2: Shareable Link */}
+        {/* Shareable Link */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="link" size={24} color="#10B981" />
+            <View style={[styles.iconContainer, styles.iconContainerMint]}>
+              <Ionicons
+                name="link"
+                size={20}
+                color={Colors.interaction.primary}
+              />
             </View>
             <View style={styles.cardHeaderText}>
-              <Text style={styles.cardTitle}>
+              <Text variant="primary" style={styles.cardTitle}>
                 Add Friends By Shareable Link
               </Text>
-              <Text style={styles.cardDescription}>
+              <Text variant="secondary" style={styles.cardDescription}>
                 Share a link that opens the app and confirms connection
               </Text>
             </View>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Your Shareable Link</Text>
+            <Text variant="secondary" style={styles.sectionLabel}>
+              Your Shareable Link
+            </Text>
             <View style={styles.linkContainer}>
-              <Text style={styles.linkText} numberOfLines={2}>
+              <Text
+                variant="primary"
+                style={styles.linkText}
+                numberOfLines={2}
+              >
                 {shareableLink || "Loading..."}
               </Text>
               <View style={styles.linkActions}>
@@ -389,32 +341,36 @@ export default function ConnectScreen({ navigation, route }: Props) {
                   style={styles.iconButton}
                   onPress={handleCopyLink}
                 >
-                  <Ionicons name="copy-outline" size={20} color="#10B981" />
+                  <Ionicons
+                    name="copy-outline"
+                    size={20}
+                    color={Colors.interaction.primary}
+                  />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.iconButton}
                   onPress={handleShareLink}
                 >
-                  <Ionicons name="share-outline" size={20} color="#10B981" />
+                  <Ionicons
+                    name="share-outline"
+                    size={20}
+                    color={Colors.interaction.primary}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
             {connectingByLink && (
               <View style={styles.connectingContainer}>
-                <ActivityIndicator size="small" color="#10B981" />
-                <Text style={styles.connectingText}>Connecting...</Text>
+                <ActivityIndicator
+                  size="small"
+                  color={Colors.interaction.primary}
+                />
+                <Text variant="primary" style={styles.connectingText}>
+                  Connecting...
+                </Text>
               </View>
             )}
           </View>
-        </View>
-
-        {/* Info Section */}
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={20} color="#6B7280" />
-          <Text style={styles.infoText}>
-            Both methods work globally and don't require contacts. Invite codes
-            are single-use, while shareable links can be used multiple times.
-          </Text>
         </View>
       </ScrollView>
     </View>
@@ -424,22 +380,20 @@ export default function ConnectScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Colors.canvas.background,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: Spacing.md,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
   },
   backButton: {
     width: 40,
@@ -448,204 +402,122 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: 18,
+    fontFamily: Typography.fontFamily.semiBold,
   },
   card: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
-    // No shadows, no elevation - using physical shift transform instead
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: "#F9FAFB",
+    borderRadius: Borders.radius.medium,
   },
   cardHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 24,
+    marginBottom: Spacing.md,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#EFF6FF",
+    width: 40,
+    height: 40,
+    borderRadius: Borders.radius.medium,
+    backgroundColor: Colors.interaction.primary + "15",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: Spacing.sm,
+  },
+  iconContainerMint: {
+    backgroundColor: Colors.interaction.primary + "15",
   },
   cardHeaderText: {
     flex: 1,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 4,
+    fontSize: 16,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: Spacing.xs,
   },
   cardDescription: {
-    fontSize: 14,
-    color: "#6B7280",
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: Spacing.md,
   },
   sectionLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 12,
+    fontSize: 13,
+    fontFamily: Typography.fontFamily.medium,
+    marginBottom: Spacing.xs,
   },
   codeContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.sm,
+    backgroundColor: Colors.canvas.background,
   },
   codeText: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
     letterSpacing: 2,
-    fontFamily: "monospace",
   },
   codeActions: {
     flexDirection: "row",
-    gap: 8,
+    gap: Spacing.sm,
   },
   linkContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.sm,
+    backgroundColor: Colors.canvas.background,
   },
   linkText: {
     flex: 1,
-    minWidth: 0, // Allow flex shrinking for text truncation
+    minWidth: 0,
     fontSize: 14,
-    color: "#111827",
-    marginRight: 8,
+    marginRight: Spacing.sm,
   },
   linkActions: {
     flexDirection: "row",
-    gap: 8,
+    gap: Spacing.sm,
   },
   iconButton: {
-    padding: 8,
+    padding: Spacing.sm,
   },
   divider: {
     height: 1,
-    backgroundColor: "#F3F4F6",
-    marginVertical: 20,
+    backgroundColor: Colors.text.secondary,
+    opacity: 0.3,
+    marginVertical: Spacing.md,
   },
   inputContainer: {
     flexDirection: "row",
-    gap: 12,
-    flexWrap: "wrap", // Allow wrapping on very small screens
+    gap: Spacing.sm,
+    flexWrap: "wrap",
   },
   input: {
     flex: 1,
-    minWidth: 120, // Minimum width for input on small screens
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    padding: 16,
-    backgroundColor: "#F9FAFB",
+    minWidth: 120,
     textAlign: "center",
     letterSpacing: 4,
-    fontFamily: "monospace",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   redeemButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    minWidth: 90, // Reduced from 100 for better fit on small screens
-    flexShrink: 0, // Prevent button from shrinking
-  },
-  redeemButtonDisabled: {
-    opacity: 0.5,
-  },
-  redeemButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  infoCard: {
-    flexDirection: "row",
-    marginHorizontal: 20,
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    gap: 12,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#6B7280",
-    lineHeight: 18,
+    minWidth: 90,
+    flexShrink: 0,
   },
   connectingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 12,
-    gap: 8,
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
   },
   connectingText: {
     fontSize: 14,
-    color: "#10B981",
-    fontWeight: "500",
-  },
-  limitInfoCard: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  limitInfoHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
-  },
-  limitInfoTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  limitInfoText: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 12,
-  },
-  upgradeButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    alignItems: "center",
-  },
-  upgradeButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.interaction.primary,
   },
 });

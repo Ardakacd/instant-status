@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -16,6 +15,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { Connection } from "../types";
 import { connectionsService } from "../services/connections.service";
 import Toast from "react-native-toast-message";
+import { Colors, Borders, Spacing, Typography } from "../design";
+import { Text } from "../components/primitives/Text";
+import { Button } from "../components/actions/Button";
+import { InlineAction } from "../components/actions/InlineAction";
 
 export default function FriendsScreen() {
   const navigation = useNavigation();
@@ -57,7 +60,7 @@ export default function FriendsScreen() {
 
     const friendName = getDisplayName(
       selectedConnection.friend_first_name,
-      selectedConnection.friend_last_name
+      selectedConnection.friend_last_name,
     );
 
     closeManageMenu();
@@ -73,7 +76,7 @@ export default function FriendsScreen() {
           onPress: async () => {
             try {
               await connectionsService.deleteConnection(
-                selectedConnection.friend_id
+                selectedConnection.friend_id,
               );
               await loadConnections();
               Toast.show({
@@ -88,7 +91,7 @@ export default function FriendsScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -101,7 +104,7 @@ export default function FriendsScreen() {
     try {
       await connectionsService.updateVisibility(
         selectedConnection.friend_id,
-        newUserShowsStatus
+        newUserShowsStatus,
       );
 
       // Update local state
@@ -115,8 +118,8 @@ export default function FriendsScreen() {
                 // Update combined visibility: both must be true
                 visibility: newUserShowsStatus && (conn.visibility || false),
               }
-            : conn
-        )
+            : conn,
+        ),
       );
 
       closeManageMenu();
@@ -130,7 +133,9 @@ export default function FriendsScreen() {
     } catch (error: any) {
       Toast.show({
         type: "error",
-        text1: error.message || "Failed to update visibility. Check your connection and try again.",
+        text1:
+          error.message ||
+          "Failed to update visibility. Check your connection and try again.",
       });
     }
   };
@@ -150,7 +155,7 @@ export default function FriendsScreen() {
 
   const getDisplayName = (
     firstName: string | null,
-    lastName: string | null
+    lastName: string | null,
   ) => {
     if (firstName && lastName) {
       return `${firstName} ${lastName}`;
@@ -162,36 +167,47 @@ export default function FriendsScreen() {
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { flexGrow: 1, paddingTop: insets.top + Spacing.md },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={loadConnections}
-            tintColor="#007AFF"
-            colors={["#007AFF"]}
+            tintColor={Colors.interaction.primary}
+            colors={[Colors.interaction.primary]}
             progressViewOffset={60}
           />
         }
       >
-        {/* Header */}
-        <View
-          style={[styles.header, { paddingTop: Math.max(insets.top + 10, 40) }]}
-        >
-          <Text style={styles.headerTitle}>Friends</Text>
-        </View>
-
         {/* Friends Section */}
         <View style={styles.friendsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>My Friends</Text>
+            <Text variant="primary" style={styles.sectionTitle}>
+              My Friends
+            </Text>
             <View style={styles.headerRight}>
-              <Text style={styles.friendCount}>{connections.length}</Text>
+              <View style={styles.friendCount}>
+                <Ionicons
+                  name="people-outline"
+                  size={14}
+                  color={Colors.text.secondary}
+                  style={styles.friendCountIcon}
+                />
+                <Text style={styles.friendCountText}>{connections.length}</Text>
+              </View>
               <TouchableOpacity
                 style={styles.connectButton}
                 onPress={() => navigation.navigate("Connect" as never)}
+                activeOpacity={0.7}
               >
-                <Ionicons name="person-add" size={16} color="#007AFF" />
+                <Ionicons
+                  name="person-add"
+                  size={16}
+                  color={Colors.interaction.primary}
+                />
                 <Text style={styles.connectButtonText}>Connect</Text>
               </TouchableOpacity>
             </View>
@@ -199,70 +215,101 @@ export default function FriendsScreen() {
 
           {refreshing ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#007AFF" />
+              <ActivityIndicator
+                size="small"
+                color={Colors.interaction.primary}
+              />
             </View>
           ) : connections.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>👥</Text>
-              <Text style={styles.emptyTitle}>No friends yet</Text>
-              <Text style={styles.emptyText}>
+              <View style={styles.emptyIconContainer}>
+                <Text style={styles.emptyIcon}>👥</Text>
+              </View>
+              <Text variant="primary" style={styles.emptyTitle}>
+                No friends yet
+              </Text>
+              <Text variant="secondary" style={styles.emptyText}>
                 Connect with friends to see them here
               </Text>
+              <Button
+                variant="primary"
+                onPress={() => navigation.navigate("Connect" as never)}
+                style={styles.emptyConnectButton}
+              >
+                Connect
+              </Button>
             </View>
           ) : (
             <View style={styles.friendsList}>
               {connections.map((conn) => {
                 const displayName = getDisplayName(
                   conn.friend_first_name,
-                  conn.friend_last_name
+                  conn.friend_last_name,
                 );
                 const initials = getInitials(
                   conn.friend_first_name,
-                  conn.friend_last_name
+                  conn.friend_last_name,
                 );
                 return (
-                  <View key={conn.id} style={styles.friendCard}>
-                    <View
-                      style={[styles.avatar, { backgroundColor: "#EFF6FF" }]}
-                    >
-                      {conn.friend_avatar_url ? (
-                        <Text style={styles.avatarText}>IMG</Text>
-                      ) : (
-                        <Text style={styles.avatarText}>{initials}</Text>
-                      )}
-                    </View>
-                    <View style={styles.friendInfo}>
-                      <Text style={styles.friendName} numberOfLines={1}>
-                        {displayName}
-                      </Text>
-                      <View style={styles.friendStatusRow}>
-                        <View
-                          style={[
-                            styles.statusDot,
-                            { backgroundColor: "#10B981" },
-                          ]}
-                        />
-                        <Text style={styles.friendStatus} numberOfLines={1}>
-                          Connected
-                        </Text>
+                  <TouchableOpacity
+                    key={conn.id}
+                    onPress={() => openManageMenu(conn)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.friendCard}>
+                      <View style={styles.avatar}>
+                        {conn.friend_avatar_url ? (
+                          <Text variant="primary" style={styles.avatarText}>
+                            IMG
+                          </Text>
+                        ) : (
+                          <Text variant="primary" style={styles.avatarText}>
+                            {initials}
+                          </Text>
+                        )}
                       </View>
-                      {!conn.user_shows_status && (
-                        <Text style={styles.hiddenStatusText}>
-                          You've hidden your status from them
+                      <View style={styles.friendInfo}>
+                        <Text
+                          variant="primary"
+                          style={styles.friendName}
+                          numberOfLines={1}
+                        >
+                          {displayName}
                         </Text>
-                      )}
+                        <View style={styles.friendStatusRow}>
+                          <View
+                            style={[
+                              styles.statusDot,
+                              { backgroundColor: Colors.interaction.primary },
+                            ]}
+                          />
+                          <Text
+                            variant="secondary"
+                            style={styles.friendStatus}
+                            numberOfLines={1}
+                          >
+                            Connected
+                          </Text>
+                        </View>
+                        {!conn.user_shows_status && (
+                          <Text variant="hint" style={styles.hiddenStatusText}>
+                            You've hidden your status from them
+                          </Text>
+                        )}
+                      </View>
+                      <TouchableOpacity
+                        style={styles.manageButton}
+                        onPress={() => openManageMenu(conn)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <Ionicons
+                          name="ellipsis-horizontal"
+                          size={20}
+                          color={Colors.text.secondary}
+                        />
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity
-                      style={styles.manageButton}
-                      onPress={() => openManageMenu(conn)}
-                    >
-                      <Ionicons
-                        name="ellipsis-horizontal"
-                        size={20}
-                        color="#6B7280"
-                      />
-                    </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -282,14 +329,17 @@ export default function FriendsScreen() {
           activeOpacity={1}
           onPress={closeManageMenu}
         >
-          <View style={styles.manageMenu}>
+          <View
+            style={styles.manageMenu}
+            onStartShouldSetResponder={() => true}
+          >
             {selectedConnection && (
               <>
                 <View style={styles.manageMenuHeader}>
-                  <Text style={styles.manageMenuTitle}>
+                  <Text variant="primary" style={styles.manageMenuTitle}>
                     {getDisplayName(
                       selectedConnection.friend_first_name,
-                      selectedConnection.friend_last_name
+                      selectedConnection.friend_last_name,
                     )}
                   </Text>
                 </View>
@@ -297,6 +347,7 @@ export default function FriendsScreen() {
                 <TouchableOpacity
                   style={styles.manageMenuItem}
                   onPress={handleToggleVisibility}
+                  activeOpacity={0.7}
                 >
                   <Ionicons
                     name={
@@ -305,15 +356,18 @@ export default function FriendsScreen() {
                         : "eye-outline"
                     }
                     size={22}
-                    color="#111827"
+                    color={Colors.text.primary}
                   />
                   <View style={styles.manageMenuItemContent}>
-                    <Text style={styles.manageMenuItemText}>
+                    <Text variant="primary" style={styles.manageMenuItemText}>
                       {selectedConnection.user_shows_status
                         ? "Hide my status"
                         : "Show my status"}
                     </Text>
-                    <Text style={styles.manageMenuItemSubtext}>
+                    <Text
+                      variant="secondary"
+                      style={styles.manageMenuItemSubtext}
+                    >
                       {selectedConnection.user_shows_status
                         ? "You'll hide your status from them. They won't see your status until you enable it again."
                         : "You'll enable status sharing. They can see your status when you enable it."}
@@ -326,18 +380,24 @@ export default function FriendsScreen() {
                 <TouchableOpacity
                   style={[styles.manageMenuItem, styles.manageMenuItemDanger]}
                   onPress={handleRemoveFriend}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="trash-outline" size={22} color="#EF4444" />
+                  <Ionicons
+                    name="trash-outline"
+                    size={22}
+                    color={Colors.interaction.error}
+                  />
                   <View style={styles.manageMenuItemContent}>
                     <Text
-                      style={[
-                        styles.manageMenuItemText,
-                        styles.manageMenuItemTextDanger,
-                      ]}
+                      variant="primary"
+                      style={styles.manageMenuItemTextDanger}
                     >
                       Remove friend
                     </Text>
-                    <Text style={styles.manageMenuItemSubtext}>
+                    <Text
+                      variant="secondary"
+                      style={styles.manageMenuItemSubtext}
+                    >
                       Permanently remove this connection
                     </Text>
                   </View>
@@ -346,8 +406,9 @@ export default function FriendsScreen() {
                 <TouchableOpacity
                   style={styles.manageMenuCancel}
                   onPress={closeManageMenu}
+                  activeOpacity={0.7}
                 >
-                  <Text style={styles.manageMenuCancelText}>Cancel</Text>
+                  <InlineAction fontSize={16}>Cancel</InlineAction>
                 </TouchableOpacity>
               </>
             )}
@@ -361,102 +422,103 @@ export default function FriendsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Colors.canvas.background,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
-  },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    backgroundColor: "#FFFFFF",
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#111827",
+    paddingBottom: Spacing.lg,
   },
   friendsSection: {
-    marginTop: 20,
-    paddingHorizontal: 20,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.sm,
   },
   friendCount: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#6B7280",
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Borders.radius.medium,
+    minWidth: 44,
+    justifyContent: "center",
+  },
+  friendCountIcon: {
+    marginRight: Spacing.xs,
+  },
+  friendCountText: {
+    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: 14,
+    color: Colors.text.primary,
   },
   connectButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EFF6FF",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
   },
   connectButtonText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#007AFF",
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.interaction.primary,
   },
   loadingContainer: {
-    padding: 40,
+    padding: Spacing.xxl,
     alignItems: "center",
   },
   emptyState: {
     alignItems: "center",
-    paddingVertical: 60,
-    paddingHorizontal: 40,
+    paddingTop: Spacing.xxl + Spacing.lg,
+    paddingBottom: Spacing.xxl,
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyIconContainer: {
+    height: 64,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.md,
   },
   emptyIcon: {
-    fontSize: 48,
-    marginBottom: 16,
+    fontSize: 52,
+    lineHeight: 64,
+    includeFontPadding: false,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 8,
+    fontFamily: Typography.fontFamily.semiBold,
+    marginBottom: Spacing.sm,
   },
   emptyText: {
     fontSize: 14,
-    color: "#6B7280",
     textAlign: "center",
   },
+  emptyConnectButton: {
+    marginTop: Spacing.lg,
+  },
   friendsList: {
-    gap: 12,
+    gap: Spacing.md,
   },
   friendCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    // No shadows, no elevation - using physical shift transform instead
+    padding: Spacing.md,
   },
   avatar: {
     width: 56,
@@ -464,23 +526,21 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
-    position: "relative",
+    marginRight: Spacing.sm,
+    backgroundColor: Colors.interaction.primary + "15",
   },
   avatarText: {
     fontSize: 20,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   friendInfo: {
     flex: 1,
-    minWidth: 0, // Allow flex shrinking for text truncation
+    minWidth: 0,
   },
   friendName: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 6,
+    fontFamily: Typography.fontFamily.medium,
+    marginBottom: Spacing.xs,
   },
   friendStatusRow: {
     flexDirection: "row",
@@ -490,21 +550,17 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 6,
+    marginRight: Spacing.xs,
   },
   friendStatus: {
     fontSize: 14,
-    color: "#6B7280",
     flex: 1,
   },
   hiddenStatusText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginTop: 4,
-    fontStyle: "italic",
+    marginTop: Spacing.xs,
   },
   manageButton: {
-    padding: 8,
+    padding: Spacing.sm,
   },
   modalOverlay: {
     flex: 1,
@@ -512,63 +568,54 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   manageMenu: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 40,
-    paddingTop: 20,
+    backgroundColor: Colors.canvas.background,
+    borderTopLeftRadius: Borders.radius.large,
+    borderTopRightRadius: Borders.radius.large,
+    paddingBottom: Spacing.xxl,
+    paddingTop: Spacing.lg,
   },
   manageMenuHeader: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.text.secondary + "40",
   },
   manageMenuTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
+    fontFamily: Typography.fontFamily.semiBold,
   },
   manageMenuItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    gap: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.sm,
   },
-  manageMenuItemDanger: {
-    // Keep same style but will use danger color for text
-  },
+  manageMenuItemDanger: {},
   manageMenuItemContent: {
     flex: 1,
   },
   manageMenuItemText: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#111827",
-    marginBottom: 4,
+    fontFamily: Typography.fontFamily.medium,
+    marginBottom: Spacing.xs,
   },
   manageMenuItemTextDanger: {
-    color: "#EF4444",
+    color: Colors.interaction.error,
   },
   manageMenuItemSubtext: {
     fontSize: 14,
-    color: "#6B7280",
     lineHeight: 20,
   },
   manageMenuDivider: {
     height: 1,
-    backgroundColor: "#F3F4F6",
-    marginVertical: 8,
+    backgroundColor: Colors.text.secondary,
+    opacity: 0.3,
+    marginVertical: Spacing.sm,
   },
   manageMenuCancel: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     alignItems: "center",
-  },
-  manageMenuCancelText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#007AFF",
   },
 });
