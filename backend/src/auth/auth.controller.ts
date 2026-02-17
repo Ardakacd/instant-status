@@ -5,6 +5,7 @@ import {
   UseGuards,
   Request,
   UnauthorizedException,
+  NotFoundException,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { UserService } from "../user/user.service";
@@ -63,9 +64,8 @@ export class AuthController {
     // But we still fetch fresh data from database
     const user = await this.userService.findById(req.user.id);
 
-    // This shouldn't happen since user comes from token, but handle it gracefully
     if (!user) {
-      throw new UnauthorizedException("User not found");
+      throw new NotFoundException("User not found");
     }
 
     return {
@@ -85,7 +85,7 @@ export class AuthController {
   async sendEmailVerification(@Request() req) {
     const user = await this.userService.findById(req.user.id);
     if (!user) {
-      throw new UnauthorizedException("User not found");
+      throw new NotFoundException("User not found");
     }
 
     await this.authService.sendEmailVerification(user.firebase_uid);
