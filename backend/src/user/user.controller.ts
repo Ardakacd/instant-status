@@ -6,7 +6,7 @@ import {
   Body,
   UseGuards,
   Request,
-  UnauthorizedException,
+  NotFoundException,
 } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { AuthGuard } from "../auth/auth.guard";
@@ -31,8 +31,7 @@ export class UserController {
     const user = await this.userService.findById(req.user.id);
 
     if (!user) {
-      // This shouldn't happen, but handle it gracefully
-      throw new UnauthorizedException("User not found");
+      throw new NotFoundException("User not found");
     }
 
     // Calculate premium status with grace period
@@ -139,7 +138,7 @@ export class UserController {
 
     const user = await this.userService.findByFirebaseUid(firebase_uid);
     if (!user) {
-      throw new UnauthorizedException("User not found");
+      throw new NotFoundException("User not found");
     }
 
     await this.userService.delete(user.id);
