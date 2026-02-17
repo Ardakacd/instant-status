@@ -22,14 +22,14 @@ export async function seedDefaultStatusOptions(dataSource: DataSource) {
     {
       user_id: null,
       label: "Available",
-      emoji: "🟢",
+      emoji: "✅",
       color: "#10B981",
       sort_order: 0,
     },
     {
       user_id: null,
       label: "Busy",
-      emoji: "🟠",
+      emoji: "🔴",
       color: "#F59E0B",
       sort_order: 1,
     },
