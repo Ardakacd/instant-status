@@ -138,22 +138,9 @@ export const Button = forwardRef<View, ButtonProps>(
           style={[
             styles.container,
             fullWidth && styles.fullWidth,
-            styles.primaryWrapper,
             style,
           ]}
         >
-          <View
-            pointerEvents="none"
-            style={[
-              styles.shadowLayer,
-              {
-                top: PhysicalShift.offset.y,
-                left: PhysicalShift.offset.x,
-                borderRadius: Borders.radius.medium,
-                backgroundColor: Colors.text.primary,
-              },
-            ]}
-          />
           <Pressable
             onPress={handlePress}
             onPressIn={handlePressIn}
@@ -246,16 +233,6 @@ const styles = StyleSheet.create({
   },
   fullWidth: {
     width: "100%",
-  },
-  primaryWrapper: {
-    marginBottom: PhysicalShift.offset.y,
-    marginRight: PhysicalShift.offset.x,
-  },
-  shadowLayer: {
-    position: "absolute",
-    left: PhysicalShift.offset.x,
-    right: 0,
-    bottom: 0,
   },
   pressable: {
     width: "100%",

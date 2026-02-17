@@ -1,6 +1,6 @@
 /**
  * Color Picker Component (Full Palette)
- * 
+ *
  * Rules:
  * - 4-column grid for thumb reachability
  * - Selected state uses thick charcoal border
@@ -32,13 +32,17 @@ const COLOR_PALETTE = [
   { hex: "#14B8A6", name: "Teal" },
 ];
 
-export const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onSelect }) => {
+export const ColorPicker: React.FC<ColorPickerProps> = ({
+  selectedColor,
+  onSelect,
+}) => {
   return (
     <View style={styles.container}>
       <View style={styles.colorGrid}>
         {COLOR_PALETTE.map((color) => {
-          const isSelected = selectedColor.toUpperCase() === color.hex.toUpperCase();
-          
+          const isSelected =
+            selectedColor.toUpperCase() === color.hex.toUpperCase();
+
           return (
             <TouchableOpacity
               key={color.hex}
@@ -51,9 +55,9 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onSelec
               activeOpacity={1}
             >
               {isSelected && (
-                <Ionicons 
-                  name="checkmark" 
-                  size={24} 
+                <Ionicons
+                  name="checkmark"
+                  size={24}
                   color={Colors.text.primary} // High-contrast charcoal
                 />
               )}
@@ -68,12 +72,12 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ selectedColor, onSelec
 const styles = StyleSheet.create({
   container: {
     marginVertical: Spacing.md,
-    alignItems: 'center',
+    alignItems: "center",
   },
   colorGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    width: '100%',
+    width: "100%",
     justifyContent: "space-between", // Even spacing for the grid
     gap: 12,
   },
@@ -84,7 +88,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1, // Subtle border for non-selected
-    borderColor: 'rgba(0,0,0,0.05)', 
+    borderColor: "rgba(0,0,0,0.05)",
   },
   colorButtonSelected: {
     borderWidth: Borders.width, // Thick 2px Neobrutalist border

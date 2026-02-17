@@ -15,7 +15,7 @@ export default function StatusPreviewCard({
   label,
   color,
 }: StatusPreviewCardProps) {
-  const backgroundColor = color || Colors.interaction.primary;
+  const backgroundColor = color || "#3B82F6";
   const textColor = getContrastingTextColor(backgroundColor);
   
   return (
@@ -32,7 +32,7 @@ export default function StatusPreviewCard({
         style={{ backgroundColor }}
       >
         <View style={styles.previewContent}>
-          <Text style={styles.previewEmoji}>{emoji || "🟢"}</Text>
+          <Text style={styles.previewEmoji}>{emoji || "😎"}</Text>
           <Text style={[styles.previewText, { color: textColor }]}>
             {label || "Status Label"}
           </Text>
@@ -44,28 +44,30 @@ export default function StatusPreviewCard({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   previewLabel: {
     fontFamily: Typography.fontFamily.semiBold,
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.text.secondary,
-    marginBottom: Spacing.sm,
-    textTransform: 'uppercase', // Makes it look more like a "label"
+    marginBottom: Spacing.xs,
+    textTransform: 'uppercase',
   },
   previewContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center", // Center content for the preview
+    justifyContent: "center",
     gap: Spacing.md,
     paddingVertical: Spacing.xs,
+    minHeight: 40,
   },
   previewEmoji: {
-    fontSize: 32,
+    fontSize: 26,
+    lineHeight: 30,
+    includeFontPadding: false,
   },
   previewText: {
     fontFamily: Typography.fontFamily.semiBold,
     fontSize: 18,
-    // Color is set dynamically via getContrastingTextColor for accessibility
   },
 });

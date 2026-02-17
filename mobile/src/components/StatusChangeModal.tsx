@@ -12,7 +12,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { StatusOption } from "../types";
-import { Colors, Borders, Spacing, Typography, getContrastingTextColor } from "../design";
+import {
+  Colors,
+  Borders,
+  Spacing,
+  Typography,
+  getContrastingTextColor,
+} from "../design";
 import { Text } from "./primitives/Text";
 import { TextInput } from "./inputs/TextInput";
 import { Section } from "./containers/Section";
@@ -39,7 +45,7 @@ export default function StatusChangeModal({
   const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [customDate, setCustomDate] = useState(new Date());
   const [androidPickerMode, setAndroidPickerMode] = useState<"date" | "time">(
-    "date"
+    "date",
   );
 
   // Note: All statuses can have expiration times
@@ -115,20 +121,20 @@ export default function StatusChangeModal({
   const handleConfirm = () => {
     // Haptics for status change (medium strength for action)
     hapticAction();
-    
+
     // All statuses can have expiration times
-    onConfirm(selectedOption.id, note.trim() || undefined, expiresAt || undefined);
+    onConfirm(
+      selectedOption.id,
+      note.trim() || undefined,
+      expiresAt || undefined,
+    );
     // Reset form
     setNote("");
     setExpiresAt(null);
     setShowCustomPicker(false);
   };
 
-  // Format datetime display with "Until Tonight" for end of day
   const formatDateTimeDisplay = (date: Date): string => {
-    if (isEndOfDay(date)) {
-      return "Until Tonight";
-    }
     return date.toLocaleString(undefined, {
       month: "short",
       day: "numeric",
@@ -195,7 +201,9 @@ export default function StatusChangeModal({
                       <Text style={styles.statusIcon}>{statusIcon}</Text>
                     </View>
                     <View style={styles.headerText}>
-                      <Text variant="primary" style={styles.headerTitle}>Set Status</Text>
+                      <Text variant="primary" style={styles.headerTitle}>
+                        Set Status
+                      </Text>
                       <Text variant="secondary" style={styles.headerSubtitle}>
                         {statusLabel}
                       </Text>
@@ -205,7 +213,11 @@ export default function StatusChangeModal({
                     onPress={handleClose}
                     style={styles.closeButton}
                   >
-                    <Ionicons name="close" size={24} color={Colors.text.secondary} />
+                    <Ionicons
+                      name="close"
+                      size={24}
+                      color={Colors.text.secondary}
+                    />
                   </TouchableOpacity>
                 </View>
 
@@ -218,7 +230,9 @@ export default function StatusChangeModal({
                   <Section spacing="lg">
                     {/* Note Input */}
                     <View>
-                      <Text variant="primary" style={styles.sectionLabel}>Note (Optional)</Text>
+                      <Text variant="primary" style={styles.sectionLabel}>
+                        Note (Optional)
+                      </Text>
                       <TextInput
                         style={styles.noteInput}
                         placeholder="Add a note..."
@@ -231,7 +245,9 @@ export default function StatusChangeModal({
                         returnKeyType="done"
                         onSubmitEditing={Keyboard.dismiss}
                       />
-                      <Text variant="hint" style={styles.charCount}>{note.length}/200</Text>
+                      <Text variant="hint" style={styles.charCount}>
+                        {note.length}/200
+                      </Text>
                     </View>
 
                     {/* Until When Section - All statuses can have expiration times */}
@@ -251,7 +267,7 @@ export default function StatusChangeModal({
                             expiresAt &&
                               Math.abs(
                                 expiresAt.getTime() -
-                                  getPresetDate("30min").getTime()
+                                  getPresetDate("30min").getTime(),
                               ) < 60000 &&
                               styles.presetButtonActive,
                           ]}
@@ -265,7 +281,7 @@ export default function StatusChangeModal({
                               expiresAt &&
                                 Math.abs(
                                   expiresAt.getTime() -
-                                    getPresetDate("30min").getTime()
+                                    getPresetDate("30min").getTime(),
                                 ) < 60000 &&
                                 styles.presetButtonTextActive,
                             ]}
@@ -280,7 +296,7 @@ export default function StatusChangeModal({
                             expiresAt &&
                               Math.abs(
                                 expiresAt.getTime() -
-                                  getPresetDate("1hour").getTime()
+                                  getPresetDate("1hour").getTime(),
                               ) < 60000 &&
                               styles.presetButtonActive,
                           ]}
@@ -294,7 +310,7 @@ export default function StatusChangeModal({
                               expiresAt &&
                                 Math.abs(
                                   expiresAt.getTime() -
-                                    getPresetDate("1hour").getTime()
+                                    getPresetDate("1hour").getTime(),
                                 ) < 60000 &&
                                 styles.presetButtonTextActive,
                             ]}
@@ -309,7 +325,7 @@ export default function StatusChangeModal({
                             expiresAt &&
                               Math.abs(
                                 expiresAt.getTime() -
-                                  getPresetDate("2hours").getTime()
+                                  getPresetDate("2hours").getTime(),
                               ) < 60000 &&
                               styles.presetButtonActive,
                           ]}
@@ -323,7 +339,7 @@ export default function StatusChangeModal({
                               expiresAt &&
                                 Math.abs(
                                   expiresAt.getTime() -
-                                    getPresetDate("2hours").getTime()
+                                    getPresetDate("2hours").getTime(),
                                 ) < 60000 &&
                                 styles.presetButtonTextActive,
                             ]}
@@ -371,7 +387,10 @@ export default function StatusChangeModal({
                             size={20}
                             color={Colors.interaction.primary}
                           />
-                          <Text variant="primary" style={styles.customPickerText}>
+                          <Text
+                            variant="primary"
+                            style={styles.customPickerText}
+                          >
                             Pick custom date & time
                           </Text>
                         </TouchableOpacity>
@@ -382,10 +401,16 @@ export default function StatusChangeModal({
                         <View style={styles.selectedDateTimeContainer}>
                           <View style={styles.selectedDateTimeContent}>
                             <View style={styles.selectedDateTimeTextContainer}>
-                              <Text variant="hint" style={styles.selectedDateTimeLabel}>
+                              <Text
+                                variant="hint"
+                                style={styles.selectedDateTimeLabel}
+                              >
                                 Selected:
                               </Text>
-                              <Text variant="primary" style={styles.selectedDateTimeText}>
+                              <Text
+                                variant="primary"
+                                style={styles.selectedDateTimeText}
+                              >
                                 {formatDateTimeDisplay(expiresAt)}
                               </Text>
                             </View>
@@ -412,11 +437,17 @@ export default function StatusChangeModal({
                               style={styles.iosPickerCancelButton}
                               activeOpacity={0.7}
                             >
-                              <Text variant="secondary" style={styles.iosPickerCancelText}>
+                              <Text
+                                variant="secondary"
+                                style={styles.iosPickerCancelText}
+                              >
                                 Cancel
                               </Text>
                             </TouchableOpacity>
-                            <Text variant="primary" style={styles.iosPickerTitle}>
+                            <Text
+                              variant="primary"
+                              style={styles.iosPickerTitle}
+                            >
                               Select Date & Time
                             </Text>
                             <TouchableOpacity
@@ -424,7 +455,12 @@ export default function StatusChangeModal({
                               style={styles.iosPickerDoneButton}
                               activeOpacity={0.7}
                             >
-                              <Text variant="primary" style={styles.iosPickerDoneText}>Done</Text>
+                              <Text
+                                variant="primary"
+                                style={styles.iosPickerDoneText}
+                              >
+                                Done
+                              </Text>
                             </TouchableOpacity>
                           </View>
                           <DateTimePicker
@@ -468,11 +504,23 @@ export default function StatusChangeModal({
                     activeOpacity={0.9}
                   >
                     {loading ? (
-                      <Text variant="primary" style={[styles.confirmButtonText, { color: getContrastingTextColor(statusColor) }]}>
+                      <Text
+                        variant="primary"
+                        style={[
+                          styles.confirmButtonText,
+                          { color: getContrastingTextColor(statusColor) },
+                        ]}
+                      >
                         Setting...
                       </Text>
                     ) : (
-                      <Text variant="primary" style={[styles.confirmButtonText, { color: getContrastingTextColor(statusColor) }]}>
+                      <Text
+                        variant="primary"
+                        style={[
+                          styles.confirmButtonText,
+                          { color: getContrastingTextColor(statusColor) },
+                        ]}
+                      >
                         Set Status
                       </Text>
                     )}
@@ -497,9 +545,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.canvas.background,
     borderTopLeftRadius: Borders.radius.large,
     borderTopRightRadius: Borders.radius.large,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.primary,
-    borderBottomWidth: 0, // No bottom border for modal
     maxHeight: "90%",
     paddingBottom: 40,
     // Physical shadow for Neobrutalist depth
@@ -517,8 +562,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: Spacing.lg,
-    borderBottomWidth: Borders.width,
-    borderBottomColor: Colors.text.primary,
   },
   headerContent: {
     flexDirection: "row",
@@ -534,7 +577,9 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   statusIcon: {
-    fontSize: 24,
+    fontSize: 22,
+    lineHeight: 26,
+    includeFontPadding: false,
   },
   headerText: {
     flex: 1,
@@ -612,9 +657,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: Spacing.md,
     borderRadius: Borders.radius.medium,
-    backgroundColor: Colors.canvas.background,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.secondary,
+    backgroundColor: "#F9FAFB",
     marginTop: Spacing.sm,
   },
   customPickerText: {
@@ -626,10 +669,8 @@ const styles = StyleSheet.create({
   selectedDateTimeContainer: {
     marginTop: Spacing.md,
     padding: Spacing.md,
-    backgroundColor: Colors.interaction.informational, // Lavender background
+    backgroundColor: "#ECFDF5",
     borderRadius: Borders.radius.medium,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.primary,
   },
   selectedDateTimeContent: {
     flexDirection: "row",
@@ -657,10 +698,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: Spacing.md,
     padding: Spacing.md,
-    backgroundColor: Colors.interaction.informational,
+    backgroundColor: "#ECFDF5",
     borderRadius: Borders.radius.medium,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.primary,
   },
   selectedExpiresText: {
     fontSize: 14,
@@ -673,14 +712,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     gap: Spacing.md,
-    borderTopWidth: Borders.width,
-    borderTopColor: Colors.text.primary,
   },
   cancelButton: {
     flex: 1,
   },
   confirmButton: {
-    flex: 1,
+    flex: 2,
     paddingVertical: Spacing.md,
     borderRadius: Borders.radius.medium,
     alignItems: "center",
@@ -696,10 +733,8 @@ const styles = StyleSheet.create({
   },
   iosPickerContainer: {
     marginTop: Spacing.md,
-    backgroundColor: Colors.canvas.background,
+    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.primary,
     overflow: "hidden",
   },
   iosPickerHeader: {
@@ -707,9 +742,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: Spacing.md,
-    borderBottomWidth: Borders.width,
-    borderBottomColor: Colors.text.primary,
-    backgroundColor: Colors.canvas.background,
+    backgroundColor: "#F9FAFB",
   },
   iosPickerTitle: {
     fontSize: 16,
