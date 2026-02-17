@@ -137,17 +137,17 @@ export const InputStyles = StyleSheet.create({
  */
 export const createPhysicalShiftTransform = (pressed: boolean = false) => {
   if (pressed) {
-    // Pressed state: foreground moves to cover the offset (aligns with shadow block)
+    // Pressed state: foreground moves down-right to cover the shadow block
     return {
-      transform: [{ translateX: 0 }, { translateY: 0 }],
+      transform: [
+        { translateX: PhysicalShift.offset.x },
+        { translateY: PhysicalShift.offset.y },
+      ],
     };
   }
-  // Default state: 4px right, 4px down (foreground moves away from shadow block)
+  // Default state: foreground at origin, shadow peeks from bottom-right
   return {
-    transform: [
-      { translateX: PhysicalShift.offset.x },
-      { translateY: PhysicalShift.offset.y },
-    ],
+    transform: [{ translateX: 0 }, { translateY: 0 }],
   };
 };
 
