@@ -2,7 +2,6 @@ import WidgetKit
 import SwiftUI
 import AppIntents
 import Foundation
-import OSLog
 
 // MARK: - Constants
 private let APP_GROUP_ID = "group.com.arda.instantstatus.dev"
@@ -114,7 +113,6 @@ struct RefreshWidgetIntent: AppIntent {
 
 struct FriendDataService {
     static let shared = FriendDataService()
-    private let logger = Logger(subsystem: "InstantStatus.Widget", category: "Data")
 
     func fetchAllFriends() -> [FriendStatusWidgetItem] {
         guard
@@ -122,10 +120,8 @@ struct FriendDataService {
             let jsonString = defaults.string(forKey: WIDGET_DATA_KEY),
             let jsonData = jsonString.data(using: .utf8)
         else {
-            logger.warning("No widget data found")
             return []
         }
-        logger.info("Widget data: \(jsonString)")
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
@@ -141,11 +137,9 @@ struct FriendDataService {
             )
         }
 
-        logger.info("Decoding widget data: \(jsonData)")
         do {
             return try decoder.decode([FriendStatusWidgetItem].self, from: jsonData)
         } catch {
-            logger.error("Decoding failed: \(String(describing: error))")
             return []
         }
     }

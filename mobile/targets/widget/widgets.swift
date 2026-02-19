@@ -67,7 +67,6 @@ struct Provider: AppIntentTimelineProvider {
     
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
         let allFriends = FriendDataService.shared.fetchAllFriends()
-        print("📊 Widget Timeline: Fetched \(allFriends.count) friends from storage")
         
         var filteredFriends: [FriendStatusWidgetItem] = []
 
@@ -79,27 +78,28 @@ struct Provider: AppIntentTimelineProvider {
             filteredFriends = selectedIDs.compactMap { id in
                 allFriends.first(where: { $0.id == id })
             }
-            print("📊 Widget Timeline: User selected \(selectedIDs.count) friends, found \(filteredFriends.count) matches")
         } else {
             filteredFriends = Array(allFriends.prefix(8))
-            print("📊 Widget Timeline: No selection, showing first \(filteredFriends.count) friends")
         }
 
         let hasAnyFriends = !allFriends.isEmpty
         let entry = SimpleEntry(date: Date(), configuration: configuration, friends: filteredFriends, hasAnyFriends: hasAnyFriends)
-        print("📊 Widget Timeline: Created entry with \(entry.friends.count) friends, hasAnyFriends: \(hasAnyFriends)")
         
         // 1. Find the friend whose status expires SOONEST
-        let nextExpiry = filteredFriends.compactMap { $0.expiresAt }
-            .filter { $0 > Date() }
+        let now = Date()
+        let nextExpiry = filteredFriends
+            .compactMap { $0.expiresAt }
+            .filter { $0 > now }
             .min()
-        
-        // 2. Set the refresh to that expiry time, or 15 mins (whichever is sooner)
-        // We use the SOONER of: the next expiry OR a 15-minute safety catch
-        let fifteenMins = Date().addingTimeInterval(900) // 15 minutes
-        let refreshDate = nextExpiry != nil ? min(nextExpiry!, fifteenMins) : fifteenMins
-        
-        return Timeline(entries: [entry], policy: .after(refreshDate))
+
+        // 2. Timeline policy: event-driven, not polling
+        // - If there's an upcoming expiry → refresh exactly when it expires
+        // - If no expiry → .atEnd = no periodic wakeups (app/push triggers reload)
+        if let nextExpiry = nextExpiry {
+            return Timeline(entries: [entry], policy: .after(nextExpiry))
+        } else {
+            return Timeline(entries: [entry], policy: .atEnd)
+        }
     }
 }
 
