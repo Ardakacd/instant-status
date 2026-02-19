@@ -1,5 +1,18 @@
 import axios from "axios";
 import { auth } from "./firebase";
+
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    _retry?: boolean;
+  }
+}
+
+/** API error with typed flags for error handling */
+export interface ApiError {
+  isSessionDead?: boolean;
+  isNetworkError?: boolean;
+}
+
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -17,6 +30,14 @@ export function setLoggingOut(value: boolean) {
 
 export function getLoggingOut(): boolean {
   return isLoggingOut;
+}
+
+// Event pattern: interceptor broadcasts "session dead" instead of importing authService
+// (breaks circular dep: api ↔ authService). AuthContext registers the handler.
+let onSessionDead: (() => Promise<void>) | null = null;
+
+export function setOnSessionDead(handler: (() => Promise<void>) | null) {
+  onSessionDead = handler;
 }
 
 async function waitForAuthReady(): Promise<void> {
@@ -38,20 +59,39 @@ async function waitForAuthReady(): Promise<void> {
   return authReadyPromise;
 }
 
+let refreshPromise: Promise<string | null> | null = null;
+
 export async function getFreshToken(forceRefresh = false) {
-  // Wait for Firebase Auth to finish restoring the session
   await waitForAuthReady();
 
   if (!auth.currentUser) return null;
 
-  // Use cached token if available (faster), or force refresh if needed
-  // Firebase automatically refreshes expired tokens, so we don't need to force refresh every time
-  return await auth.currentUser.getIdToken(forceRefresh);
+  // If a force refresh is already in progress, everyone waits for the SAME result
+  if (forceRefresh && refreshPromise) {
+    return refreshPromise;
+  }
+
+  if (forceRefresh) {
+    refreshPromise = auth.currentUser
+      .getIdToken(true)
+      .catch(() => null) // Corrupted/revoked/deleted → null, no crash
+      .finally(() => {
+        refreshPromise = null;
+      });
+    return refreshPromise;
+  }
+
+  try {
+    return await auth.currentUser.getIdToken(false);
+  } catch {
+    return null;
+  }
 }
 
-// Reset auth ready promise when user logs out (called from auth service)
+// Reset auth state when user logs out (called from auth service)
 export function resetAuthReady() {
   authReadyPromise = null;
+  refreshPromise = null;
 }
 
 const api = axios.create({
@@ -72,7 +112,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Handle API errors consistently
@@ -80,13 +120,14 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    if (!originalRequest) return Promise.reject(error);
 
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401 && !isLoggingOut) {
       // Don't handle 401 errors if logout is already in progress
       // This prevents race conditions where the interceptor tries to logout
       // while the user is already logging out
-      
+
       const { data } = error.response;
       const errorCode = data?.errorCode;
 
@@ -94,56 +135,73 @@ api.interceptors.response.use(
       // AUTH_REQUIRED: Missing token (expected during initialization, don't retry)
       // TOKEN_INVALID: Token expired/invalid (retry with fresh token)
       // UNAUTHORIZED: User not found or other auth failure (logout)
-      
-      if (errorCode === 'TOKEN_INVALID' && !originalRequest._retry && auth.currentUser) {
-        // Token expired/invalid - retry once with fresh token
+
+      if (
+        errorCode === "TOKEN_INVALID" &&
+        !originalRequest._retry &&
+        auth.currentUser
+      ) {
         originalRequest._retry = true;
-        
+
         const freshToken = await getFreshToken(true);
         if (freshToken) {
           originalRequest.headers.Authorization = `Bearer ${freshToken}`;
           return api(originalRequest);
         }
-      }
-
-      // Check if user has stored auth data (meaning they should be logged in)
-      const hasStoredUser = await AsyncStorage.getItem("user");
-      const hasStoredFirebaseUid = await AsyncStorage.getItem("firebase_uid");
-
-      // If AUTH_REQUIRED but user has stored data, it means they should be logged in but aren't
-      // This is a real auth failure, not initialization
-      const isRealAuthFailure = 
-        errorCode === 'UNAUTHORIZED' || 
-        (errorCode === 'AUTH_REQUIRED' && (hasStoredUser || hasStoredFirebaseUid || auth.currentUser));
-
-      if (isRealAuthFailure) {
-        // Real authorization failure - use authService.logout() for complete cleanup
-        // This ensures widget storage, device tokens, and all auth state are cleared
+        // getFreshToken returned null: corrupted token, revoked session, or user deleted
+        setLoggingOut(true);
         try {
-          // Import authService dynamically to avoid circular dependencies
-          const { authService } = await import("../services/auth.service");
-          
-          // Use the full logout flow to ensure complete cleanup:
-          // - Unregister device tokens
-          // - Clear widget storage
-          // - Sign out from Google Sign-In
-          // - Clear AsyncStorage (batch)
-          // - Sign out from Firebase
-          // - Reset auth ready state
-          await authService.logout();
-          
-          // Note: AuthContext will detect the Firebase auth state change
-          // and update the UI accordingly via onAuthStateChanged listener
-        } catch (logoutError) {
-          console.error("Error during logout from API interceptor:", logoutError);
-          // Even if logout fails, try to clear minimal state to prevent stuck state
+          if (onSessionDead) {
+            await onSessionDead();
+          } else {
+            await signOut(auth);
+            await AsyncStorage.removeItem("firebase_uid");
+            resetAuthReady();
+          }
+        } catch (e) {
           try {
             await signOut(auth);
+            await AsyncStorage.removeItem("firebase_uid");
+            resetAuthReady();
+          } catch {}
+        } finally {
+          setLoggingOut(false);
+        }
+        (error as ApiError).isSessionDead = true;
+        return Promise.reject(error);
+      }
+
+      const hasStoredFirebaseUid = await AsyncStorage.getItem("firebase_uid");
+
+      const isRealAuthFailure =
+        errorCode === "UNAUTHORIZED" ||
+        (errorCode === "AUTH_REQUIRED" &&
+          (hasStoredFirebaseUid || auth.currentUser));
+
+      if (isRealAuthFailure) {
+        setLoggingOut(true);
+        try {
+          if (onSessionDead) {
+            await onSessionDead();
+          } else {
+            await signOut(auth);
+            await AsyncStorage.removeItem("firebase_uid");
+            resetAuthReady();
+          }
+        } catch (logoutError) {
+          console.error("Session dead handler failed:", logoutError);
+          try {
+            await signOut(auth);
+            await AsyncStorage.removeItem("firebase_uid");
             resetAuthReady();
           } catch (fallbackError) {
-            console.error("Fallback logout also failed:", fallbackError);
+            console.error("Fallback cleanup failed:", fallbackError);
           }
+        } finally {
+          setLoggingOut(false);
         }
+        (error as ApiError).isSessionDead = true;
+        return Promise.reject(error);
       }
 
       // AUTH_REQUIRED errors without stored user data are expected during initialization
@@ -160,11 +218,20 @@ api.interceptors.response.use(
 
         if (Array.isArray(data.message)) {
           // Check if it's the new format (array of objects with field and message)
-          if (data.message.length > 0 && typeof data.message[0] === "object" && "field" in data.message[0]) {
+          if (
+            data.message.length > 0 &&
+            typeof data.message[0] === "object" &&
+            "field" in data.message[0]
+          ) {
             // New format: array of { field, message } objects
-            fieldErrors = data.message as Array<{ field: string; message: string }>;
+            fieldErrors = data.message as Array<{
+              field: string;
+              message: string;
+            }>;
             // Create a readable error message from all field errors
-            errorMessage = fieldErrors.map((err) => `${err.field}: ${err.message}`).join(", ");
+            errorMessage = fieldErrors
+              .map((err) => `${err.field}: ${err.message}`)
+              .join(", ");
           } else {
             // Old format: array of strings
             errorMessage = data.message.join(", ");
@@ -195,15 +262,15 @@ api.interceptors.response.use(
     // Network error or no response
     if (error.request) {
       const networkError = new Error(
-        "Network error. Please check your internet connection."
-      );
-      (networkError as any).isNetworkError = true;
+        "Network error. Please check your internet connection.",
+      ) as Error & ApiError;
+      networkError.isNetworkError = true;
       return Promise.reject(networkError);
     }
 
     // Unknown error
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

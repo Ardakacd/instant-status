@@ -9,18 +9,16 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
   updatePassword,
-  deleteUser,
   applyActionCode,
   confirmPasswordReset,
 } from "firebase/auth";
 import { auth, mapSignInError, mapSignupError } from "../config/firebase";
-import api, { resetAuthReady } from "../config/api";
+import api, { resetAuthReady, setLoggingOut } from "../config/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   GoogleSignin,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
-import { userService } from "./user.service";
 import * as AppleAuthentication from "expo-apple-authentication";
 import Purchases from "react-native-purchases";
 
@@ -36,51 +34,95 @@ export class AuthService {
       });
     } else {
       console.warn(
-        "Google Sign-In not configured: EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is missing"
+        "Google Sign-In not configured: EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is missing",
       );
     }
   }
 
-  private async handleAuthSuccess(userCredential: UserCredential) {
+  /**
+   * Sync auth state with backend. Single atomic call that verifies token,
+   * gets/creates user, and returns user + onboarding + emailVerified.
+   * Replaces the old verify + getMe + checkEmailVerification triple-call.
+   */
+  async syncWithBackend(idToken: string): Promise<{
+    user: {
+      id: string;
+      firebase_uid: string;
+      email: string | null;
+      first_name: string | null;
+      last_name: string | null;
+    };
+    onboarding: boolean;
+    emailVerified: boolean;
+  }> {
+    const response = await api.post("/auth/sync", { idToken });
+    return response.data;
+  }
+
+  /**
+   * Called after Firebase sign-in. Stores minimal state for the brief moment
+   * before onAuthStateChanged runs sync. No return needed - sync drives UI state.
+   */
+  private async handleAuthSuccess(
+    userCredential: UserCredential,
+  ): Promise<void> {
+    await AsyncStorage.setItem("firebase_uid", userCredential.user.uid);
+  }
+
+  private async logOutRevenueCat(): Promise<void> {
     try {
-      const idToken = await userCredential.user.getIdToken();
-
-      // Store token
-      await AsyncStorage.setItem("firebase_token", idToken);
-      await AsyncStorage.setItem("firebase_uid", userCredential.user.uid);
-
-      // Verify with backend
-      const response = await api.post("/auth/firebase-token-verify", {
-        idToken,
-      });
-
-      await AsyncStorage.setItem("user", JSON.stringify(response.data.user));
-      await AsyncStorage.setItem(
-        "onboarding",
-        JSON.stringify(response.data.onboarding)
-      );
-
-      // Link RevenueCat with Firebase UID
-      // This ensures subscriptions are associated with the correct user
-      try {
-        await Purchases.logIn(userCredential.user.uid);
-        console.log(`RevenueCat logged in with Firebase UID: ${userCredential.user.uid}`);
-      } catch (revenuecatError: any) {
-        // Log but don't fail auth if RevenueCat login fails
-        // This can happen if RevenueCat SDK isn't initialized yet or network issues
-        console.warn("Failed to log in to RevenueCat:", revenuecatError);
+      const customerInfo = await Purchases.getCustomerInfo();
+      const isAnonymous =
+        customerInfo?.originalAppUserId?.startsWith("$RCAnonymousID:") ?? false;
+      if (!isAnonymous) {
+        await Purchases.logOut();
       }
+    } catch (revenuecatError: any) {
+      console.warn("Failed to log out from RevenueCat:", revenuecatError);
+    }
+  }
 
-      return {
-        user: response.data.user,
-        token: idToken,
-        onboarding: response.data.onboarding,
-      };
-    } catch (error: any) {
-      // Clean up stored data if backend verification fails
-      await AsyncStorage.removeItem("firebase_token");
-      await AsyncStorage.removeItem("firebase_uid");
-      throw error; // Re-throw with message already extracted by interceptor
+  /**
+   * Unregister device token: Firebase messaging + optional backend.
+   * When unregisterFromBackend=false (e.g. after delete account), skip backend -
+   * /auth/account cascade already deleted tokens.
+   */
+  private async unregisterDeviceToken(
+    unregisterFromBackend = true
+  ): Promise<void> {
+    try {
+      const { messagingService } = await import("./messaging.service");
+      await messagingService.unregister();
+      if (unregisterFromBackend) {
+        const { deviceTokenService } = await import("./device-token.service");
+        try {
+          await deviceTokenService.unregisterToken();
+        } catch (backendError) {
+          console.warn(
+            "Failed to unregister token from backend:",
+            backendError,
+          );
+        }
+      }
+    } catch (tokenError) {
+      console.warn("Error unregistering device token:", tokenError);
+    }
+  }
+
+  private async signOutGoogle(): Promise<void> {
+    try {
+      await GoogleSignin.signOut();
+    } catch {
+      // Ignore errors if user wasn't signed in with Google
+    }
+  }
+
+  private async clearWidgetStorage(): Promise<void> {
+    try {
+      const { widgetStorageService } = await import("./widget-storage.service");
+      await widgetStorageService.clearAll();
+    } catch (widgetError) {
+      console.warn("Error clearing widget storage:", widgetError);
     }
   }
 
@@ -89,21 +131,11 @@ export class AuthService {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
-        password
+        password,
       );
 
-      // Verify token with backend and create/get user
-      const result = await this.handleAuthSuccess(userCredential);
-
-      // Send email verification via backend
-      try {
-        await api.post("/auth/send-email-verification");
-      } catch (verificationError: any) {
-        // Log but don't fail signup if verification email fails
-        console.warn("Failed to send verification email:", verificationError);
-      }
-
-      return result;
+      await this.handleAuthSuccess(userCredential);
+      return;
     } catch (error: any) {
       console.error("Error signing up:", error);
       throw new Error(mapSignupError(error));
@@ -115,92 +147,35 @@ export class AuthService {
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
-        password
+        password,
       );
-      const response = this.handleAuthSuccess(userCredential);
-      return response;
+      await this.handleAuthSuccess(userCredential);
     } catch (error: any) {
       console.error("Error signing in:", JSON.stringify(error, null, 2));
       throw new Error(mapSignInError(error));
     }
   }
 
-  async logout() {
+  async logout(unregisterDeviceToken = true) {
+    setLoggingOut(true);
     try {
-      // Log out from RevenueCat to disconnect subscription from this device
-      // This ensures subscriptions aren't associated with anonymous users after logout
-      try {
-        await Purchases.logOut();
-        console.log("RevenueCat logged out");
-      } catch (revenuecatError: any) {
-        // Log but don't fail logout if RevenueCat logout fails
-        console.warn("Failed to log out from RevenueCat:", revenuecatError);
-      }
+      await this.logOutRevenueCat();
 
-      // Unregister device token before logout to prevent ghost notifications
-      try {
-        const { messagingService } = await import("./messaging.service");
-        const { deviceTokenService } = await import("./device-token.service");
+      await this.unregisterDeviceToken(unregisterDeviceToken);
 
-        // Delete token from Firebase and clear cache
-        await messagingService.unregister();
+      await this.signOutGoogle();
+      await this.clearWidgetStorage();
 
-        // Unregister from backend using stored device token ID
-        try {
-          await deviceTokenService.unregisterToken();
-        } catch (backendError) {
-          // Don't fail logout if backend unregister fails
-          console.warn(
-            "Failed to unregister token from backend:",
-            backendError
-          );
-        }
-      } catch (tokenError) {
-        // Don't fail logout if token unregistration fails
-        console.warn("Error unregistering device token:", tokenError);
-      }
+      await AsyncStorage.removeItem("firebase_uid");
 
-      // Sign out from Google Sign-In
-      try {
-        await GoogleSignin.signOut();
-      } catch (error) {
-        // Ignore errors if user wasn't signed in with Google
-      }
-
-      // Clear widget storage to prevent data leakage between users
-      try {
-        const { widgetStorageService } = await import("./widget-storage.service");
-        await widgetStorageService.clearAll();
-      } catch (widgetError) {
-        // Don't fail logout if widget cleanup fails
-        console.warn("Error clearing widget storage:", widgetError);
-      }
-
-      // Batch remove AsyncStorage items for better performance
-      const keysToRemove = [
-        "firebase_token",
-        "firebase_uid",
-        "user",
-        "onboarding",
-      ];
-      await AsyncStorage.multiRemove(keysToRemove);
-      
       await signOut(auth);
       resetAuthReady(); // Reset auth ready state so it can be re-initialized on next login
     } catch (error: any) {
       console.error("Error logging out:", error);
       throw new Error("Failed to log out");
+    } finally {
+      setLoggingOut(false);
     }
-  }
-
-  async getCurrentUser() {
-    const userStr = await AsyncStorage.getItem("user");
-    return userStr ? JSON.parse(userStr) : null;
-  }
-
-  async getOnboardingStatus(): Promise<boolean> {
-    const onboardingStr = await AsyncStorage.getItem("onboarding");
-    return onboardingStr ? JSON.parse(onboardingStr) : false;
   }
 
   /**
@@ -225,7 +200,6 @@ export class AuthService {
       // Check if sign-in was successful
       if (signInResult.type !== "success") {
         // User cancelled - return early without throwing to avoid showing error
-        console.log("User cancelled Google Sign-in");
         return;
       }
 
@@ -245,16 +219,14 @@ export class AuthService {
 
       userCredential = await signInWithCredential(auth, googleCredential);
 
-      // handleAuthSuccess() will verify with backend, which calls getOrCreateUser()
-      // to create the database record if needed and check onboarding status
-      return this.handleAuthSuccess(userCredential);
+      await this.handleAuthSuccess(userCredential);
+      return true; // Success - AuthContext uses !result to detect cancel
     } catch (error: any) {
       console.error("Error signing in with Google:", error);
 
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         // User cancelled the flow (tapped back on Android or Cancel on iOS)
         // Return undefined to indicate cancellation without throwing
-        console.log("User cancelled Google Sign-in");
         return undefined as any;
       }
 
@@ -303,11 +275,11 @@ export class AuthService {
       } catch (firebaseError: any) {
         console.error("Firebase sign-in error:", firebaseError);
         throw new Error(
-          firebaseError.message || "Failed to sign in with Apple"
+          firebaseError.message || "Failed to sign in with Apple",
         );
       }
 
-      return this.handleAuthSuccess(userCredential);
+      await this.handleAuthSuccess(userCredential);
     } catch (error: any) {
       console.error("Error signing in with Apple:", error);
 
@@ -331,9 +303,7 @@ export class AuthService {
   async refreshToken() {
     const user = auth.currentUser;
     if (user) {
-      const idToken = await user.getIdToken(true);
-      await AsyncStorage.setItem("firebase_token", idToken);
-      return idToken;
+      return user.getIdToken(true);
     }
     throw new Error("No user logged in");
   }
@@ -348,7 +318,7 @@ export class AuthService {
       // Re-authenticate user with current password
       const credential = EmailAuthProvider.credential(
         currentUser.email,
-        currentPassword
+        currentPassword,
       );
       await reauthenticateWithCredential(currentUser, credential);
 
@@ -407,7 +377,7 @@ export class AuthService {
   async verifyEmail(oobCode: string): Promise<void> {
     try {
       await applyActionCode(auth, oobCode);
-      
+
       // Reload user to get updated emailVerified status
       const currentUser = auth.currentUser;
       if (currentUser) {
@@ -416,7 +386,7 @@ export class AuthService {
     } catch (error: any) {
       if (error.code === "auth/expired-action-code") {
         throw new Error(
-          "Verification link has expired. Please request a new one."
+          "Verification link has expired. Please request a new one.",
         );
       } else if (error.code === "auth/invalid-action-code") {
         throw new Error("Invalid verification link. Please request a new one.");
@@ -453,17 +423,26 @@ export class AuthService {
   /**
    * Confirm password reset using action code from email link
    */
-  async confirmPasswordReset(oobCode: string, newPassword: string): Promise<void> {
+  async confirmPasswordReset(
+    oobCode: string,
+    newPassword: string,
+  ): Promise<void> {
     try {
       await confirmPasswordReset(auth, oobCode, newPassword);
     } catch (error: any) {
       console.error("Error confirming password reset:", error);
       if (error.code === "auth/expired-action-code") {
-        throw new Error("Password reset link has expired. Please request a new one.");
+        throw new Error(
+          "Password reset link has expired. Please request a new one.",
+        );
       } else if (error.code === "auth/invalid-action-code") {
-        throw new Error("Invalid password reset link. Please request a new one.");
+        throw new Error(
+          "Invalid password reset link. Please request a new one.",
+        );
       } else if (error.code === "auth/weak-password") {
-        throw new Error("Password is too weak. Please choose a stronger password.");
+        throw new Error(
+          "Password is too weak. Please choose a stronger password.",
+        );
       } else if (error.message) {
         throw new Error(error.message);
       } else {
@@ -472,100 +451,18 @@ export class AuthService {
     }
   }
 
-  async deleteAccount(password?: string): Promise<void> {
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        throw new Error("No user logged in");
-      }
-
-      // Check if user needs re-authentication (password users)
-      const provider = this.getAuthProvider();
-      if (provider === "password" && password) {
-        // Re-authenticate before deletion (Firebase requirement)
-        const credential = EmailAuthProvider.credential(
-          currentUser.email!,
-          password
-        );
-        await reauthenticateWithCredential(currentUser, credential);
-      }
-
-      // Store Firebase UID before deletion (needed for backend deletion)
-      const firebaseUid = currentUser.uid;
-
-      // First, delete from Firebase Auth
-      // This prevents the user from authenticating if backend deletion fails
-      await deleteUser(currentUser);
-
-      // Then delete from backend database using Firebase UID
-      // This endpoint doesn't require a valid token since Firebase user is already deleted
-      try {
-        await userService.deleteByFirebaseUid(firebaseUid);
-      } catch (backendError: any) {
-        // Log but don't throw - Firebase deletion succeeded, so user is effectively deleted
-        console.error(
-          "Backend deletion failed after Firebase deletion:",
-          backendError
-        );
-        // User can't authenticate anymore, so orphaned backend data is acceptable
-      }
-
-      // Clean up local storage
-      await AsyncStorage.removeItem("firebase_token");
-      await AsyncStorage.removeItem("firebase_uid");
-      await AsyncStorage.removeItem("user");
-      await AsyncStorage.removeItem("onboarding");
-
-      // Sign out from Google Sign-In if applicable
-      try {
-        await GoogleSignin.signOut();
-      } catch (error) {
-        // Ignore errors if user wasn't signed in with Google
-      }
-
-      resetAuthReady(); // Reset auth ready state
-    } catch (error: any) {
-      console.error("Error deleting account:", error);
-
-      // If Firebase deletion failed, user still exists and can authenticate
-      // Don't clean up local storage - let them try again
-      // Only clean up if Firebase deletion succeeded but something else failed
-      if (
-        error.code !== "auth/requires-recent-login" &&
-        error.code !== "auth/invalid-credential" &&
-        error.code !== "auth/user-not-found"
-      ) {
-        // Firebase deletion might have succeeded, clean up local storage
-        try {
-          await AsyncStorage.removeItem("firebase_token");
-          await AsyncStorage.removeItem("firebase_uid");
-          await AsyncStorage.removeItem("user");
-          await AsyncStorage.removeItem("onboarding");
-          resetAuthReady();
-        } catch (cleanupError) {
-          console.error(
-            "Error cleaning up after account deletion:",
-            cleanupError
-          );
-        }
-      }
-
-      if (error.code === "auth/invalid-credential") {
-        throw new Error("Password is incorrect");
-      } else if (error.code === "auth/requires-recent-login") {
-        throw new Error(
-          "For security reasons, please log out and log back in before deleting your account"
-        );
-      } else if (error.response?.status === 404) {
-        throw new Error("User not found");
-      } else if (error.response?.status === 401) {
-        throw new Error("You are not authorized");
-      } else if (error.message) {
-        throw new Error(error.message);
-      } else {
-        throw new Error("Failed to delete account");
-      }
+  /**
+   * Backend-led deletion: one authenticated request wipes DB + Firebase.
+   * Cascade deletes device tokens, so logout(false) skips backend unregister.
+   * Local cleanup reuses logout() - RevenueCat, widget, signOut.
+   */
+  async deleteAccount(): Promise<void> {
+    if (!auth.currentUser) {
+      throw new Error("No user logged in");
     }
+
+    await api.delete("/auth/account");
+    await this.logout(false); // Skip device token backend unregister (cascade already deleted)
   }
 }
 

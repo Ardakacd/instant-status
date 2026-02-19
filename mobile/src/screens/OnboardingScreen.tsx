@@ -22,7 +22,7 @@ export default function OnboardingScreen() {
   const [lastNameError, setLastNameError] = useState("");
   const [globalError, setGlobalError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { completeOnboarding, refreshUser } = useAuth();
+  const { refreshUser } = useAuth();
 
   const handleFirstNameChange = (text: string) => {
     setFirstName(text);
@@ -64,9 +64,7 @@ export default function OnboardingScreen() {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
       });
-      
       await refreshUser();
-      await completeOnboarding();
     } catch (error: any) {
       console.error("Error completing onboarding:", error);
       setGlobalError(error.message || "Failed to save your information. Please try again.");

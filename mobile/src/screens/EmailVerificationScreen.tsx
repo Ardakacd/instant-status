@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  AppState,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -88,13 +89,14 @@ export default function EmailVerificationScreen({ route }: Props) {
     }
   };
 
-  // Listen for auth state changes to check verification status
+  // Re-check verification when app comes to foreground (user may have verified in another tab)
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async () => {
-      await checkEmailVerification();
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active" && auth.currentUser) {
+        checkEmailVerification();
+      }
     });
-
-    return unsubscribe;
+    return () => subscription.remove();
   }, [checkEmailVerification]);
 
   // Countdown timer for resend cooldown

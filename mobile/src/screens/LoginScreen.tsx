@@ -160,7 +160,6 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       await signInWithApple();
     } catch (error: any) {
-      console.log('error geldi')
       // Don't show alert for user cancellation
       if (!error.message?.includes("cancelled")) {
         Toast.show({

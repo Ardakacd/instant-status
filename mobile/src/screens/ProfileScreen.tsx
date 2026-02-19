@@ -63,9 +63,6 @@ export default function ProfileScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
-  const [deleteAccountModalVisible, setDeleteAccountModalVisible] =
-    useState(false);
-  const [deletePassword, setDeletePassword] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [openingPaywall, setOpeningPaywall] = useState(false);
 
@@ -289,32 +286,20 @@ export default function ProfileScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            if (authProvider === "password") {
-              setDeleteAccountModalVisible(true);
-            } else {
-              handleConfirmDeleteAccount();
-            }
-          },
+          onPress: () => handleConfirmDeleteAccount(),
         },
       ]
     );
   };
 
-  const handleConfirmDeleteAccount = async (password?: string) => {
-    if (authProvider === "password" && !password?.trim()) {
-      Toast.show({ type: "error", text1: "Enter your password to confirm" });
-      return;
-    }
+  const handleConfirmDeleteAccount = async () => {
     setDeletingAccount(true);
     try {
-      await deleteAccount(authProvider === "password" ? password : undefined);
+      await deleteAccount();
     } catch (error: any) {
       Toast.show({ type: "error", text1: error.message || "Failed to delete" });
     } finally {
       setDeletingAccount(false);
-      setDeleteAccountModalVisible(false);
-      setDeletePassword("");
     }
   };
 
@@ -562,7 +547,11 @@ export default function ProfileScreen() {
               <Text variant="primary">Log out</Text>
             </TouchableOpacity>
             <View style={styles.divider} />
-            <TouchableOpacity style={styles.actionRow} onPress={handleDeleteAccount}>
+            <TouchableOpacity
+              style={styles.actionRow}
+              onPress={handleDeleteAccount}
+              disabled={deletingAccount}
+            >
               <Ionicons name="trash-outline" size={20} color={Colors.interaction.error} />
               <Text style={styles.dangerText}>Delete account</Text>
             </TouchableOpacity>
@@ -672,91 +661,6 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
-      {/* Delete Account Modal */}
-      <Modal
-        visible={deleteAccountModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => {
-          setDeleteAccountModalVisible(false);
-          setDeletePassword("");
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={{ flex: 1, justifyContent: "flex-end" }}
-          >
-            <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
-              <View style={styles.modalHeader}>
-                <Text variant="primary" style={styles.modalTitle}>
-                  Delete account
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    setDeleteAccountModalVisible(false);
-                    setDeletePassword("");
-                  }}
-                  disabled={deletingAccount}
-                >
-                  <Ionicons name="close" size={24} color={Colors.text.primary} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView
-                style={styles.modalBody}
-                contentContainerStyle={styles.modalBodyContent}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-              >
-                <Text variant="secondary" style={styles.deleteWarning}>
-                  This cannot be undone. All data will be permanently deleted.
-                </Text>
-                {authProvider === "password" && (
-                  <View style={styles.modalField}>
-                    <Text variant="secondary" style={styles.modalLabel}>
-                      Enter password to confirm
-                    </Text>
-                    <DesignTextInput
-                      value={deletePassword}
-                      onChangeText={setDeletePassword}
-                      placeholder="Your password"
-                      secureTextEntry
-                      autoCapitalize="none"
-                      editable={!deletingAccount}
-                    />
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={[
-                    styles.destructiveButton,
-                    deletingAccount && styles.buttonDisabled,
-                  ]}
-                  onPress={() => handleConfirmDeleteAccount(deletePassword)}
-                  disabled={deletingAccount}
-                >
-                  {deletingAccount ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.destructiveButtonText}>
-                      Delete account
-                    </Text>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => {
-                    setDeleteAccountModalVisible(false);
-                    setDeletePassword("");
-                  }}
-                  disabled={deletingAccount}
-                >
-                  <Text variant="primary">Cancel</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
     </View>
   );
 }
