@@ -1,11 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  AppState,
-  Platform,
-  View,
-  Text,
-  StyleSheet,
-} from "react-native";
+import { AppState, Platform, View, Text, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SplashScreen from "expo-splash-screen";
 import * as Font from "expo-font";
@@ -31,6 +25,7 @@ import { widgetStorageService } from "./src/services/widget-storage.service";
 
 // Screens
 import LoginScreen from "./src/screens/LoginScreen";
+import NoInternetScreen from "./src/screens/NoInternetScreen";
 import SignUpScreen from "./src/screens/SignUpScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
 import EmailVerificationScreen from "./src/screens/EmailVerificationScreen";
@@ -153,6 +148,7 @@ const styles = StyleSheet.create({
 });
 
 export type RootStackParamList = {
+  NoInternet: undefined;
   SignUp: undefined;
   SignIn: undefined;
   EmailVerification: { mode?: string; oobCode?: string } | undefined;
@@ -215,7 +211,7 @@ function MainTabs() {
 }
 
 function AppNavigator() {
-  const { user, loading, onboarding, emailVerified } = useAuth();
+  const { user, loading, onboarding, emailVerified, noInternet } = useAuth();
   const navigationRef =
     useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [isNavReady, setIsNavReady] = useState(false);
@@ -298,22 +294,19 @@ function AppNavigator() {
       if (Platform.OS === "ios") {
         const PERMISSION_ASKED_KEY = "notification_permission_asked_ios";
         const hasAskedBefore = await AsyncStorage.getItem(PERMISSION_ASKED_KEY);
-        
+
         if (!hasAskedBefore && isMounted) {
           // First time - request permission automatically on iOS
-          console.log("iOS: Requesting notification permission for the first time");
           const granted = await messagingService.requestPermission();
           if (isMounted) {
             await AsyncStorage.setItem(PERMISSION_ASKED_KEY, "true");
-            
+
             if (granted) {
               // Register token if permission granted
               const token = await messagingService.getToken();
               if (token && user && isMounted) {
                 await deviceTokenService.registerToken(token);
               }
-            } else {
-              console.log("iOS: User denied notification permission");
             }
           }
         } else if (isMounted) {
@@ -349,12 +342,12 @@ function AppNavigator() {
 
     // 3. Listeners
     const unsubToken = messagingService.onTokenRefresh((t) => {
-      if (isMounted) {
+      if (isMounted && user) {
         deviceTokenService.registerToken(t);
       }
     });
     const unsubOpened = messagingService.onNotificationOpenedApp(
-      handleNotificationNavigation
+      handleNotificationNavigation,
     );
     const unsubForeground = messagingService.onMessage(async (msg) => {
       if (msg.data?.type === "status_update" && isMounted) {
@@ -375,7 +368,7 @@ function AppNavigator() {
             msg.data.option_color || null,
             msg.data.note,
             msg.data.expires_at,
-            msg.data.timestamp
+            msg.data.timestamp,
           );
         }
       }
@@ -395,6 +388,17 @@ function AppNavigator() {
       <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
         <StatusBar style="auto" />
       </View>
+    );
+  }
+
+  // Show no internet screen when sync failed due to network
+  if (noInternet) {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="NoInternet" component={NoInternetScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
     );
   }
 
@@ -434,8 +438,11 @@ function AppNavigator() {
         {!user ? (
           <>
             <Stack.Screen name="SignIn" component={LoginScreen} />
-            <Stack.Screen name="SignUp" component={SignUpScreen} />            
-            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+            <Stack.Screen name="SignUp" component={SignUpScreen} />
+            <Stack.Screen
+              name="ResetPassword"
+              component={ResetPasswordScreen}
+            />
           </>
         ) : !emailVerified ? (
           <>
@@ -443,18 +450,27 @@ function AppNavigator() {
               name="EmailVerification"
               component={EmailVerificationScreen}
             />
-            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+            <Stack.Screen
+              name="ResetPassword"
+              component={ResetPasswordScreen}
+            />
           </>
         ) : onboarding ? (
           <>
             <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+            <Stack.Screen
+              name="ResetPassword"
+              component={ResetPasswordScreen}
+            />
           </>
         ) : (
           <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="Connect" component={ConnectScreen} />
-            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+            <Stack.Screen
+              name="ResetPassword"
+              component={ResetPasswordScreen}
+            />
             <Stack.Screen
               name="ManageStatus"
               component={ManageStatusScreen}
@@ -477,11 +493,12 @@ function AppNavigator() {
 }
 
 // RevenueCat API Key
-const REVENUECAT_API_KEY = 'test_rXxPaWZYHrzNjCPKZgIxnOFZXYQ';
+const REVENUECAT_API_KEY = "test_rXxPaWZYHrzNjCPKZgIxnOFZXYQ";
 
 // Move RevenueCat configuration OUTSIDE the component so it runs as soon as the file loads
 // This ensures the SDK is ready before the component tree tries to render
-if (Platform.OS !== 'web') { // RevenueCat doesn't run on web
+if (Platform.OS !== "web") {
+  // RevenueCat doesn't run on web
   try {
     Purchases.setLogLevel(LOG_LEVEL.DEBUG);
     Purchases.configure({ apiKey: REVENUECAT_API_KEY });
@@ -500,20 +517,17 @@ export default function App() {
       try {
         // Keep splash screen visible while we load fonts
         await SplashScreen.preventAutoHideAsync();
-        
+
         // Load Inter font weights
         // Note: The key becomes the fontFamily name used in styles
         const fontMap = {
-          'Inter-Regular': require("./assets/fonts/Inter-Regular.ttf"),
-          'Inter-Medium': require("./assets/fonts/Inter-Medium.ttf"),
-          'Inter-SemiBold': require("./assets/fonts/Inter-SemiBold.ttf"),
+          "Inter-Regular": require("./assets/fonts/Inter-Regular.ttf"),
+          "Inter-Medium": require("./assets/fonts/Inter-Medium.ttf"),
+          "Inter-SemiBold": require("./assets/fonts/Inter-SemiBold.ttf"),
         };
-        
+
         await Font.loadAsync(fontMap);
-        
-        // Log font loading status
-        console.log('✅ Fonts loaded:', Object.keys(fontMap));
-        
+
         setAppIsReady(true);
       } catch (e) {
         console.error("Error loading fonts:", e);
@@ -528,16 +542,19 @@ export default function App() {
 
   // Reset badge count when app comes to foreground (not on cold start)
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", async (nextAppState) => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === "active"
-      ) {
-        // App has come to the foreground - reset badge count
-        await notifee.setBadgeCount(0);
-      }
-      appState.current = nextAppState;
-    });
+    const subscription = AppState.addEventListener(
+      "change",
+      async (nextAppState) => {
+        if (
+          appState.current.match(/inactive|background/) &&
+          nextAppState === "active"
+        ) {
+          // App has come to the foreground - reset badge count
+          await notifee.setBadgeCount(0);
+        }
+        appState.current = nextAppState;
+      },
+    );
 
     return () => {
       subscription.remove();
