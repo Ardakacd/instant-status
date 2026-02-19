@@ -10,6 +10,7 @@ import { EntityManager, Repository, In } from "typeorm";
 import { Connection } from "../entities/connection.entity";
 import { DeviceToken } from "../entities/device-token.entity";
 import { User } from "../entities/user.entity";
+import { isUserPremium } from "../utils/premium";
 import * as admin from "firebase-admin";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
 
@@ -77,30 +78,16 @@ export class ConnectionsService {
 
   /**
    * Get the friend limit for a user based on their premium status
-   * Checks both is_premium flag and premium_until expiration date
    */
   getFriendLimit(user: User): number {
-    const isPremium = this.isUserPremium(user);
-    return isPremium ? 24 : 6;
+    return isUserPremium(user) ? 24 : 6;
   }
 
   /**
-   * Check if a user is currently premium
-   * Considers both is_premium flag and premium_until expiration date
+   * Check if a user is currently premium (uses shared isUserPremium)
    */
   isUserPremium(user: User): boolean {
-    if (!user.is_premium) {
-      return false;
-    }
-    
-    // If premium_until is set, check if it's still valid
-    if (user.premium_until) {
-      return new Date() < user.premium_until;
-    }
-    
-    // If is_premium is true but no expiration date, assume active
-    // (for lifetime purchases or when expiration hasn't been set yet)
-    return true;
+    return isUserPremium(user);
   }
 
   /**
@@ -108,32 +95,28 @@ export class ConnectionsService {
    * Grace period: 3 days after expiration date
    */
   isInGracePeriod(user: User): boolean {
-    if (!user.is_premium || !user.premium_until) {
-      return false;
-    }
-    
+    if (!user.premium_until) return false;
+
     const now = new Date();
     const expirationDate = new Date(user.premium_until);
     const gracePeriodMs = 3 * 24 * 60 * 60 * 1000; // 3 days
-    
-    // User is in grace period if expired but within 3 days
-    return now >= expirationDate && now < new Date(expirationDate.getTime() + gracePeriodMs);
+
+    return (
+      now >= expirationDate &&
+      now < new Date(expirationDate.getTime() + gracePeriodMs)
+    );
   }
 
   /**
    * Check if user's custom status should be reset (24 hours after expiration)
-   * Custom status grace period: 24 hours after expiration
    */
   shouldResetCustomStatus(user: User): boolean {
-    if (!user.is_premium || !user.premium_until) {
-      return false;
-    }
-    
+    if (!user.premium_until) return false;
+
     const now = new Date();
     const expirationDate = new Date(user.premium_until);
     const customStatusGracePeriodMs = 24 * 60 * 60 * 1000; // 24 hours
-    
-    // Should reset if more than 24 hours past expiration
+
     return now >= new Date(expirationDate.getTime() + customStatusGracePeriodMs);
   }
 

@@ -8,9 +8,9 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { User } from "../entities/user.entity";
 import { Status } from "../entities/status.entity";
-import { StatusOption } from "../entities/status-option.entity";
 import { EmailService } from "../email/email.service";
 import { StatusOptionService } from "../status-option/status-option.service";
+import { LIFETIME_PREMIUM_UNTIL } from "../utils/premium";
 
 @Injectable()
 export class UserService {
@@ -146,76 +146,121 @@ export class UserService {
     }
   }
 
-  async updatePremiumStatus(
+  /**
+   * Smart update for premium status.
+   * Handles out-of-order webhooks and protects Lifetime status.
+   */
+  async updatePremiumExpiration(
     id: string,
-    isPremium: boolean,
-    premiumUntil?: Date | null,
+    premiumUntil: Date | null,
     revenuecatId?: string | null,
   ): Promise<User> {
-    try {
-      const user = await this.findById(id);
-      if (!user) {
-        throw new NotFoundException("User not found");
-      }
+    const user = await this.findById(id);
 
-      user.is_premium = isPremium;
-      if (premiumUntil !== undefined) {
-        user.premium_until = premiumUntil;
-      }
-      if (revenuecatId !== undefined) {
-        user.revenuecat_id = revenuecatId;
-      }
-
-      return await this.userRepository.save(user);
-    } catch (error: any) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      if (error instanceof InternalServerErrorException) {
-        throw error;
-      }
-      this.logger.error(
-        `Error updating premium status: ${error.message}`,
-        error.stack,
-      );
-      throw new InternalServerErrorException("Failed to update premium status");
+    if (!user) {
+      throw new NotFoundException("User not found");
     }
+
+    const now = new Date();
+    const newDate = premiumUntil ?? null;
+    const existingDate = user.premium_until ?? null;
+
+    let shouldSave = false;
+
+    // ===============================
+    // 1. EXTENSION / PURCHASE EVENTS (newDate is a Date)
+    // ===============================
+    if (newDate !== null) {
+      // Only update if we don't have a date yet, OR the new date is further in the future
+      if (!existingDate || newDate > existingDate) {
+        user.premium_until = newDate;
+        shouldSave = true;
+        this.logger.log(
+          `Extended premium for user ${id} to ${newDate.toISOString()}`,
+        );
+      } else {
+        this.logger.debug(
+          `Ignoring older/equal premium_until for user ${id} (New: ${newDate.toISOString()}, Existing: ${existingDate.toISOString()})`,
+        );
+      }
+    }
+
+    // ===============================
+    // 2. EXPIRATION / REVOKE EVENTS (newDate is null)
+    // ===============================
+    else {
+      // Check if user has a "Lifetime" constant set
+      const isLifetime =
+        existingDate &&
+        existingDate.getTime() === LIFETIME_PREMIUM_UNTIL.getTime();
+
+      if (isLifetime) {
+        this.logger.warn(`Blocked attempt to expire Lifetime user ${id}`);
+      }
+      // Only set to null if the existing subscription has actually passed its end date
+      // This prevents a late "EXPIRATION" webhook from killing a very recent "RENEWAL"
+      else if (existingDate && existingDate <= now) {
+        user.premium_until = null;
+        shouldSave = true;
+        this.logger.log(`Premium expired/revoked for user ${id}`);
+      } else {
+        this.logger.debug(
+          `Ignored expiration for user ${id}. Current status still valid until ${existingDate?.toISOString()}`,
+        );
+      }
+    }
+
+    // ===============================
+    // 3. IDENTITY LINKING
+    // ===============================
+    if (revenuecatId !== undefined && user.revenuecat_id !== revenuecatId) {
+      user.revenuecat_id = revenuecatId;
+      shouldSave = true;
+    }
+
+    if (!shouldSave) {
+      return user;
+    }
+
+    return this.userRepository.save(user);
   }
 
   /**
-   * Update premium status by RevenueCat customer ID
-   * Used by webhooks when RevenueCat ID is provided but not user ID
+   * Find user by RevenueCat identifier (app_user_id).
+   * Resolves identity trap: app_user_id can be Firebase UID (after logIn) or RevenueCat anonymous ID.
+   * Searches revenuecat_id first, then firebase_uid.
    */
-  async updatePremiumStatusByRevenueCatId(
-    revenuecatId: string,
-    isPremium: boolean,
-    premiumUntil?: Date | null,
+  async findUserByRevenueCatIdentifier(
+    identifier: string,
   ): Promise<User | null> {
-    try {
-      const user = await this.userRepository.findOne({
-        where: { revenuecat_id: revenuecatId },
-      });
+    const byRevenueCatId = await this.userRepository.findOne({
+      where: { revenuecat_id: identifier },
+    });
+    if (byRevenueCatId) return byRevenueCatId;
 
-      if (!user) {
-        this.logger.warn(`User not found for RevenueCat ID: ${revenuecatId}`);
-        return null;
-      }
+    const byFirebaseUid = await this.userRepository.findOne({
+      where: { firebase_uid: identifier },
+    });
+    return byFirebaseUid ?? null;
+  }
 
-      return await this.updatePremiumStatus(
-        user.id,
-        isPremium,
-        premiumUntil,
-        revenuecatId,
-      );
-    } catch (error: any) {
-      this.logger.error(
-        `Error updating premium status by RevenueCat ID: ${error.message}`,
-        error.stack,
-      );
-      throw new InternalServerErrorException(
-        "Failed to update premium status by RevenueCat ID",
-      );
+  /**
+   * Update premium_until by RevenueCat identifier (app_user_id).
+   * Used by webhooks. Resolves identity via revenuecat_id or firebase_uid.
+   * For lifetime purchases (expiration_at_ms null), uses far-future date.
+   */
+  async updatePremiumExpirationByRevenueCatId(
+    identifier: string,
+    premiumUntil: Date | null,
+  ): Promise<User | null> {
+    const user = await this.findUserByRevenueCatIdentifier(identifier);
+
+    if (!user) {
+      this.logger.warn(`User not found for RevenueCat ID: ${identifier}`);
+      return null;
     }
+
+    return this.updatePremiumExpiration(user.id, premiumUntil, identifier);
   }
 
   async delete(id: string): Promise<void> {

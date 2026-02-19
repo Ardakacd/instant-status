@@ -58,7 +58,7 @@ export class StatusService {
         
         if (user) {
           // Check if premium is expired (beyond grace period for custom status - 24 hours)
-          if (user.is_premium && user.premium_until) {
+          if (user.premium_until) {
             const now = new Date();
             const expirationDate = new Date(user.premium_until);
             const customStatusGracePeriodMs = 24 * 60 * 60 * 1000; // 24 hours
@@ -95,7 +95,7 @@ export class StatusService {
                 "Your premium subscription has expired. Your status has been reset to the default. Upgrade to Pro to use custom statuses again."
               );
             }
-          } else if (!user.is_premium) {
+          } else {
             // User is not premium and trying to use custom status
             throw new BadRequestException(
               "Custom statuses are only available with Instant Status Pro. Upgrade to use custom statuses."

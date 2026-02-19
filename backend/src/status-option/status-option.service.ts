@@ -97,22 +97,14 @@ export class StatusOptionService {
    */
   private async hasPremiumAccess(userId: string): Promise<boolean> {
     const user = await this.userService.findById(userId);
-    if (!user) {
-      return false;
-    }
-    
-    // Check if user is premium
-    if (user.is_premium && user.premium_until) {
-      const now = new Date();
-      const expirationDate = new Date(user.premium_until);
-      const gracePeriodMs = 3 * 24 * 60 * 60 * 1000; // 3 days grace period
-      
-      // User has access if premium is active or within grace period
-      return now < new Date(expirationDate.getTime() + gracePeriodMs);
-    }
-    
-    // If is_premium is true but no expiration date, assume active (lifetime)
-    return user.is_premium;
+    if (!user) return false;
+    if (!user.premium_until) return false;
+
+    const now = new Date();
+    const expirationDate = new Date(user.premium_until);
+    const gracePeriodMs = 3 * 24 * 60 * 60 * 1000; // 3 days grace period
+
+    return now < new Date(expirationDate.getTime() + gracePeriodMs);
   }
 
   /**

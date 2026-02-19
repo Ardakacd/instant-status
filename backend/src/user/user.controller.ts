@@ -10,6 +10,7 @@ import {
 } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { AuthGuard } from "../auth/auth.guard";
+import { isUserPremium } from "../utils/premium";
 import { z } from "zod";
 
 const UpdateUserDtoSchema = z
@@ -34,22 +35,23 @@ export class UserController {
       throw new NotFoundException("User not found");
     }
 
-    // Calculate premium status with grace period
-    const now = new Date();
-    const isPremium = user.is_premium && 
-      (!user.premium_until || now < user.premium_until);
-    
+    // premium_until is source of truth; is_premium is computed for API compat
+    const isPremium = isUserPremium(user);
+
     const gracePeriodMs = 3 * 24 * 60 * 60 * 1000; // 3 days
     const customStatusGracePeriodMs = 24 * 60 * 60 * 1000; // 24 hours
-    
+
     let isInGracePeriod = false;
     let shouldResetCustomStatus = false;
-    
-    if (user.is_premium && user.premium_until) {
+
+    if (user.premium_until) {
       const expirationDate = new Date(user.premium_until);
-      isInGracePeriod = now >= expirationDate && 
+      const now = new Date();
+      isInGracePeriod =
+        now >= expirationDate &&
         now < new Date(expirationDate.getTime() + gracePeriodMs);
-      shouldResetCustomStatus = now >= new Date(expirationDate.getTime() + customStatusGracePeriodMs);
+      shouldResetCustomStatus =
+        now >= new Date(expirationDate.getTime() + customStatusGracePeriodMs);
     }
 
     return {
@@ -78,44 +80,6 @@ export class UserController {
       email: user.email,
       first_name: user.first_name,
       last_name: user.last_name,
-      updated_at: user.updated_at,
-    };
-  }
-
-  /**
-   * Update premium status from mobile app
-   * This endpoint should only be called during login/refresh to sync status
-   * The primary source of truth is RevenueCat webhooks
-   * 
-   * @deprecated Consider removing this endpoint and relying solely on webhooks
-   * If kept, it should only update is_premium, not premium_until or revenuecat_id
-   */
-  @Patch("me/premium")
-  @UseGuards(AuthGuard)
-  async updatePremiumStatus(@Request() req, @Body() body: unknown) {
-    const { is_premium, premium_until, revenuecat_id } = z
-      .object({
-        is_premium: z.boolean(),
-        premium_until: z.string().datetime().nullable().optional(),
-        revenuecat_id: z.string().nullable().optional(),
-      })
-      .strict()
-      .parse(body);
-    
-    const premiumUntilDate = premium_until ? new Date(premium_until) : undefined;
-    
-    const user = await this.userService.updatePremiumStatus(
-      req.user.id,
-      is_premium,
-      premiumUntilDate,
-      revenuecat_id
-    );
-    
-    return {
-      id: user.id,
-      is_premium: user.is_premium,
-      premium_until: user.premium_until,
-      revenuecat_id: user.revenuecat_id,
       updated_at: user.updated_at,
     };
   }

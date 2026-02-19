@@ -35,11 +35,18 @@ export class User {
   @Column({ type: "timestamp with time zone", nullable: true })
   last_login_at: Date | null;
 
-  @Column({ type: "boolean", default: false, nullable: false })
-  is_premium: boolean;
-
+  /**
+   * Single source of truth for premium status.
+   * null = not premium. Non-null and future = premium active.
+   * Use get isPremiumActive() or isUserPremium(user) to check.
+   */
   @Column({ type: "timestamp with time zone", nullable: true })
   premium_until: Date | null;
+
+  get isPremiumActive(): boolean {
+    if (!this.premium_until) return false;
+    return new Date() < new Date(this.premium_until);
+  }
 
   @Column({ type: "varchar", length: 255, nullable: true })
   revenuecat_id: string | null;
