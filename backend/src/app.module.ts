@@ -16,6 +16,7 @@ import { StatusOption } from "./entities/status-option.entity";
 import { Connection } from "./entities/connection.entity";
 import { InviteCode } from "./entities/invite-code.entity";
 import { DeviceToken } from "./entities/device-token.entity";
+import { ProcessedWebhook } from "./entities/processed-webhook.entity";
 
 @Module({
   imports: [
@@ -33,7 +34,7 @@ import { DeviceToken } from "./entities/device-token.entity";
       username: process.env.DB_USERNAME || "postgres",
       password: process.env.DB_PASSWORD || "postgres",
       database: process.env.DB_NAME || "instant_status",
-      entities: [User, Status, StatusOption, Connection, InviteCode, DeviceToken],
+      entities: [User, Status, StatusOption, Connection, InviteCode, DeviceToken, ProcessedWebhook],
       synchronize: process.env.NODE_ENV !== "production",
       logging: process.env.NODE_ENV === "development",
     }),
