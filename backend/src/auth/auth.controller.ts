@@ -1,10 +1,11 @@
 import {
   Controller,
   Post,
+  Delete,
   Body,
   UseGuards,
   Request,
-  UnauthorizedException,
+
   NotFoundException,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
@@ -25,37 +26,13 @@ export class AuthController {
     private userService: UserService
   ) {}
 
-  @Post("firebase-token-verify")
-  async verifyToken(@Body() body: unknown) {
+  @Post("sync")
+  async sync(@Body() body: unknown) {
     const { idToken } = VerifyTokenDtoSchema.parse(body);
-
-    const decodedToken = await this.authService.verifyFirebaseToken(idToken);
-
-    if (!decodedToken.uid) {
-      throw new UnauthorizedException("Firebase UID not found in token");
-    }
-
-    const user = await this.authService.getOrCreateUser(
-      decodedToken.uid,
-      decodedToken.email || null,
-      true // This is a new login
-    );
-
-    // Check if onboarding is needed (user doesn't exist or missing first_name/last_name)
-    const needsOnboarding = !user.first_name || !user.last_name;
-
-    return {
-      user: {
-        id: user.id,
-        firebase_uid: user.firebase_uid,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-      },
-      firebase_uid: decodedToken.uid,
-      onboarding: needsOnboarding,
-    };
+    return this.authService.syncAuthState(idToken);
   }
+
+
 
   @Post("refresh-token")
   @UseGuards(AuthGuard)
@@ -90,6 +67,12 @@ export class AuthController {
 
     await this.authService.sendEmailVerification(user.firebase_uid);
     return { message: "Verification email sent successfully" };
+  }
+
+  @Delete("account")
+  @UseGuards(AuthGuard)
+  async deleteAccount(@Request() req: any) {
+    return this.authService.hardDeleteUser(req.user);
   }
 
   @Post("forgot-password")

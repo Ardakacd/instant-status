@@ -5,6 +5,7 @@ import {
   Logger,
   BadRequestException,
 } from "@nestjs/common";
+import { User } from "../entities/user.entity";
 import * as admin from "firebase-admin";
 import { UserService } from "../user/user.service";
 import { EmailService } from "../email/email.service";
@@ -17,13 +18,38 @@ export class AuthService {
 
   constructor(
     private userService: UserService,
-    private emailService: EmailService
+    private emailService: EmailService,
   ) {
     this.firebaseAdmin = getFirebaseAdmin();
   }
 
+  /**
+   * Backend-led account deletion: DB first, then Firebase.
+   * If DB fails, Firebase stays intact so user can retry.
+   * Admin SDK bypasses auth/requires-recent-login.
+   */
+  async hardDeleteUser(user: User): Promise<{ success: boolean }> {
+    try {
+      await this.userService.delete(user.id);
+      this.logger.log(`DB records wiped for user ${user.id} (UID: ${user.firebase_uid})`);
+
+      await this.firebaseAdmin.auth().deleteUser(user.firebase_uid);
+      this.logger.log(`Firebase account deleted for UID: ${user.firebase_uid}`);
+
+      return { success: true };
+    } catch (error: any) {
+      this.logger.error(
+        `Deletion failed for ${user.firebase_uid}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        "Failed to delete account. Please try again.",
+      );
+    }
+  }
+
   async verifyFirebaseToken(
-    idToken: string
+    idToken: string,
   ): Promise<admin.auth.DecodedIdToken> {
     try {
       const decodedToken = await this.firebaseAdmin
@@ -36,15 +62,63 @@ export class AuthService {
     }
   }
 
+  /**
+   * Atomic sync: verify token, get/create user, return full auth state in one response.
+   * Eliminates race conditions from separate verify + getMe + checkEmailVerification calls.
+   */
+  async syncAuthState(idToken: string): Promise<{
+    user: { id: string; firebase_uid: string; email: string | null; first_name: string | null; last_name: string | null };
+    onboarding: boolean;
+    emailVerified: boolean;
+  }> {
+    const decodedToken = await this.verifyFirebaseToken(idToken);
+    if (!decodedToken.uid) {
+      throw new UnauthorizedException("Firebase UID not found in token");
+    }
+
+    const user = await this.getOrCreateUser(
+      decodedToken.uid,
+      decodedToken.email || null,
+      true,
+    );
+
+    const onboarding = !user.first_name || !user.last_name;
+    const emailVerified = decodedToken.email_verified ?? true;
+
+    // For new password users with unverified email, send verification (non-blocking)
+    const signInProvider = (decodedToken as any).firebase?.sign_in_provider;
+    if (
+      signInProvider === "password" &&
+      !emailVerified &&
+      user.email
+    ) {
+      this.sendEmailVerification(user.firebase_uid).catch((err) =>
+        this.logger.warn(`Failed to send verification email: ${err.message}`),
+      );
+    }
+
+    return {
+      user: {
+        id: user.id,
+        firebase_uid: user.firebase_uid,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+      },
+      onboarding,
+      emailVerified,
+    };
+  }
+
   async getOrCreateUser(
     uid: string,
     email?: string | null,
-    isNewLogin: boolean = false
+    isNewLogin: boolean = false,
   ) {
     try {
       let user = await this.userService.findByFirebaseUid(uid);
       const isFirstLogin = !user;
-      
+
       if (!user) {
         // User doesn't exist with this Firebase UID
         // Check if email already exists with a different Firebase UID
@@ -64,7 +138,7 @@ export class AuthService {
               // Safe to delete the orphaned backend record
               if (firebaseError.code === "auth/user-not-found") {
                 this.logger.log(
-                  `Deleting orphaned user record for email ${email} (Firebase UID ${existingUserByEmail.firebase_uid} no longer exists)`
+                  `Deleting orphaned user record for email ${email} (Firebase UID ${existingUserByEmail.firebase_uid} no longer exists)`,
                 );
                 await this.userService.delete(existingUserByEmail.id);
               }
@@ -88,11 +162,11 @@ export class AuthService {
       // Track login times
       const now = new Date();
       const updateData: Partial<typeof user> = {};
-      
+
       if (isFirstLogin) {
         updateData.first_login_at = now;
       }
-      
+
       if (isNewLogin) {
         updateData.last_login_at = now;
         await this.userService.update(user.id, updateData);
@@ -113,13 +187,13 @@ export class AuthService {
                 .getUser(existingUser.firebase_uid);
               // Old Firebase user still exists - real conflict
               throw new InternalServerErrorException(
-                "An account with this email already exists"
+                "An account with this email already exists",
               );
             } catch (firebaseError: any) {
               // Old Firebase user doesn't exist - delete orphaned record and retry
               if (firebaseError.code === "auth/user-not-found") {
                 this.logger.log(
-                  `Deleting orphaned user record for email ${email} and retrying creation`
+                  `Deleting orphaned user record for email ${email} and retrying creation`,
                 );
                 await this.userService.delete(existingUser.id);
                 // Retry creation
@@ -134,7 +208,7 @@ export class AuthService {
           }
         }
         throw new InternalServerErrorException(
-          "An account with this email already exists"
+          "An account with this email already exists",
         );
       }
 
@@ -147,10 +221,10 @@ export class AuthService {
 
       this.logger.error(
         `Error getting or creating user: ${error.message}`,
-        error.stack
+        error.stack,
       );
       throw new InternalServerErrorException(
-        "An error occurred while processing user"
+        "An error occurred while processing user",
       );
     }
   }
@@ -177,15 +251,14 @@ export class AuthService {
         handleCodeInApp: true,
       };
 
-      const verificationLink =
-        await this.firebaseAdmin
-          .auth()
-          .generateEmailVerificationLink(firebaseUser.email, actionCodeSettings);
+      const verificationLink = await this.firebaseAdmin
+        .auth()
+        .generateEmailVerificationLink(firebaseUser.email, actionCodeSettings);
 
       // Send email via Postmark
       await this.emailService.sendEmailVerification(
         firebaseUser.email,
-        verificationLink
+        verificationLink,
       );
 
       this.logger.log(`Email verification sent to ${firebaseUser.email}`);
@@ -198,10 +271,10 @@ export class AuthService {
       }
       this.logger.error(
         `Error sending email verification: ${error.message}`,
-        error.stack
+        error.stack,
       );
       throw new InternalServerErrorException(
-        "Failed to send verification email"
+        "Failed to send verification email",
       );
     }
   }
@@ -218,7 +291,7 @@ export class AuthService {
         // Don't reveal if email exists or not (security best practice)
         // Still return success to prevent email enumeration
         this.logger.log(
-          `Password reset requested for non-existent email: ${email}`
+          `Password reset requested for non-existent email: ${email}`,
         );
         return;
       }
@@ -226,14 +299,12 @@ export class AuthService {
       // Get Firebase user by email
       let firebaseUser;
       try {
-        firebaseUser = await this.firebaseAdmin
-          .auth()
-          .getUserByEmail(email);
+        firebaseUser = await this.firebaseAdmin.auth().getUserByEmail(email);
       } catch (firebaseError: any) {
         if (firebaseError.code === "auth/user-not-found") {
           // User doesn't exist in Firebase - don't reveal this
           this.logger.log(
-            `Password reset requested for email not in Firebase: ${email}`
+            `Password reset requested for email not in Firebase: ${email}`,
           );
           return;
         }
@@ -242,14 +313,14 @@ export class AuthService {
 
       // Check if user signed up with email/password (not social login)
       const hasPasswordProvider = firebaseUser.providerData.some(
-        (provider) => provider.providerId === "password"
+        (provider) => provider.providerId === "password",
       );
 
       if (!hasPasswordProvider) {
         // User signed up with Google/Apple - they don't have a password
         // Don't reveal this, just return success
         this.logger.log(
-          `Password reset requested for social login user: ${email}`
+          `Password reset requested for social login user: ${email}`,
         );
         return;
       }
@@ -272,7 +343,7 @@ export class AuthService {
       // Don't reveal specific errors to prevent email enumeration
       this.logger.error(
         `Error sending password reset email: ${error.message}`,
-        error.stack
+        error.stack,
       );
       // Return success even on error to prevent email enumeration
       // The error is logged for debugging

@@ -22,7 +22,7 @@ export class UserService {
     @InjectRepository(Status)
     private statusRepository: Repository<Status>,
     private emailService: EmailService,
-    private statusOptionService: StatusOptionService
+    private statusOptionService: StatusOptionService,
   ) {}
 
   async findById(id: string): Promise<User | null> {
@@ -31,7 +31,7 @@ export class UserService {
     } catch (error: any) {
       this.logger.error(
         `Error finding user by ID: ${error.message}`,
-        error.stack
+        error.stack,
       );
       throw new InternalServerErrorException("Failed to find user");
     }
@@ -45,7 +45,7 @@ export class UserService {
     } catch (error: any) {
       this.logger.error(
         `Error finding user by Firebase UID: ${error.message}`,
-        error.stack
+        error.stack,
       );
       throw new InternalServerErrorException("Failed to find user");
     }
@@ -57,7 +57,7 @@ export class UserService {
     } catch (error: any) {
       this.logger.error(
         `Error finding user by email: ${error.message}`,
-        error.stack
+        error.stack,
       );
       throw new InternalServerErrorException("Failed to find user");
     }
@@ -74,7 +74,8 @@ export class UserService {
       const savedUser = await this.userRepository.save(user);
 
       // Create default status with default "Available" option
-      const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+      const defaultOption =
+        await this.statusOptionService.getDefaultStatusOption();
       if (defaultOption) {
         const status = this.statusRepository.create({
           user_id: savedUser.id,
@@ -88,7 +89,7 @@ export class UserService {
       // Handle unique constraint violations
       if (error.code === "23505") {
         this.logger.warn(
-          `Attempted to create duplicate user: ${data.firebase_uid}`
+          `Attempted to create duplicate user: ${data.firebase_uid}`,
         );
         throw new InternalServerErrorException("User already exists");
       }
@@ -107,9 +108,7 @@ export class UserService {
       // Check if onboarding is being completed (first time setting first_name and last_name)
       const wasOnboardingIncomplete = !user.first_name || !user.last_name;
       const isCompletingOnboarding =
-        wasOnboardingIncomplete &&
-        data.first_name &&
-        data.last_name;
+        wasOnboardingIncomplete && data.first_name && data.last_name;
 
       Object.assign(user, data);
       const updatedUser = await this.userRepository.save(user);
@@ -119,15 +118,15 @@ export class UserService {
         try {
           await this.emailService.sendWelcomeEmail(
             updatedUser.email,
-            updatedUser.first_name
+            updatedUser.first_name,
           );
           this.logger.log(
-            `Welcome email sent to ${updatedUser.email} after onboarding completion`
+            `Welcome email sent to ${updatedUser.email} after onboarding completion`,
           );
         } catch (error: any) {
           // Don't fail update if welcome email fails
           this.logger.warn(
-            `Failed to send welcome email to ${updatedUser.email}: ${error.message}`
+            `Failed to send welcome email to ${updatedUser.email}: ${error.message}`,
           );
         }
       }
@@ -151,7 +150,7 @@ export class UserService {
     id: string,
     isPremium: boolean,
     premiumUntil?: Date | null,
-    revenuecatId?: string | null
+    revenuecatId?: string | null,
   ): Promise<User> {
     try {
       const user = await this.findById(id);
@@ -177,7 +176,7 @@ export class UserService {
       }
       this.logger.error(
         `Error updating premium status: ${error.message}`,
-        error.stack
+        error.stack,
       );
       throw new InternalServerErrorException("Failed to update premium status");
     }
@@ -190,7 +189,7 @@ export class UserService {
   async updatePremiumStatusByRevenueCatId(
     revenuecatId: string,
     isPremium: boolean,
-    premiumUntil?: Date | null
+    premiumUntil?: Date | null,
   ): Promise<User | null> {
     try {
       const user = await this.userRepository.findOne({
@@ -198,9 +197,7 @@ export class UserService {
       });
 
       if (!user) {
-        this.logger.warn(
-          `User not found for RevenueCat ID: ${revenuecatId}`
-        );
+        this.logger.warn(`User not found for RevenueCat ID: ${revenuecatId}`);
         return null;
       }
 
@@ -208,15 +205,15 @@ export class UserService {
         user.id,
         isPremium,
         premiumUntil,
-        revenuecatId
+        revenuecatId,
       );
     } catch (error: any) {
       this.logger.error(
         `Error updating premium status by RevenueCat ID: ${error.message}`,
-        error.stack
+        error.stack,
       );
       throw new InternalServerErrorException(
-        "Failed to update premium status by RevenueCat ID"
+        "Failed to update premium status by RevenueCat ID",
       );
     }
   }
