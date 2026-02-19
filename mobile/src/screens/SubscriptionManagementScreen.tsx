@@ -335,7 +335,11 @@ export default function SubscriptionManagementScreen() {
         <View style={styles.backButton} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="always"
+      >
         {/* Lifetime Access Message */}
         {hasLifetime && (
           <View style={styles.lifetimeCard}>
@@ -520,7 +524,10 @@ export default function SubscriptionManagementScreen() {
               </Text>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView
+              style={styles.modalBody}
+              keyboardShouldPersistTaps="always"
+            >
               {planChangeInfo?.isUpgrade ? (
                 <>
                   <Text variant="secondary" style={styles.modalMessage}>

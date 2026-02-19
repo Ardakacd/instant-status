@@ -163,7 +163,7 @@ export default function SignUpScreen({ navigation }: Props) {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
         bounces={true}
       >

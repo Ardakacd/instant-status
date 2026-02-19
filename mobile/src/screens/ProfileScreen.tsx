@@ -335,6 +335,7 @@ export default function ProfileScreen() {
           { paddingTop: insets.top + Spacing.lg },
         ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="always"
       >
         {/* Profile Header */}
         <View style={styles.header}>
@@ -608,7 +609,11 @@ export default function ProfileScreen() {
                 <Ionicons name="close" size={24} color={Colors.text.primary} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.modalBody}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="always"
+            >
               <View style={styles.modalField}>
                 <Text variant="secondary" style={styles.modalLabel}>
                   Current password

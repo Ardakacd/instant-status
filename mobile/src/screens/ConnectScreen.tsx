@@ -207,6 +207,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
           { flexGrow: 1, paddingTop: insets.top + Spacing.sm },
         ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="always"
       >
         {/* Header */}
         <View style={styles.header}>

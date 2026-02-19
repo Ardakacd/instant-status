@@ -225,7 +225,7 @@ export default function StatusChangeModal({
                   style={styles.scrollContent}
                   contentContainerStyle={styles.content}
                   showsVerticalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
+                  keyboardShouldPersistTaps="always"
                 >
                   <Section spacing="lg">
                     {/* Note Input */}

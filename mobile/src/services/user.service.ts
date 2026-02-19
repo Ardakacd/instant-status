@@ -34,17 +34,6 @@ export class UserService {
     });
   }
 
-  async updatePremiumStatus(
-    isPremium: boolean,
-    premiumUntil?: string | null,
-    revenuecatId?: string | null
-  ): Promise<void> {
-    await api.patch("/user/me/premium", {
-      is_premium: isPremium,
-      premium_until: premiumUntil,
-      revenuecat_id: revenuecatId,
-    });
-  }
 }
 
 export const userService = new UserService();
