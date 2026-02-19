@@ -25,12 +25,31 @@ interface FriendStatusWidgetItem {
 export class WidgetStorageService {
   private storage: ExtensionStorage | null = null;
   private lastReloadTime: number = 0;
-  private readonly RELOAD_COOLDOWN_MS = 5 * 60 * 1000; 
+  private readonly RELOAD_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes (bulk sync)
+  private reloadTimeout: ReturnType<typeof setTimeout> | null = null;
+  private readonly DEBOUNCE_MS = 1500; // Debounce per-friend updates
 
   constructor() {
     if (Platform.OS === "ios") {
       this.storage = new ExtensionStorage(APP_GROUP_ID);
     }
+  }
+
+  /**
+   * Debounce widget reload — batches rapid per-friend updates into a single reload.
+   * Data is saved immediately; only the reload is delayed until updates settle.
+   */
+  private scheduleReload() {
+    if (this.reloadTimeout) {
+      clearTimeout(this.reloadTimeout);
+    }
+    this.reloadTimeout = setTimeout(() => {
+      if (Platform.OS === "ios") {
+        ExtensionStorage.reloadWidget("InstantStatusWidget");
+      }
+      this.reloadTimeout = null;
+      this.lastReloadTime = Date.now();
+    }, this.DEBOUNCE_MS);
   }
 
   /**
@@ -128,11 +147,10 @@ export class WidgetStorageService {
 
       const jsonString = JSON.stringify(friendsData);
 
-      // 4. Save and Reload
+      // 4. Save and Reload (debounced on iOS to batch rapid push updates)
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
-        ExtensionStorage.reloadWidget("InstantStatusWidget");
-        this.lastReloadTime = Date.now();
+        this.scheduleReload();
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
         await this.triggerAndroidUpdate();
@@ -182,6 +200,10 @@ export class WidgetStorageService {
    */
   async clearAll(): Promise<void> {
     try {
+      if (this.reloadTimeout) {
+        clearTimeout(this.reloadTimeout);
+        this.reloadTimeout = null;
+      }
       if (Platform.OS === "ios" && this.storage) {
         this.storage.remove(WIDGET_DATA_KEY);
         ExtensionStorage.reloadWidget("InstantStatusWidget");
