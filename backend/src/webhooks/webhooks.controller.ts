@@ -7,7 +7,9 @@ import {
   HttpStatus,
   Logger,
   BadRequestException,
+  UnauthorizedException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { WebhooksService } from "./webhooks.service";
 import { z } from "zod";
 
@@ -31,28 +33,35 @@ import { z } from "zod";
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
 
-  constructor(private webhooksService: WebhooksService) {}
+  constructor(
+    private webhooksService: WebhooksService,
+    private configService: ConfigService,
+  ) {}
 
   @Post("revenuecat")
   @HttpCode(HttpStatus.OK)
   async handleRevenueCatWebhook(
     @Body() body: unknown,
-    @Headers("authorization") authHeader?: string
+    @Headers("authorization") authHeader?: string,
   ) {
-    try {
-      // In production, verify webhook signature here
-      // const isValid = await this.webhooksService.verifyWebhookSignature(
-      //   body,
-      //   authHeader
-      // );
-      // if (!isValid) {
-      //   throw new BadRequestException("Invalid webhook signature");
-      // }
+    const secret =
+      this.configService.get<string>("REVENUECAT_WEBHOOK_SECRET")
+    if (!secret) {
+      throw new Error("REVENUECAT_WEBHOOK_SECRET is not set");
+    }
+    const expectedAuth = secret ? `Bearer ${secret}` : null;
+    if (
+      !expectedAuth ||
+      authHeader?.trim() !== expectedAuth
+    ) {
+      throw new UnauthorizedException("Invalid webhook authorization");
+    }
 
+    try {
       const event = RevenueCatWebhookSchema.parse(body);
       
       this.logger.log(
-        `Received RevenueCat webhook: ${event.event.type} for app_user_id: ${event.event.app_user_id}`
+        `Received RevenueCat webhook: ${event.event.type} for app_user_id: ${event.event.app_user_id ?? (event.event.type === "TRANSFER" ? "transfer" : "unknown")}`
       );
 
       await this.webhooksService.handleRevenueCatEvent(event);
@@ -96,9 +105,14 @@ const RevenueCatWebhookSchema = z.object({
       "PRODUCT_CHANGE",
       "SUBSCRIPTION_PAUSED",
       "SUBSCRIPTION_EXTENDED",
+      "TRANSFER",
     ]),
-    app_user_id: z.string(), // This is the RevenueCat customer ID
-    aliases: z.array(z.string()).optional(), // May contain Firebase UID or email
+    // app_user_id is omitted for TRANSFER events
+    app_user_id: z.string().optional(),
+    original_app_user_id: z.string().optional(),
+    aliases: z.array(z.string()).optional(), // May contain Firebase UID or RevenueCat IDs
+    transferred_from: z.array(z.string()).optional(), // Only for TRANSFER: IDs losing entitlement
+    transferred_to: z.array(z.string()).optional(), // Only for TRANSFER: IDs gaining entitlement
     product_id: z.string().optional(),
     period_type: z.enum(["NORMAL", "TRIAL", "INTRO"]).optional(),
     purchased_at_ms: z.number().optional(),
