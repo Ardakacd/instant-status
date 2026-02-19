@@ -174,13 +174,11 @@ export default function ProfileScreen() {
           if (granted) {
             setPushNotifications(true);
             const token = await messagingService.getToken();
-            if (token && user) {
-              await deviceTokenService.registerToken(token);
-            }
+            if (token && user) await deviceTokenService.registerToken(token);
           } else {
             Alert.alert(
               "Permission Required",
-              "Enable notifications in settings to stay updated.",
+              "Enable notifications in settings to keep your widget updated.",
               [
                 { text: "Cancel", style: "cancel" },
                 {
@@ -524,7 +522,9 @@ export default function ProfileScreen() {
               <View style={styles.settingInfo}>
                 <Text variant="primary">Push notifications</Text>
                 <Text variant="secondary" style={styles.settingHint}>
-                  Get status updates
+                  {pushNotifications
+                    ? "Get status updates"
+                    : "Without notifications, your home screen widget may not update in real-time."}
                 </Text>
               </View>
               <Switch

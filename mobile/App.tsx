@@ -1,5 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AppState, Platform, View, Text, StyleSheet } from "react-native";
+import {
+  Alert,
+  AppState,
+  Linking as RNLinking,
+  Platform,
+  View,
+  Text,
+  StyleSheet,
+} from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { NotificationPermissionModal } from "./src/components/NotificationPermissionModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SplashScreen from "expo-splash-screen";
 import * as Font from "expo-font";
@@ -215,6 +225,7 @@ function AppNavigator() {
   const navigationRef =
     useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [isNavReady, setIsNavReady] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   // Handle deep links when app opens or is already open
   useEffect(() => {
@@ -294,24 +305,13 @@ function AppNavigator() {
       if (Platform.OS === "ios") {
         const PERMISSION_ASKED_KEY = "notification_permission_asked_ios";
         const hasAskedBefore = await AsyncStorage.getItem(PERMISSION_ASKED_KEY);
+        const hasPerm = await messagingService.hasPermission();
 
-        if (!hasAskedBefore && isMounted) {
-          // First time - request permission automatically on iOS
-          const granted = await messagingService.requestPermission();
-          if (isMounted) {
-            await AsyncStorage.setItem(PERMISSION_ASKED_KEY, "true");
-
-            if (granted) {
-              // Register token if permission granted
-              const token = await messagingService.getToken();
-              if (token && user && isMounted) {
-                await deviceTokenService.registerToken(token);
-              }
-            }
-          }
+        if (!hasAskedBefore && !hasPerm && isMounted) {
+          // First time, no permission yet - show pre-permission screen before system dialog
+          setShowNotificationModal(true);
         } else if (isMounted) {
-          // Already asked before - just check and register token if granted
-          const hasPerm = await messagingService.hasPermission();
+          // Already asked or already granted - register token if granted
           if (hasPerm && isMounted) {
             const token = await messagingService.getToken();
             if (token && user && isMounted) {
@@ -402,93 +402,132 @@ function AppNavigator() {
     );
   }
 
-  return (
-    <NavigationContainer
-      ref={navigationRef}
-      onReady={() => setIsNavReady(true)}
-      linking={{
-        prefixes: [Linking.createURL("/"), "https://instantstatus.app"],
-        config: {
-          screens: {
-            Main: "main",
-            Connect: "connect/:userId",
-            EmailVerification: {
-              path: "verify",
-              // Query parameters (mode, oobCode) will be automatically parsed from URL
-            },
-            // ResetPassword is handled manually in useEffect to avoid navigation state errors
-            // since it's conditionally rendered based on auth state
+  const handleNotificationModalEnable = async () => {
+    const granted = await messagingService.requestPermission();
+    await AsyncStorage.setItem("notification_permission_asked_ios", "true");
+    setShowNotificationModal(false);
+    if (granted && user?.id) {
+      const token = await messagingService.getToken();
+      if (token) {
+        await deviceTokenService.registerToken(token);
+      }
+    } else if (!granted) {
+      Alert.alert(
+        "Permission Required",
+        "Enable notifications in settings to keep your widget updated.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Open Settings",
+            onPress: () => RNLinking.openSettings(),
           },
-        },
-        // Custom getStateFromPath to handle reset-password links manually
-        getStateFromPath: (path, options) => {
-          // If it's a reset-password link, return null so we handle it manually
-          if (
-            path.includes("reset-password") ||
-            path.includes("mode=resetPassword")
-          ) {
-            return undefined; // Let manual navigation handle it
-          }
-          // Use default React Navigation state parsing for other paths
-          return undefined;
-        },
-      }}
-    >
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!user ? (
-          <>
-            <Stack.Screen name="SignIn" component={LoginScreen} />
-            <Stack.Screen name="SignUp" component={SignUpScreen} />
-            <Stack.Screen
-              name="ResetPassword"
-              component={ResetPasswordScreen}
-            />
-          </>
-        ) : !emailVerified ? (
-          <>
-            <Stack.Screen
-              name="EmailVerification"
-              component={EmailVerificationScreen}
-            />
-            <Stack.Screen
-              name="ResetPassword"
-              component={ResetPasswordScreen}
-            />
-          </>
-        ) : onboarding ? (
-          <>
-            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-            <Stack.Screen
-              name="ResetPassword"
-              component={ResetPasswordScreen}
-            />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="Connect" component={ConnectScreen} />
-            <Stack.Screen
-              name="ResetPassword"
-              component={ResetPasswordScreen}
-            />
-            <Stack.Screen
-              name="ManageStatus"
-              component={ManageStatusScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="SubscriptionManagement"
-              component={SubscriptionManagementScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+        ],
+      );
+    }
+  };
+
+  const handleNotificationModalNotNow = async () => {
+    await AsyncStorage.setItem("notification_permission_asked_ios", "true");
+    setShowNotificationModal(false);
+  };
+
+  return (
+    <>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={() => setIsNavReady(true)}
+        linking={{
+          prefixes: [Linking.createURL("/"), "https://instantstatus.app"],
+          config: {
+            screens: {
+              Main: "main",
+              Connect: "connect/:userId",
+              EmailVerification: {
+                path: "verify",
+                // Query parameters (mode, oobCode) will be automatically parsed from URL
+              },
+              // ResetPassword is handled manually in useEffect to avoid navigation state errors
+              // since it's conditionally rendered based on auth state
+            },
+          },
+          // Custom getStateFromPath to handle reset-password links manually
+          getStateFromPath: (path, options) => {
+            // If it's a reset-password link, return null so we handle it manually
+            if (
+              path.includes("reset-password") ||
+              path.includes("mode=resetPassword")
+            ) {
+              return undefined; // Let manual navigation handle it
+            }
+            // Use default React Navigation state parsing for other paths
+            return undefined;
+          },
+        }}
+      >
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {!user ? (
+            <>
+              <Stack.Screen name="SignIn" component={LoginScreen} />
+              <Stack.Screen name="SignUp" component={SignUpScreen} />
+              <Stack.Screen
+                name="ResetPassword"
+                component={ResetPasswordScreen}
+              />
+            </>
+          ) : !emailVerified ? (
+            <>
+              <Stack.Screen
+                name="EmailVerification"
+                component={EmailVerificationScreen}
+              />
+              <Stack.Screen
+                name="ResetPassword"
+                component={ResetPasswordScreen}
+              />
+            </>
+          ) : onboarding ? (
+            <>
+              <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+              <Stack.Screen
+                name="ResetPassword"
+                component={ResetPasswordScreen}
+              />
+            </>
+          ) : (
+            <>
+              <Stack.Screen name="Main" component={MainTabs} />
+              <Stack.Screen name="Connect" component={ConnectScreen} />
+              <Stack.Screen
+                name="ResetPassword"
+                component={ResetPasswordScreen}
+              />
+              <Stack.Screen
+                name="ManageStatus"
+                component={ManageStatusScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="SubscriptionManagement"
+                component={SubscriptionManagementScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+
+      {user && showNotificationModal && (
+        <NotificationPermissionModal
+          visible={showNotificationModal}
+          onEnable={handleNotificationModalEnable}
+          onNotNow={handleNotificationModalNotNow}
+        />
+      )}
+    </>
   );
 }
 
@@ -564,10 +603,12 @@ export default function App() {
   if (!appIsReady) return null;
 
   return (
-    <AuthProvider>
-      <StatusBar style="auto" />
-      <AppNavigator />
-      <Toast config={toastConfig} topOffset={60} />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <StatusBar style="auto" />
+        <AppNavigator />
+        <Toast config={toastConfig} topOffset={60} />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
