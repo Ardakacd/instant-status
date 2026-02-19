@@ -26,7 +26,6 @@ export class StatusOptionService {
     color: string;
     sort_order?: number;
   }): Promise<StatusOption> {
-    console.log("createStatusOption", data);
     const response = await api.post("/status-options", data);
     return response.data;
   }
