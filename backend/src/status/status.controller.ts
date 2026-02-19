@@ -58,9 +58,8 @@ export class StatusController {
         color: option.color,
       },
       note: status.note,
-      // NestJS automatically serializes Date objects to ISO strings via JSON.stringify()
-      expires_at: status.expires_at,
-      updated_at: status.updated_at,
+      expires_at: status.expires_at?.toISOString() ?? null,
+      updated_at: status.updated_at.toISOString(),
     };
   }
 
@@ -99,9 +98,8 @@ export class StatusController {
           }
         : null,
       note: status.note,
-      // NestJS automatically serializes Date objects to ISO strings via JSON.stringify()
-      expires_at: status.expires_at,
-      updated_at: status.updated_at,
+      expires_at: status.expires_at?.toISOString() ?? null,
+      updated_at: status.updated_at.toISOString(),
     };
   }
 

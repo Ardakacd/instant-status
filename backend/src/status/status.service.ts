@@ -333,7 +333,7 @@ export class StatusService {
             user_id: fc.friendId,
             first_name: fc.friend.first_name,
             last_name: fc.friend.last_name,
-            avatar_url: null, // TODO: Add avatar_url to User entity if needed
+            avatar_url: null,
             option: defaultOption
               ? {
                   id: defaultOption.id,
@@ -348,7 +348,6 @@ export class StatusService {
           };
         }
 
-        // If visibility is true but no status exists, return default status
         if (!status) {
           return {
             user_id: fc.friendId,
@@ -377,7 +376,6 @@ export class StatusService {
           );
         }
 
-        // NestJS automatically serializes Date objects to ISO strings via JSON.stringify()
         return {
           user_id: status.user_id,
           first_name: status.user.first_name,
@@ -399,8 +397,8 @@ export class StatusService {
               }
             : null,
           note: status.note,
-          expires_at: status.expires_at,
-          updated_at: status.updated_at,
+          expires_at: status.expires_at?.toISOString() ?? null,
+          updated_at: status.updated_at.toISOString(),
         };
       });
     } catch (error: any) {
