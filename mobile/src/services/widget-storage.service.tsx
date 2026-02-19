@@ -144,7 +144,6 @@ export class WidgetStorageService {
 
   async saveAllFriendStatuses(statuses: Status[]): Promise<void> {
     try {
-      console.log("statuses", statuses);
       const widgetData: FriendStatusWidgetItem[] = statuses.map((status) => ({
         id: status.user_id,
         firstName: status.first_name || "Unknown",

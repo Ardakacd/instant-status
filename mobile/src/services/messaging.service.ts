@@ -4,7 +4,7 @@ import {
   getMessaging,
   requestPermission,
   hasPermission,
-  registerDeviceForRemoteMessages,
+  registerDeviceForRemoteMessages as firebaseRegisterDevice,
   getToken,
   deleteToken,
   getInitialNotification,
@@ -13,7 +13,6 @@ import {
   onTokenRefresh,
   AuthorizationStatus,
   unregisterDeviceForRemoteMessages,
-  isDeviceRegisteredForRemoteMessages,
 } from "@react-native-firebase/messaging";
 
 const FCM_TOKEN_KEY = "fcm_token";
@@ -100,24 +99,15 @@ export class MessagingService {
   }
 
   /**
-   * Register device for remote messages (Critical for iOS)
-   * Uses the property check to avoid redundant native calls.
+   * Register device for remote messages (required on iOS before getToken)
    */
   async registerDeviceForRemoteMessages(): Promise<boolean> {
-    // Only iOS needs this explicit registration step
     if (Platform.OS !== "ios") return true;
-
     try {
-      const instance = this.messagingInstance;
-
-      // Check if already registered
-      if (!isDeviceRegisteredForRemoteMessages(instance)) {
-        await registerDeviceForRemoteMessages(instance);
-      } 
-      
+      await firebaseRegisterDevice(this.messagingInstance);
       return true;
     } catch (error: any) {
-      console.warn("iOS Remote Message Registration Error:", error.message);
+      console.warn("iOS Remote Message Registration Error:", error?.message);
       return false;
     }
   }
@@ -130,11 +120,9 @@ export class MessagingService {
       if (Platform.OS === "ios") {
         await this.registerDeviceForRemoteMessages();
       }
-
       const token = await getToken(this.messagingInstance);
       if (token) {
         await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
-        console.log("FCM Token secured:", token);
       }
       return token;
     } catch (error) {

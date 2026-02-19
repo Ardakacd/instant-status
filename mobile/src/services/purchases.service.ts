@@ -1,10 +1,10 @@
-import PurchasesUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
-import Purchases, { CustomerInfo } from 'react-native-purchases';
+import PurchasesUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
+import Purchases, { CustomerInfo } from "react-native-purchases";
 
 /**
  * Present the RevenueCat Paywall UI
  * This shows the UI you designed in the RevenueCat Dashboard
- * 
+ *
  * @returns Promise that resolves to true if user purchased or restored, false otherwise
  * @throws Error if the paywall presentation fails
  */
@@ -12,7 +12,7 @@ export async function presentPaywall(): Promise<boolean> {
   try {
     // Present paywall for current offering
     const paywallResult: PAYWALL_RESULT = await PurchasesUI.presentPaywall();
-    
+
     switch (paywallResult) {
       case PAYWALL_RESULT.NOT_PRESENTED:
       case PAYWALL_RESULT.ERROR:
@@ -33,7 +33,7 @@ export async function presentPaywall(): Promise<boolean> {
 /**
  * Present the RevenueCat Customer Center
  * Opens the self-service portal for managing subscriptions (cancel, restore, or change plans)
- * 
+ *
  * @throws Error if the customer center presentation fails
  */
 export function presentCustomerCenter(): void {
@@ -121,7 +121,7 @@ export class PurchasesService {
   /**
    * Present the RevenueCat Paywall UI
    * This shows the UI you designed in the RevenueCat Dashboard
-   * 
+   *
    * @returns Promise that resolves to true if user purchased or restored, false otherwise
    * @throws Error if the paywall presentation fails
    */
@@ -132,7 +132,7 @@ export class PurchasesService {
   /**
    * Present the RevenueCat Customer Center
    * Opens the self-service portal for managing subscriptions (cancel, restore, or change plans)
-   * 
+   *
    * @throws Error if the customer center presentation fails
    */
   static presentCustomerCenter(): void {
@@ -167,4 +167,3 @@ export class PurchasesService {
     return getCustomerInfo();
   }
 }
-

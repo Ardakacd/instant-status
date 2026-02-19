@@ -58,13 +58,11 @@ export default function SubscriptionManagementScreen() {
 
       // Get current customer info to find active package
       const customerInfo = await getCustomerInfo();
-      console.log("Customer info from SubscriptionManagementScreen", customerInfo);
       const entitlement = customerInfo.entitlements.active['Instant Status Premium'];
       
       if (entitlement) {
         // Use productIdentifier to match with package.product.identifier
         setCurrentPackageId(entitlement.productIdentifier);
-        console.log("Current package productIdentifier:", entitlement.productIdentifier);
       } else {
         setCurrentPackageId(null);
       }
@@ -191,7 +189,6 @@ export default function SubscriptionManagementScreen() {
     try {
       // Try to get the management URL from RevenueCat
       const customerInfo = await getCustomerInfo();
-      console.log("Customer info from handleCancelMembership", customerInfo);
       const managementURL = customerInfo.managementURL;
 
       if (managementURL) {
@@ -303,13 +300,6 @@ export default function SubscriptionManagementScreen() {
         pkg.product.identifier === currentPackageId
       )
     : null;
-  
-  console.log("Current packageId:", currentPackageId);
-  console.log("Current package found:", currentPackage ? currentPackage.identifier : "not found");
-  console.log("All packages:", allPackages.map((pkg: any) => ({
-    packageId: pkg.identifier,
-    productId: pkg.product?.identifier
-  })));
   
   const hasLifetime = currentPackageId && currentPackage && isLifetimePackage(currentPackage);
   
