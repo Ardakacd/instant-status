@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   TouchableOpacity,
@@ -49,6 +49,8 @@ export default function ManageStatusScreen() {
   const [labelError, setLabelError] = useState("");
   const [emojiError, setEmojiError] = useState("");
   const [globalError, setGlobalError] = useState("");
+  const createModalScrollRef = useRef<ScrollView>(null);
+  const editModalScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     loadStatusOptions();
@@ -199,6 +201,10 @@ export default function ManageStatusScreen() {
       setGlobalError(
         error.message || "Failed to create status option. Please try again.",
       );
+      createModalScrollRef.current?.scrollTo({
+        y: 0,
+        animated: true,
+      });
     } finally {
       setSaving(false);
     }
@@ -239,6 +245,10 @@ export default function ManageStatusScreen() {
       setGlobalError(
         error.message || "Failed to update status option. Please try again.",
       );
+      editModalScrollRef.current?.scrollTo({
+        y: 0,
+        animated: true,
+      });
     } finally {
       setSaving(false);
     }
@@ -287,6 +297,7 @@ export default function ManageStatusScreen() {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="always"
       >
         {/* Global Error Banner */}
         {globalError ? (
@@ -316,7 +327,10 @@ export default function ManageStatusScreen() {
         {/* Custom Status Options */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text variant="primary" style={styles.sectionTitle}>
+            <Text
+              variant="primary"
+              style={[styles.sectionTitle, styles.sectionTitleInline]}
+            >
               Your Custom Statuses
             </Text>
             {customOptions.length < MAX_CUSTOM_OPTIONS && (
@@ -393,7 +407,11 @@ export default function ManageStatusScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView
+              ref={createModalScrollRef}
+              style={styles.modalBody}
+              keyboardShouldPersistTaps="always"
+            >
               {/* Global Error Banner */}
               {globalError ? (
                 <ErrorBanner
@@ -509,7 +527,11 @@ export default function ManageStatusScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView
+              ref={editModalScrollRef}
+              style={styles.modalBody}
+              keyboardShouldPersistTaps="always"
+            >
               {/* Global Error Banner */}
               {globalError ? (
                 <ErrorBanner
@@ -653,6 +675,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: Typography.fontFamily.semiBold,
     marginBottom: Spacing.md,
+  },
+  sectionTitleInline: {
+    marginBottom: 0,
   },
   addButton: {
     flexDirection: "row",
