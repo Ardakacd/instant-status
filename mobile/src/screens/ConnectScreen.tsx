@@ -296,8 +296,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
                 onPress={handleRedeemCode}
                 loading={redeemingCode}
                 disabled={redeemingCode || !inviteCode.trim()}
-                fullWidth={false}
-                style={styles.redeemButton}
+                fullWidth={true}
               >
                 Connect
               </Button>
@@ -495,20 +494,14 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.md,
   },
   inputContainer: {
-    flexDirection: "row",
+    flexDirection: "column",
     gap: Spacing.sm,
-    flexWrap: "wrap",
   },
   input: {
-    flex: 1,
-    minWidth: 120,
+    width: "100%",
     textAlign: "center",
     letterSpacing: 4,
     fontFamily: Typography.fontFamily.semiBold,
-  },
-  redeemButton: {
-    minWidth: 90,
-    flexShrink: 0,
   },
   connectingContainer: {
     flexDirection: "row",
