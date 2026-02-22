@@ -476,7 +476,7 @@ export default function HomeScreen() {
                     <Ionicons
                       name="list"
                       size={16}
-                      color={friendLayoutMode === "large" ? Colors.canvas.background : Colors.text.secondary}
+                      color={friendLayoutMode === "large" ? "#FFFFFF" : Colors.text.secondary}
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -489,8 +489,8 @@ export default function HomeScreen() {
                   >
                     <Ionicons
                       name="grid"
-                      size={16}
-                      color={friendLayoutMode === "compact" ? Colors.canvas.background : Colors.text.secondary}
+                      size={14}
+                      color={friendLayoutMode === "compact" ? "#FFFFFF" : Colors.text.secondary}
                     />
                   </TouchableOpacity>
                 </View>
@@ -579,15 +579,6 @@ export default function HomeScreen() {
                       <Text variant="primary" style={styles.avatarTextCompact}>
                         {status.avatar_url ? "IMG" : initials}
                       </Text>
-                      <View
-                        style={[
-                          styles.statusBadgeCompact,
-                          {
-                            backgroundColor:
-                              status.option?.color || Colors.interaction.primary,
-                          },
-                        ]}
-                      />
                     </View>
                     <Text
                       variant="primary"
@@ -636,15 +627,6 @@ export default function HomeScreen() {
                       <Text variant="primary" style={styles.avatarText}>
                         {status.avatar_url ? "IMG" : initials}
                       </Text>
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          {
-                            backgroundColor:
-                              status.option?.color || Colors.interaction.primary,
-                          },
-                        ]}
-                      />
                     </View>
                     <View style={styles.friendInfo}>
                       <Text
@@ -733,16 +715,6 @@ export default function HomeScreen() {
                         <Text style={styles.friendModalStatusEmoji}>
                           {selectedFriend.option?.emoji || "🟢"}
                         </Text>
-                        <View
-                          style={[
-                            styles.friendModalStatusDot,
-                            {
-                              backgroundColor:
-                                selectedFriend.option?.color ||
-                                Colors.interaction.primary,
-                            },
-                          ]}
-                        />
                         <Text variant="primary" style={styles.friendModalStatusText}>
                           {selectedFriend.option?.label || "Available"}
                         </Text>
@@ -1005,14 +977,14 @@ const styles = StyleSheet.create({
     borderColor: Colors.text.secondary + "40",
   },
   layoutToggleButton: {
-    width: 32,
-    height: 32,
+    width: 26,
+    height: 26,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: Borders.radius.small - 2,
   },
   layoutToggleButtonActive: {
-    backgroundColor: Colors.text.primary,
+    backgroundColor: Colors.interaction.primary,
   },
   friendsList: {
     gap: Spacing.md,
@@ -1029,6 +1001,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     alignItems: "center",
     minWidth: 0,
+    overflow: "visible",
   },
   avatarCompact: {
     width: 44,
@@ -1043,16 +1016,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
   },
-  statusBadgeCompact: {
-    position: "absolute",
-    bottom: -2,
-    right: -2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: Colors.canvas.background,
-  },
   friendNameCompact: {
     fontSize: 13,
     fontFamily: Typography.fontFamily.semiBold,
@@ -1061,8 +1024,9 @@ const styles = StyleSheet.create({
   },
   friendEmojiCompact: {
     fontSize: 18,
-    lineHeight: 22,
+    lineHeight: 26,
     includeFontPadding: false,
+    paddingTop: 2,
   },
   friendCard: {
     flexDirection: "row",
@@ -1083,16 +1047,6 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 20,
     fontFamily: Typography.fontFamily.semiBold,
-  },
-  statusBadge: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 3,
-    borderColor: Colors.canvas.background,
   },
   friendInfo: {
     flex: 1,
@@ -1163,12 +1117,6 @@ const styles = StyleSheet.create({
   },
   friendModalStatusEmoji: {
     fontSize: 20,
-    marginRight: Spacing.sm,
-  },
-  friendModalStatusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
     marginRight: Spacing.sm,
   },
   friendModalStatusText: {
