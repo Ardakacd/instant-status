@@ -8,6 +8,7 @@ import { InstantStatusWidget } from "../../android-widget/InstantStatusWidget";
 
 const APP_GROUP_ID = "group.com.arda.instantstatus.dev";
 const WIDGET_DATA_KEY = "widget_status_data";
+const IS_PREMIUM_KEY = "is_premium";
 
 interface FriendStatusWidgetItem {
   id: string;
@@ -196,6 +197,32 @@ export class WidgetStorageService {
   }
 
   /**
+   * Force widget to reload (e.g. when app comes to foreground to pick up changes).
+   */
+  async reloadWidget(): Promise<void> {
+    if (Platform.OS === "ios") {
+      ExtensionStorage.reloadWidget("InstantStatusWidget");
+    } else if (Platform.OS === "android") {
+      await this.triggerAndroidUpdate();
+    }
+  }
+
+  /**
+   * Sync premium status to App Group so the widget can gate premium backgrounds.
+   */
+  setPremiumStatus(isPremium: boolean): void {
+    try {
+      if (Platform.OS === "ios" && this.storage) {
+        this.storage.set(IS_PREMIUM_KEY, isPremium ? "true" : "false");
+        ExtensionStorage.reloadWidget("InstantStatusWidget");
+      }
+      // Android: no premium background gating yet; could add later
+    } catch (error) {
+      console.error("Error syncing premium status:", error);
+    }
+  }
+
+  /**
    * Clear all widget data (used during logout to prevent data leakage)
    */
   async clearAll(): Promise<void> {
@@ -206,9 +233,11 @@ export class WidgetStorageService {
       }
       if (Platform.OS === "ios" && this.storage) {
         this.storage.remove(WIDGET_DATA_KEY);
+        this.storage.remove(IS_PREMIUM_KEY);
         ExtensionStorage.reloadWidget("InstantStatusWidget");
       } else if (Platform.OS === "android") {
         await AsyncStorage.removeItem(WIDGET_DATA_KEY);
+        await AsyncStorage.removeItem(IS_PREMIUM_KEY);
         await this.triggerAndroidUpdate();
       }
     } catch (error) {

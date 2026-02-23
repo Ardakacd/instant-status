@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Purchases, { CustomerInfo } from "react-native-purchases";
 import { useAuth } from "../contexts/AuthContext";
+import { widgetStorageService } from "../services/widget-storage.service";
 
 export function useIsPremium() {
   const { user, loading: authLoading } = useAuth();
@@ -15,6 +16,7 @@ export function useIsPremium() {
     const isActive = entitlement !== undefined;
 
     setIsPremium(isActive);
+    widgetStorageService.setPremiumStatus(isActive);
 
     if (isActive) {
       setWillRenew(entitlement.willRenew ?? true);
@@ -42,6 +44,7 @@ export function useIsPremium() {
       } catch (e) {
         console.error("Failed to fetch customer info", e);
         setIsPremium(false);
+        widgetStorageService.setPremiumStatus(false);
         setWillRenew(null);
         setExpirationDate(null);
         setManagementURL(null);
@@ -52,6 +55,7 @@ export function useIsPremium() {
 
     if (!user) {
       setIsPremium(false);
+      widgetStorageService.setPremiumStatus(false);
       setWillRenew(null);
       setExpirationDate(null);
       setManagementURL(null);
