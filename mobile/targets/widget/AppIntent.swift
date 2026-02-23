@@ -6,7 +6,7 @@ import Foundation
 // MARK: - Constants
 private let APP_GROUP_ID = "group.com.arda.instantstatus.dev"
 private let WIDGET_DATA_KEY = "widget_status_data"
-
+private let IS_PREMIUM_KEY = "is_premium"
 // MARK: - Status Model
 
 struct FriendStatusWidgetItem: Codable, Identifiable {
@@ -83,6 +83,18 @@ struct FriendQuery: EntityQuery {
     }
 }
 
+// MARK: - Widget Background Options (Premium: full list; Free: Default only)
+
+struct WidgetBackgroundOptionsProvider: DynamicOptionsProvider {
+    func results() async throws -> [String] {
+        let isPremium = FriendDataService.shared.fetchIsPremium()
+        if isPremium {
+            return ["Default", "Mint-Violet", "Contrast", "Liquid Glass", "Plum Noir", "Mermaidcore", "Golden Hour", "Deep Space", "Soft Clay"]
+        }
+        return ["Default"]
+    }
+}
+
 // MARK: - Widget Configuration Intent
 
 @available(iOS 17.0, *)
@@ -92,6 +104,9 @@ struct ConfigurationAppIntent: WidgetConfigurationIntent {
 
     @Parameter(title: "Friends")
     var selectedFriends: [FriendEntity]?
+
+    @Parameter(title: "Background", optionsProvider: WidgetBackgroundOptionsProvider())
+    var backgroundStyle: String?
 }
 
 // MARK: - Refresh Widget Intent
@@ -113,6 +128,12 @@ struct RefreshWidgetIntent: AppIntent {
 
 struct FriendDataService {
     static let shared = FriendDataService()
+
+    /// App syncs premium status; widget gates premium backgrounds.
+    func fetchIsPremium() -> Bool {
+        guard let defaults = UserDefaults(suiteName: APP_GROUP_ID) else { return false }
+        return defaults.string(forKey: IS_PREMIUM_KEY) == "true"
+    }
 
     func fetchAllFriends() -> [FriendStatusWidgetItem] {
         guard
