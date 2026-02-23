@@ -8,9 +8,10 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
+  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Connection } from "../types";
 import { connectionsService } from "../services/connections.service";
@@ -22,7 +23,6 @@ import { InlineAction } from "../components/actions/InlineAction";
 
 export default function FriendsScreen() {
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [manageMenuVisible, setManageMenuVisible] = useState(false);
@@ -164,12 +164,12 @@ export default function FriendsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          { flexGrow: 1, paddingTop: insets.top + Spacing.md },
+          { flexGrow: 1, paddingTop: Spacing.md },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -178,7 +178,7 @@ export default function FriendsScreen() {
             onRefresh={loadConnections}
             tintColor={Colors.interaction.primary}
             colors={[Colors.interaction.primary]}
-            progressViewOffset={60}
+            progressViewOffset={Platform.OS === "android" ? 80 : undefined}
           />
         }
       >
@@ -213,7 +213,7 @@ export default function FriendsScreen() {
             </View>
           </View>
 
-          {refreshing ? (
+          {refreshing && connections.length === 0 ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator
                 size="small"
@@ -415,7 +415,7 @@ export default function FriendsScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

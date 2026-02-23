@@ -11,7 +11,7 @@ import {
   Animated,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Status, StatusOption } from "../types";
 import { statusService } from "../services/status.service";
@@ -331,7 +331,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Refresh Hint Banner */}
       {showRefreshHint && (
         <Animated.View
@@ -371,10 +371,7 @@ export default function HomeScreen() {
           styles.scrollContent,
           {
             flexGrow: 1,
-            paddingTop:
-              insets.top +
-              Spacing.md +
-              (showRefreshHint ? 56 : 0),
+            paddingTop: Spacing.md + (showRefreshHint ? 56 : 0),
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -521,7 +518,7 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {refreshing ? (
+          {refreshing && friendsStatus.length === 0 ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={Colors.interaction.primary} />
             </View>
@@ -756,7 +753,7 @@ export default function HomeScreen() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
