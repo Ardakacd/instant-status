@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -12,7 +11,6 @@ import {
   AppState,
   Modal,
   Platform,
-  KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

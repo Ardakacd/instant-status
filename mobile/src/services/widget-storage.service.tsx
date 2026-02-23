@@ -2,9 +2,7 @@ import { Platform } from "react-native";
 import { ExtensionStorage } from "@bacons/apple-targets";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Status } from "../types";
-// Import your Android Widget Component and the request function
 import { requestWidgetUpdate } from "react-native-android-widget";
-import { InstantStatusWidget } from "../../android-widget/InstantStatusWidget";
 
 const APP_GROUP_ID = "group.com.arda.instantstatus.dev";
 const WIDGET_DATA_KEY = "widget_status_data";

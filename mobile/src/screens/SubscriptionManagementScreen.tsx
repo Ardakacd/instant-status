@@ -12,7 +12,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import Purchases, { CustomerInfo } from "react-native-purchases";
 import Toast from "react-native-toast-message";
 import {
   getOfferings,
@@ -28,12 +27,11 @@ import { Text } from "../components/primitives/Text";
 export default function SubscriptionManagementScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { isPremium, willRenew, expirationDate, managementURL } = useIsPremium();
+  const { isPremium, willRenew, expirationDate } = useIsPremium();
 
   const [loading, setLoading] = useState(true);
   const [offerings, setOfferings] = useState<any>(null);
   const [currentPackageId, setCurrentPackageId] = useState<string | null>(null);
-  const [previousPackageId, setPreviousPackageId] = useState<string | null>(null);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [planChangeModalVisible, setPlanChangeModalVisible] = useState(false);
@@ -51,15 +49,16 @@ export default function SubscriptionManagementScreen() {
   const loadSubscriptionData = async () => {
     try {
       setLoading(true);
-      
+
       // Get offerings
       const offeringsData = await getOfferings();
       setOfferings(offeringsData);
 
       // Get current customer info to find active package
       const customerInfo = await getCustomerInfo();
-      const entitlement = customerInfo.entitlements.active['Instant Status Premium'];
-      
+      const entitlement =
+        customerInfo.entitlements.active["Instant Status Premium"];
+
       if (entitlement) {
         // Use productIdentifier to match with package.product.identifier
         setCurrentPackageId(entitlement.productIdentifier);
@@ -70,7 +69,9 @@ export default function SubscriptionManagementScreen() {
       console.error("Error loading subscription data:", error);
       Toast.show({
         type: "error",
-        text1: error.message || "Failed to load subscription options. Please try again.",
+        text1:
+          error.message ||
+          "Failed to load subscription options. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -89,35 +90,37 @@ export default function SubscriptionManagementScreen() {
 
     try {
       setPurchasing(pkg.identifier);
-      
+
       // Get current packages for comparison
       const currentOffering = offerings?.current;
-      const allPkgs = (currentOffering?.availablePackages || []).filter((p: any) => p && p.identifier && p.product);
-      
+      const allPkgs = (currentOffering?.availablePackages || []).filter(
+        (p: any) => p && p.identifier && p.product,
+      );
+
       // Store previous package for comparison
-      const previousPkg = currentPackageId 
+      const previousPkg = currentPackageId
         ? allPkgs.find((p: any) => p.product?.identifier === currentPackageId)
         : null;
       const previousLabel = previousPkg ? getPackageLabel(previousPkg) : null;
-      
+
       const customerInfo = await purchasePackage(pkg);
-      
+
       // Check if purchase was successful
-      const entitlement = customerInfo.entitlements.active['Instant Status Premium'];
+      const entitlement =
+        customerInfo.entitlements.active["Instant Status Premium"];
       if (entitlement) {
         const newPackageId = entitlement.productIdentifier;
         const newLabel = getPackageLabel(pkg);
         const isUpgrade = isUpgradePlan(previousLabel, newLabel);
-        
+
         // Store plan change info
-        setPreviousPackageId(currentPackageId);
         setCurrentPackageId(newPackageId);
-        
+
         // Get new expiration date
-        const newExpirationDate = entitlement.expirationDate 
+        const newExpirationDate = entitlement.expirationDate
           ? new Date(entitlement.expirationDate)
           : undefined;
-        
+
         // Show plan change modal with details
         setPlanChangeInfo({
           fromPlan: previousLabel || "Free",
@@ -126,7 +129,7 @@ export default function SubscriptionManagementScreen() {
           newExpirationDate,
         });
         setPlanChangeModalVisible(true);
-        
+
         // Reload data to reflect changes
         await loadSubscriptionData();
       } else {
@@ -149,12 +152,15 @@ export default function SubscriptionManagementScreen() {
 
   const isUpgradePlan = (fromPlan: string | null, toPlan: string): boolean => {
     if (!fromPlan) return true; // From free is always upgrade
-    
+
     const fromLower = fromPlan.toLowerCase();
     const toLower = toPlan.toLowerCase();
-    
+
     // Monthly -> Yearly or Lifetime = upgrade
-    if (fromLower.includes("monthly") && (toLower.includes("yearly") || toLower.includes("lifetime"))) {
+    if (
+      fromLower.includes("monthly") &&
+      (toLower.includes("yearly") || toLower.includes("lifetime"))
+    ) {
       return true;
     }
     // Yearly -> Lifetime = upgrade
@@ -178,7 +184,8 @@ export default function SubscriptionManagementScreen() {
     } catch (error: any) {
       Toast.show({
         type: "error",
-        text1: error.message || "Failed to restore purchases. Please try again.",
+        text1:
+          error.message || "Failed to restore purchases. Please try again.",
       });
     } finally {
       setRestoring(false);
@@ -201,12 +208,14 @@ export default function SubscriptionManagementScreen() {
       }
 
       // Fallback: Use platform-specific subscription management URLs
-      if (Platform.OS === 'ios') {
+      if (Platform.OS === "ios") {
         // iOS: Direct link to App Store subscription management
-        await Linking.openURL('https://apps.apple.com/account/subscriptions');
-      } else if (Platform.OS === 'android') {
+        await Linking.openURL("https://apps.apple.com/account/subscriptions");
+      } else if (Platform.OS === "android") {
         // Android: Direct link to Play Store subscription management
-        await Linking.openURL('https://play.google.com/store/account/subscriptions');
+        await Linking.openURL(
+          "https://play.google.com/store/account/subscriptions",
+        );
       } else {
         // Final fallback: Use RevenueCat Customer Center
         presentCustomerCenter();
@@ -215,7 +224,9 @@ export default function SubscriptionManagementScreen() {
       console.error("Error opening cancellation page:", error);
       Toast.show({
         type: "error",
-        text1: error.message || "Failed to open subscription settings. Please try again.",
+        text1:
+          error.message ||
+          "Failed to open subscription settings. Please try again.",
       });
     }
   };
@@ -253,11 +264,11 @@ export default function SubscriptionManagementScreen() {
 
   const calculateSavings = (monthlyPkg: any | null, annualPkg: any | null) => {
     if (!monthlyPkg || !annualPkg) return null;
-    
+
     const monthlyPrice = monthlyPkg.product.price;
     const annualPrice = annualPkg.product.price;
     const monthlyYearlyTotal = monthlyPrice * 12;
-    
+
     if (annualPrice < monthlyYearlyTotal) {
       const savings = monthlyYearlyTotal - annualPrice;
       const percentage = Math.round((savings / monthlyYearlyTotal) * 100);
@@ -276,49 +287,56 @@ export default function SubscriptionManagementScreen() {
           >
             <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
-          <Text variant="primary" style={styles.headerTitle}>Subscription</Text>
+          <Text variant="primary" style={styles.headerTitle}>
+            Subscription
+          </Text>
           <View style={styles.backButton} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.interaction.primary} />
-          <Text variant="secondary" style={styles.loadingText}>Loading subscription options...</Text>
+          <Text variant="secondary" style={styles.loadingText}>
+            Loading subscription options...
+          </Text>
         </View>
       </View>
     );
   }
 
   const currentOffering = offerings?.current;
-  const allPackages = (currentOffering?.availablePackages || []).filter((pkg: any) => pkg && pkg.identifier && pkg.product);
-  
+  const allPackages = (currentOffering?.availablePackages || []).filter(
+    (pkg: any) => pkg && pkg.identifier && pkg.product,
+  );
+
   // Find current package by matching productIdentifier (not package identifier)
   // RevenueCat packages have identifiers like "$rc_monthly", but the entitlement.productIdentifier
   // is the actual product ID from App Store/Play Store, which matches pkg.product.identifier
-  const currentPackage = currentPackageId 
-    ? allPackages.find((pkg: any) => 
-        pkg && 
-        pkg.product && 
-        pkg.product.identifier === currentPackageId
+  const currentPackage = currentPackageId
+    ? allPackages.find(
+        (pkg: any) =>
+          pkg && pkg.product && pkg.product.identifier === currentPackageId,
       )
     : null;
-  
-  const hasLifetime = currentPackageId && currentPackage && isLifetimePackage(currentPackage);
-  
+
+  const hasLifetime =
+    currentPackageId && currentPackage && isLifetimePackage(currentPackage);
+
   // Filter out current package - match by product identifier, not package identifier
-  const availablePackages = allPackages.filter((pkg: any) => 
-    pkg && 
-    pkg.product && 
-    pkg.product.identifier !== currentPackageId
+  const availablePackages = allPackages.filter(
+    (pkg: any) =>
+      pkg && pkg.product && pkg.product.identifier !== currentPackageId,
   );
-  
+
   // Find monthly and annual packages for savings calculation
-  const monthlyPkg = allPackages.find((pkg: any) =>
-    pkg && pkg.identifier && pkg.identifier.toLowerCase().includes("monthly")
+  const monthlyPkg = allPackages.find(
+    (pkg: any) =>
+      pkg && pkg.identifier && pkg.identifier.toLowerCase().includes("monthly"),
   );
-  const annualPkg = allPackages.find((pkg: any) =>
-    pkg && pkg.identifier && (
-      pkg.identifier.toLowerCase().includes("annual") ||
-      pkg.identifier.toLowerCase().includes("yearly")
-    )
+  const annualPkg = allPackages.find(
+    (pkg: any) =>
+      pkg &&
+      pkg.identifier &&
+      (pkg.identifier.toLowerCase().includes("annual") ||
+        pkg.identifier.toLowerCase().includes("yearly")),
   );
   const savings = calculateSavings(monthlyPkg || null, annualPkg || null);
 
@@ -331,7 +349,9 @@ export default function SubscriptionManagementScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
         </TouchableOpacity>
-        <Text variant="primary" style={styles.headerTitle}>Subscription</Text>
+        <Text variant="primary" style={styles.headerTitle}>
+          Subscription
+        </Text>
         <View style={styles.backButton} />
       </View>
 
@@ -343,8 +363,14 @@ export default function SubscriptionManagementScreen() {
         {/* Lifetime Access Message */}
         {hasLifetime && (
           <View style={styles.lifetimeCard}>
-            <Ionicons name="infinite" size={32} color={Colors.interaction.primary} />
-            <Text variant="primary" style={styles.lifetimeTitle}>You already have lifetime access to this app</Text>
+            <Ionicons
+              name="infinite"
+              size={32}
+              color={Colors.interaction.primary}
+            />
+            <Text variant="primary" style={styles.lifetimeTitle}>
+              You already have lifetime access to this app
+            </Text>
             <Text variant="secondary" style={styles.lifetimeDescription}>
               Enjoy all premium features forever, no subscription needed.
             </Text>
@@ -355,15 +381,18 @@ export default function SubscriptionManagementScreen() {
         {isPremium && !hasLifetime && (
           <View style={styles.currentPlanCard}>
             <View style={styles.currentPlanHeader}>
-              <Ionicons name="star" size={24} color={Colors.interaction.accent} />
-              <Text variant="primary" style={styles.currentPlanTitle}>Current Plan</Text>
+              <Ionicons
+                name="star"
+                size={24}
+                color={Colors.interaction.accent}
+              />
+              <Text variant="primary" style={styles.currentPlanTitle}>
+                Current Plan
+              </Text>
             </View>
             {currentPackageId && (
               <Text variant="primary" style={styles.currentPlanName}>
-                {currentPackage 
-                  ? getPackageLabel(currentPackage)
-                  : "Premium"
-                }
+                {currentPackage ? getPackageLabel(currentPackage) : "Premium"}
               </Text>
             )}
             {expirationDate && (
@@ -373,43 +402,57 @@ export default function SubscriptionManagementScreen() {
             )}
             {willRenew === false && (
               <View style={styles.cancellationWarning}>
-                <Ionicons name="information-circle" size={16} color={Colors.interaction.accent} />
+                <Ionicons
+                  name="information-circle"
+                  size={16}
+                  color={Colors.interaction.accent}
+                />
                 <Text variant="primary" style={styles.cancellationWarningText}>
                   Your subscription will not renew
                 </Text>
               </View>
             )}
-            
+
             {/* Plan Switch Information */}
-            {availablePackages.length > 0 && currentPackage && expirationDate && (
-              <View style={styles.switchInfoBox}>
-                <Ionicons name="swap-horizontal-outline" size={20} color={Colors.interaction.primary} />
-                <View style={styles.switchInfoContent}>
-                  <Text variant="primary" style={styles.switchInfoTitle}>Switching Plans</Text>
-                  <Text variant="secondary" style={styles.switchInfoText}>
-                    {(() => {
-                      const currentLabel = getPackageLabel(currentPackage);
-                      const isYearly = currentLabel.toLowerCase().includes("yearly");
-                      const monthlyPkg = availablePackages.find((p: any) => {
-                        const label = getPackageLabel(p);
-                        return label.toLowerCase().includes("monthly");
-                      });
-                      const yearlyPkg = availablePackages.find((p: any) => {
-                        const label = getPackageLabel(p);
-                        return label.toLowerCase().includes("yearly");
-                      });
-                      
-                      if (isYearly && monthlyPkg) {
-                        return `If you switch to Monthly, your Yearly benefits will continue until ${expirationDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}. After that, your Monthly subscription will begin.`;
-                      } else if (!isYearly && yearlyPkg) {
-                        return `If you switch to Yearly, your remaining time will be prorated and applied to your new plan. Your next billing date will be in 1 year.`;
-                      }
-                      return `You can switch to a different plan anytime. Your current benefits will continue until ${expirationDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`;
-                    })()}
-                  </Text>
+            {availablePackages.length > 0 &&
+              currentPackage &&
+              expirationDate && (
+                <View style={styles.switchInfoBox}>
+                  <Ionicons
+                    name="swap-horizontal-outline"
+                    size={20}
+                    color={Colors.interaction.primary}
+                  />
+                  <View style={styles.switchInfoContent}>
+                    <Text variant="primary" style={styles.switchInfoTitle}>
+                      Switching Plans
+                    </Text>
+                    <Text variant="secondary" style={styles.switchInfoText}>
+                      {(() => {
+                        const currentLabel = getPackageLabel(currentPackage);
+                        const isYearly = currentLabel
+                          .toLowerCase()
+                          .includes("yearly");
+                        const monthlyPkg = availablePackages.find((p: any) => {
+                          const label = getPackageLabel(p);
+                          return label.toLowerCase().includes("monthly");
+                        });
+                        const yearlyPkg = availablePackages.find((p: any) => {
+                          const label = getPackageLabel(p);
+                          return label.toLowerCase().includes("yearly");
+                        });
+
+                        if (isYearly && monthlyPkg) {
+                          return `If you switch to Monthly, your Yearly benefits will continue until ${expirationDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}. After that, your Monthly subscription will begin.`;
+                        } else if (!isYearly && yearlyPkg) {
+                          return `If you switch to Yearly, your remaining time will be prorated and applied to your new plan. Your next billing date will be in 1 year.`;
+                        }
+                        return `You can switch to a different plan anytime. Your current benefits will continue until ${expirationDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`;
+                      })()}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
           </View>
         )}
 
@@ -419,13 +462,13 @@ export default function SubscriptionManagementScreen() {
             <Text variant="primary" style={styles.sectionTitle}>
               {isPremium ? "Change Plan" : "Choose a Plan"}
             </Text>
-            
+
             {availablePackages.map((pkg: any) => {
               if (!pkg || !pkg.identifier) return null;
               const isPurchasing = purchasing === pkg.identifier;
               const label = getPackageLabel(pkg);
               const isAnnual = label.toLowerCase().includes("yearly");
-              
+
               return (
                 <TouchableOpacity
                   key={pkg.identifier}
@@ -438,18 +481,25 @@ export default function SubscriptionManagementScreen() {
                 >
                   <View style={styles.packageHeader}>
                     <View style={styles.packageInfo}>
-                      <Text variant="primary" style={styles.packageLabel}>{label}</Text>
+                      <Text variant="primary" style={styles.packageLabel}>
+                        {label}
+                      </Text>
                       {isAnnual && savings && (
                         <View style={styles.savingsBadge}>
-                          <Text variant="primary" style={styles.savingsBadgeText}>
+                          <Text
+                            variant="primary"
+                            style={styles.savingsBadgeText}
+                          >
                             Save {savings.percentage}%
                           </Text>
                         </View>
                       )}
                     </View>
-                    <Text variant="primary" style={styles.packagePrice}>{formatPrice(pkg)}</Text>
+                    <Text variant="primary" style={styles.packagePrice}>
+                      {formatPrice(pkg)}
+                    </Text>
                   </View>
-                  
+
                   {isAnnual && savings && (
                     <Text variant="secondary" style={styles.savingsText}>
                       {savings.percentage}% off compared to monthly billing
@@ -457,7 +507,11 @@ export default function SubscriptionManagementScreen() {
                   )}
 
                   {isPurchasing ? (
-                    <ActivityIndicator size="small" color={Colors.interaction.primary} style={styles.packageButton} />
+                    <ActivityIndicator
+                      size="small"
+                      color={Colors.interaction.primary}
+                      style={styles.packageButton}
+                    />
                   ) : (
                     <View style={styles.packageButton}>
                       <Text variant="primary" style={styles.packageButtonText}>
@@ -479,11 +533,20 @@ export default function SubscriptionManagementScreen() {
             disabled={restoring}
           >
             {restoring ? (
-              <ActivityIndicator size="small" color={Colors.interaction.primary} />
+              <ActivityIndicator
+                size="small"
+                color={Colors.interaction.primary}
+              />
             ) : (
               <>
-                <Ionicons name="refresh-outline" size={20} color={Colors.interaction.primary} />
-                <Text variant="primary" style={styles.actionButtonText}>Restore Purchases</Text>
+                <Ionicons
+                  name="refresh-outline"
+                  size={20}
+                  color={Colors.interaction.primary}
+                />
+                <Text variant="primary" style={styles.actionButtonText}>
+                  Restore Purchases
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -493,8 +556,15 @@ export default function SubscriptionManagementScreen() {
               style={[styles.actionButton, styles.cancelButton]}
               onPress={handleCancelMembership}
             >
-              <Ionicons name="close-circle-outline" size={20} color={Colors.interaction.error} />
-              <Text variant="primary" style={[styles.actionButtonText, styles.cancelButtonText]}>
+              <Ionicons
+                name="close-circle-outline"
+                size={20}
+                color={Colors.interaction.error}
+              />
+              <Text
+                variant="primary"
+                style={[styles.actionButtonText, styles.cancelButtonText]}
+              >
                 Cancel Membership
               </Text>
             </TouchableOpacity>
@@ -512,14 +582,22 @@ export default function SubscriptionManagementScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Ionicons 
-                name={planChangeInfo?.isUpgrade ? "checkmark-circle" : "information-circle"} 
-                size={48} 
-                color={planChangeInfo?.isUpgrade ? Colors.interaction.primary : Colors.interaction.primary} 
+              <Ionicons
+                name={
+                  planChangeInfo?.isUpgrade
+                    ? "checkmark-circle"
+                    : "information-circle"
+                }
+                size={48}
+                color={
+                  planChangeInfo?.isUpgrade
+                    ? Colors.interaction.primary
+                    : Colors.interaction.primary
+                }
               />
               <Text variant="primary" style={styles.modalTitle}>
-                {planChangeInfo?.isUpgrade 
-                  ? "Plan Upgraded Successfully!" 
+                {planChangeInfo?.isUpgrade
+                  ? "Plan Upgraded Successfully!"
                   : "Plan Change Saved"}
               </Text>
             </View>
@@ -531,30 +609,50 @@ export default function SubscriptionManagementScreen() {
               {planChangeInfo?.isUpgrade ? (
                 <>
                   <Text variant="secondary" style={styles.modalMessage}>
-                    Congratulations! You're now on the <Text variant="primary" style={styles.boldText}>{planChangeInfo.toPlan} Pro</Text> plan.
+                    Congratulations! You're now on the{" "}
+                    <Text variant="primary" style={styles.boldText}>
+                      {planChangeInfo.toPlan} Pro
+                    </Text>{" "}
+                    plan.
                   </Text>
-                  
+
                   <View style={styles.infoBox}>
-                    <Ionicons name="time-outline" size={20} color={Colors.text.secondary} />
+                    <Ionicons
+                      name="time-outline"
+                      size={20}
+                      color={Colors.text.secondary}
+                    />
                     <View style={styles.infoBoxContent}>
-                      <Text variant="primary" style={styles.infoBoxTitle}>Prorated Billing</Text>
+                      <Text variant="primary" style={styles.infoBoxTitle}>
+                        Prorated Billing
+                      </Text>
                       <Text variant="secondary" style={styles.infoBoxText}>
-                        Your remaining time from the previous plan has been applied to your new plan.
+                        Your remaining time from the previous plan has been
+                        applied to your new plan.
                       </Text>
                     </View>
                   </View>
 
                   {planChangeInfo.newExpirationDate && (
                     <View style={styles.infoBox}>
-                      <Ionicons name="calendar-outline" size={20} color={Colors.text.secondary} />
+                      <Ionicons
+                        name="calendar-outline"
+                        size={20}
+                        color={Colors.text.secondary}
+                      />
                       <View style={styles.infoBoxContent}>
-                        <Text variant="primary" style={styles.infoBoxTitle}>Next Billing Date</Text>
+                        <Text variant="primary" style={styles.infoBoxTitle}>
+                          Next Billing Date
+                        </Text>
                         <Text variant="secondary" style={styles.infoBoxText}>
-                          {planChangeInfo.newExpirationDate.toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          {planChangeInfo.newExpirationDate.toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            },
+                          )}
                         </Text>
                       </View>
                     </View>
@@ -563,28 +661,49 @@ export default function SubscriptionManagementScreen() {
               ) : (
                 <>
                   <Text variant="secondary" style={styles.modalMessage}>
-                    Your plan change from <Text variant="primary" style={styles.boldText}>{planChangeInfo?.fromPlan}</Text> to <Text variant="primary" style={styles.boldText}>{planChangeInfo?.toPlan}</Text> has been saved.
+                    Your plan change from{" "}
+                    <Text variant="primary" style={styles.boldText}>
+                      {planChangeInfo?.fromPlan}
+                    </Text>{" "}
+                    to{" "}
+                    <Text variant="primary" style={styles.boldText}>
+                      {planChangeInfo?.toPlan}
+                    </Text>{" "}
+                    has been saved.
                   </Text>
-                  
+
                   <View style={styles.infoBox}>
-                    <Ionicons name="information-circle-outline" size={20} color={Colors.interaction.accent} />
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={20}
+                      color={Colors.interaction.accent}
+                    />
                     <View style={styles.infoBoxContent}>
-                      <Text variant="primary" style={styles.infoBoxTitle}>Transition Process</Text>
+                      <Text variant="primary" style={styles.infoBoxTitle}>
+                        Transition Process
+                      </Text>
                       <Text variant="secondary" style={styles.infoBoxText}>
-                        {planChangeInfo?.newExpirationDate 
-                          ? `Your current ${planChangeInfo.fromPlan} benefits will continue until ${planChangeInfo.newExpirationDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}. After that date, your ${planChangeInfo.toPlan} subscription will begin.`
-                          : `Your current plan benefits will continue until the end of your billing period. After that, your new ${planChangeInfo?.toPlan} subscription will begin.`
-                        }
+                        {planChangeInfo?.newExpirationDate
+                          ? `Your current ${planChangeInfo.fromPlan} benefits will continue until ${planChangeInfo.newExpirationDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}. After that date, your ${planChangeInfo.toPlan} subscription will begin.`
+                          : `Your current plan benefits will continue until the end of your billing period. After that, your new ${planChangeInfo?.toPlan} subscription will begin.`}
                       </Text>
                     </View>
                   </View>
 
                   <View style={styles.infoBox}>
-                    <Ionicons name="checkmark-circle-outline" size={20} color={Colors.interaction.primary} />
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={20}
+                      color={Colors.interaction.primary}
+                    />
                     <View style={styles.infoBoxContent}>
-                      <Text variant="primary" style={styles.infoBoxTitle}>Not a Cancellation</Text>
+                      <Text variant="primary" style={styles.infoBoxTitle}>
+                        Not a Cancellation
+                      </Text>
                       <Text variant="secondary" style={styles.infoBoxText}>
-                        Your subscription is not being cancelled. Only your billing period is changing. You'll continue to have access to all premium features.
+                        Your subscription is not being cancelled. Only your
+                        billing period is changing. You'll continue to have
+                        access to all premium features.
                       </Text>
                     </View>
                   </View>
@@ -599,7 +718,9 @@ export default function SubscriptionManagementScreen() {
                 setPlanChangeInfo(null);
               }}
             >
-              <Text variant="primary" style={styles.modalButtonText}>Got it</Text>
+              <Text variant="primary" style={styles.modalButtonText}>
+                Got it
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -935,4 +1056,3 @@ const styles = StyleSheet.create({
     color: Colors.canvas.background,
   },
 });
-

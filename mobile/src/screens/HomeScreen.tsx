@@ -11,7 +11,7 @@ import {
   Animated,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Status, StatusOption } from "../types";
 import { statusService } from "../services/status.service";
@@ -30,9 +30,8 @@ import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
 export default function HomeScreen() {
-  const { user } = useAuth();
+
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const route = useRoute();
   const { isPremium, loading: premiumLoading } = useIsPremium();
   const [myStatus, setMyStatus] = useState<Status | null>(null);

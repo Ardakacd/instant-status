@@ -5,7 +5,6 @@ import {
   Body,
   UseGuards,
   Request,
-  BadRequestException,
 } from "@nestjs/common";
 import { StatusService } from "./status.service";
 import { StatusOptionService } from "../status-option/status-option.service";
@@ -25,7 +24,7 @@ const UpdateStatusDtoSchema = z
 export class StatusController {
   constructor(
     private statusService: StatusService,
-    private statusOptionService: StatusOptionService
+    private statusOptionService: StatusOptionService,
   ) {}
 
   @Patch()
@@ -46,7 +45,7 @@ export class StatusController {
       option_id,
       displayName,
       note,
-      expiresAt
+      expiresAt,
     );
 
     return {
@@ -69,7 +68,8 @@ export class StatusController {
 
     if (!status) {
       // Only fetch default option if status doesn't exist
-      const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+      const defaultOption =
+        await this.statusOptionService.getDefaultStatusOption();
       return {
         user_id: req.user.id,
         option: defaultOption
