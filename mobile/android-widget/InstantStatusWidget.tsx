@@ -19,9 +19,12 @@ export interface FriendStatusWidgetItem {
   updatedAt: string;
 }
 
+export type WidgetLayoutSize = "small" | "medium" | "large";
+
 interface InstantStatusWidgetProps {
   friends?: FriendStatusWidgetItem[];
   hasAnyFriends?: boolean;
+  layoutSize?: WidgetLayoutSize;
 }
 
 function getEffectiveStatus(friend: FriendStatusWidgetItem): {
@@ -174,12 +177,19 @@ function FriendRow({ friend }: { friend: FriendStatusWidgetItem }) {
   );
 }
 
+const MAX_FRIENDS_BY_LAYOUT: Record<WidgetLayoutSize, number> = {
+  small: 4,
+  medium: 8,
+  large: 16,
+};
+
 export function InstantStatusWidget({
   friends = [],
   hasAnyFriends = true,
+  layoutSize = "medium",
 }: InstantStatusWidgetProps) {
-  // Show max 8 friends like iOS medium widget
-  const displayFriends = friends.slice(0, 8);
+  const maxFriends = MAX_FRIENDS_BY_LAYOUT[layoutSize];
+  const displayFriends = friends.slice(0, maxFriends);
 
   if (displayFriends.length === 0) {
     return (

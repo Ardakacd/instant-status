@@ -12,7 +12,15 @@ import type { WidgetConfigurationScreenProps } from "react-native-android-widget
 import {
   InstantStatusWidget,
   type FriendStatusWidgetItem,
+  type WidgetLayoutSize,
 } from "./InstantStatusWidget";
+
+function getWidgetLayout(width: number, height: number): WidgetLayoutSize {
+  const minDim = Math.min(width, height);
+  if (width < 200 || minDim < 140) return "small";
+  if (width < 350 && height < 280) return "medium";
+  return "large";
+}
 
 const WIDGET_DATA_KEY = "widget_status_data";
 const WIDGET_CONFIG_KEY_PREFIX = "widget_config_";
@@ -87,10 +95,15 @@ export function WidgetConfigurationScreen({
       );
 
       // Render widget preview with selected friends
+      const layoutSize = getWidgetLayout(
+        widgetInfo.width,
+        widgetInfo.height
+      );
       renderWidget(
         <InstantStatusWidget
           friends={selectedFriends}
           hasAnyFriends={friends.length > 0}
+          layoutSize={layoutSize}
         />
       );
 

@@ -9,6 +9,19 @@ import {
 const WIDGET_DATA_KEY = "widget_status_data";
 const WIDGET_CONFIG_KEY_PREFIX = "widget_config_";
 
+/**
+ * Map widget width (dp) to layout size, matching iOS small/medium/large.
+ * Uses width ranges - launchers vary, so we use conservative boundaries.
+ */
+function getWidgetLayout(width: number, height: number): "small" | "medium" | "large" {
+  // Use the smaller dimension as a proxy when widget is very square
+  const minDim = Math.min(width, height);
+  // Width is primary for portrait-style widgets; also consider height for large
+  if (width < 200 || minDim < 140) return "small";   // ~2 cells
+  if (width < 350 && height < 280) return "medium";   // ~4x2
+  return "large";
+}
+
 const nameToWidget = {
   InstantStatusWidget: InstantStatusWidget,
 };
@@ -38,8 +51,8 @@ async function loadWidgetData(widgetId: number): Promise<{
       const selectedIds: string[] = JSON.parse(savedSelection);
       filteredFriends = allFriends.filter((f) => selectedIds.includes(f.id));
     } else {
-      // No selection, show first 8 friends (default)
-      filteredFriends = allFriends.slice(0, 8);
+      // No selection, show first 16 friends (enough for large layout; widget slices by size)
+      filteredFriends = allFriends.slice(0, 16);
     }
 
     return {
@@ -59,6 +72,7 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   const widgetInfo = props.widgetInfo;
   const Widget =
     nameToWidget[widgetInfo.widgetName as keyof typeof nameToWidget];
+  const layoutSize = getWidgetLayout(widgetInfo.width, widgetInfo.height);
 
   switch (props.widgetAction) {
     case "WIDGET_ADDED":
@@ -67,7 +81,11 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
           widgetInfo.widgetId
         );
         props.renderWidget(
-          <Widget friends={friends} hasAnyFriends={hasAnyFriends} />
+          <Widget
+            friends={friends}
+            hasAnyFriends={hasAnyFriends}
+            layoutSize={layoutSize}
+          />
         );
       }
       break;
@@ -78,7 +96,11 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
           widgetInfo.widgetId
         );
         props.renderWidget(
-          <Widget friends={friends} hasAnyFriends={hasAnyFriends} />
+          <Widget
+            friends={friends}
+            hasAnyFriends={hasAnyFriends}
+            layoutSize={layoutSize}
+          />
         );
       }
       break;
@@ -89,7 +111,11 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
           widgetInfo.widgetId
         );
         props.renderWidget(
-          <Widget friends={friends} hasAnyFriends={hasAnyFriends} />
+          <Widget
+            friends={friends}
+            hasAnyFriends={hasAnyFriends}
+            layoutSize={layoutSize}
+          />
         );
       }
       break;
@@ -111,7 +137,11 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
           widgetInfo.widgetId
         );
         props.renderWidget(
-          <Widget friends={friends} hasAnyFriends={hasAnyFriends} />
+          <Widget
+            friends={friends}
+            hasAnyFriends={hasAnyFriends}
+            layoutSize={layoutSize}
+          />
         );
       }
       // Note: For "OPEN_APP" clickAction, the library handles opening the app automatically.
