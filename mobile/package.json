@@ -6,6 +6,7 @@
     "start": "expo start",
     "android": "expo run:android",
     "prewidget": "EXPO_NO_GIT_STATUS=1 npx expo prebuild --template ./node_modules/@bacons/apple-targets/prebuild-blank.tgz --clean",
+    "generate:adaptive-icon": "node scripts/generate-adaptive-icon.js",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "postinstall": "patch-package"
@@ -51,6 +52,7 @@
   "devDependencies": {
     "@types/react": "~19.1.0",
     "patch-package": "^8.0.1",
+    "sharp": "^0.34.5",
     "typescript": "~5.9.2"
   },
   "private": true
