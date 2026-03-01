@@ -439,15 +439,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   sectionTitle: {
     fontSize: 20,
     fontFamily: Typography.fontFamily.semiBold,
+    flexShrink: 1,
+    minWidth: 0,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
+    flexShrink: 0,
   },
   friendCount: {
     flexDirection: "row",
