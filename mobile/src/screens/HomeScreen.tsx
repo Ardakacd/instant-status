@@ -684,7 +684,12 @@ export default function HomeScreen() {
                   <>
                     {/* Header */}
                     <View style={styles.friendModalHeader}>
-                      <Text variant="primary" style={styles.friendModalTitle}>
+                      <Text
+                        variant="primary"
+                        style={styles.friendModalTitle}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
                         {getDisplayName(
                           selectedFriend.first_name,
                           selectedFriend.last_name
@@ -807,10 +812,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   cardTitle: {
     fontSize: 18,
     fontFamily: Typography.fontFamily.semiBold,
+    flexShrink: 1,
+    minWidth: 0,
   },
   manageButton: {
     flexDirection: "row",
@@ -819,6 +827,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Borders.radius.medium,
     backgroundColor: Colors.interaction.primary + "15",
+    flexShrink: 0,
   },
   manageButtonLocked: {
     opacity: 0.6,
@@ -838,13 +847,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginHorizontal: -Spacing.xs,
+    gap: Spacing.md,
   },
   statusButton: {
-    width: "31%",
     height: 100,
-    marginHorizontal: Spacing.xs,
-    marginBottom: Spacing.sm,
+    flexGrow: 1,
+    minWidth: "30%",
     backgroundColor: "#F3F4F6",
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
@@ -890,15 +898,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   sectionTitle: {
     fontSize: 20,
     fontFamily: Typography.fontFamily.semiBold,
+    flexShrink: 1,
+    minWidth: 0,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
+    flexShrink: 0,
   },
   friendCount: {
     flexDirection: "row",
@@ -988,15 +1000,16 @@ const styles = StyleSheet.create({
   friendsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.sm,
+    justifyContent: "space-between",
+    gap: Spacing.md,
   },
   friendCardCompact: {
-    width: "47%",
     backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     padding: Spacing.sm,
     alignItems: "center",
-    minWidth: 0,
+    flexGrow: 1,
+    minWidth: "30%",
     overflow: "visible",
   },
   avatarCompact: {
