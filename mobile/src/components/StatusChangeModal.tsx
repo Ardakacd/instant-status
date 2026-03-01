@@ -18,11 +18,13 @@ import {
   Spacing,
   Typography,
   getContrastingTextColor,
+  SAFE_AREA_BOTTOM,
 } from "../design";
 import { Text } from "./primitives/Text";
 import { TextInput } from "./inputs/TextInput";
 import { Section } from "./containers/Section";
 import { Button } from "./actions/Button";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hapticAction } from "../utils/haptics";
 
 interface StatusChangeModalProps {
@@ -47,6 +49,7 @@ export default function StatusChangeModal({
   const [androidPickerMode, setAndroidPickerMode] = useState<"date" | "time">(
     "date",
   );
+  const insets = useSafeAreaInsets();
 
   // Note: All statuses can have expiration times
 
@@ -187,6 +190,7 @@ export default function StatusChangeModal({
                 style={[
                   styles.modalContainer,
                   expiresAt && styles.modalContainerExpanded,
+                  { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom },
                 ]}
               >
                 {/* Header */}

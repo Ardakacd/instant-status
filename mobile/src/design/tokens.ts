@@ -199,6 +199,9 @@ export const Spacing = {
   xxl: 48,
 } as const;
 
+/** Base padding added with insets.bottom for modals/sheets to avoid nav bar overlap */
+export const SAFE_AREA_BOTTOM = Spacing.md;
+
 // ============================================================================
 // TYPE EXPORTS
 // ============================================================================

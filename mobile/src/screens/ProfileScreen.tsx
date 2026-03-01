@@ -30,7 +30,7 @@ import {
 import { useIsPremium } from "../hooks/useIsPremium";
 import Toast from "react-native-toast-message";
 
-import { Colors, Borders, Spacing, Typography } from "../design";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 import { TextInput as DesignTextInput } from "../components/inputs/TextInput";
@@ -590,7 +590,7 @@ export default function ProfileScreen() {
         onRequestClose={() => setChangePasswordModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { paddingBottom: insets.bottom + Spacing.md }]}>
+          <View style={[styles.modalContent, { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom }]}>
             <View style={styles.modalHeader}>
               <Text variant="primary" style={styles.modalTitle}>
                 Change password
@@ -724,6 +724,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    minWidth: 0,
   },
   iconBtn: {
     padding: Spacing.xs,

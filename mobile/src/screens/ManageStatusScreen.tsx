@@ -22,7 +22,7 @@ import { ColorPicker } from "../components/ColorPicker";
 import StatusPreviewCard from "../components/StatusPreviewCard";
 import { useIsPremium } from "../hooks/useIsPremium";
 import { PurchasesService } from "../services/purchases.service";
-import { Colors, Borders, Spacing, Typography } from "../design";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 import { TextInput } from "../components/inputs/TextInput";
@@ -384,7 +384,12 @@ export default function ManageStatusScreen() {
         }}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View
+            style={[
+              styles.modalContent,
+              { paddingBottom: Spacing.md + insets.bottom },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text variant="primary" style={styles.modalTitle}>
                 Create Custom Status
@@ -506,7 +511,12 @@ export default function ManageStatusScreen() {
         }}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View
+            style={[
+              styles.modalContent,
+              { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text variant="primary" style={styles.modalTitle}>
                 Edit Custom Status
@@ -696,14 +706,16 @@ const styles = StyleSheet.create({
   optionsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "space-between",
     gap: Spacing.md,
   },
   optionCard: {
-    width: "47%",
     backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
     alignItems: "center",
+    flexGrow: 1,
+    minWidth: "30%",
   },
   optionEmoji: {
     fontSize: 26,

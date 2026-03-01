@@ -3,7 +3,7 @@ import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
-import { Colors, Spacing } from "../design";
+import { Colors, Spacing, SAFE_AREA_BOTTOM } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
@@ -22,7 +22,7 @@ export default function NoInternetScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: SAFE_AREA_BOTTOM + insets.bottom }]}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
           <Ionicons

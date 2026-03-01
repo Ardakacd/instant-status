@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Borders, Spacing, Typography } from "../design";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM } from "../design";
 import { Text } from "./primitives/Text";
 import { Button } from "./actions/Button";
 
@@ -42,7 +42,7 @@ export function NotificationPermissionModal({
       transparent
       onRequestClose={onNotNow}
     >
-      <View style={[styles.overlay, { paddingBottom: insets.bottom + Spacing.lg }]}>
+      <View style={[styles.overlay, { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom }]}>
         <View style={styles.content}>
           <View style={styles.iconContainer}>
             <Ionicons
