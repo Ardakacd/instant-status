@@ -4,10 +4,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   InstantStatusWidget,
   type FriendStatusWidgetItem,
+  type WidgetBackgroundStyle,
 } from "./InstantStatusWidget";
 
 const WIDGET_DATA_KEY = "widget_status_data";
 const WIDGET_CONFIG_KEY_PREFIX = "widget_config_";
+const WIDGET_CONFIG_BACKGROUND_PREFIX = "widget_config_background_";
+const IS_PREMIUM_KEY = "is_premium";
 
 /**
  * Map widget width (dp) to layout size, matching iOS small/medium/large.
@@ -29,17 +32,15 @@ const nameToWidget = {
 async function loadWidgetData(widgetId: number): Promise<{
   friends: FriendStatusWidgetItem[];
   hasAnyFriends: boolean;
+  isPremium: boolean;
+  backgroundStyle: WidgetBackgroundStyle;
 }> {
   try {
     const data = await AsyncStorage.getItem(WIDGET_DATA_KEY);
-    if (!data) {
-      return {
-        friends: [],
-        hasAnyFriends: false,
-      };
+    let allFriends: FriendStatusWidgetItem[] = [];
+    if (data) {
+      allFriends = JSON.parse(data);
     }
-
-    const allFriends: FriendStatusWidgetItem[] = JSON.parse(data);
 
     // Load selected friend IDs for this widget
     const configKey = `${WIDGET_CONFIG_KEY_PREFIX}${String(widgetId)}`;
@@ -47,25 +48,52 @@ async function loadWidgetData(widgetId: number): Promise<{
 
     let filteredFriends: FriendStatusWidgetItem[];
     if (savedSelection) {
-      // User has selected specific friends
       const selectedIds: string[] = JSON.parse(savedSelection);
       filteredFriends = allFriends.filter((f) => selectedIds.includes(f.id));
     } else {
-      // No selection, show first 16 friends (enough for large layout; widget slices by size)
       filteredFriends = allFriends.slice(0, 16);
     }
+
+    // Load premium status and background style
+    const isPremiumRaw = await AsyncStorage.getItem(IS_PREMIUM_KEY);
+    const isPremium = isPremiumRaw === "true";
+
+    const bgKey = `${WIDGET_CONFIG_BACKGROUND_PREFIX}${String(widgetId)}`;
+    const savedBg = await AsyncStorage.getItem(bgKey);
+    const backgroundStyle: WidgetBackgroundStyle =
+      savedBg && isValidBackgroundStyle(savedBg) ? savedBg : "default";
 
     return {
       friends: filteredFriends,
       hasAnyFriends: allFriends.length > 0,
+      isPremium,
+      backgroundStyle,
     };
   } catch (error) {
     console.error("Error loading widget data:", error);
     return {
       friends: [],
       hasAnyFriends: false,
+      isPremium: false,
+      backgroundStyle: "default",
     };
   }
+}
+
+const VALID_BACKGROUND_STYLES: WidgetBackgroundStyle[] = [
+  "default",
+  "gradient",
+  "contrast",
+  "aurora",
+  "plum",
+  "mermaid",
+  "sunset",
+  "deepspace",
+  "softclay",
+];
+
+function isValidBackgroundStyle(s: string): s is WidgetBackgroundStyle {
+  return VALID_BACKGROUND_STYLES.includes(s as WidgetBackgroundStyle);
 }
 
 export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
@@ -92,57 +120,101 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
 
     case "WIDGET_UPDATE":
       {
-        const { friends, hasAnyFriends } = await loadWidgetData(
-          widgetInfo.widgetId
-        );
-        props.renderWidget(
-          <Widget
-            friends={friends}
-            hasAnyFriends={hasAnyFriends}
-            layoutSize={layoutSize}
-          />
-        );
+        const { friends, hasAnyFriends, isPremium, backgroundStyle } =
+          await loadWidgetData(widgetInfo.widgetId);
+        props.renderWidget({
+          light: (
+            <Widget
+              friends={friends}
+              hasAnyFriends={hasAnyFriends}
+              layoutSize={layoutSize}
+              isPremium={isPremium}
+              backgroundStyle={backgroundStyle}
+              isDarkMode={false}
+            />
+          ),
+          dark: (
+            <Widget
+              friends={friends}
+              hasAnyFriends={hasAnyFriends}
+              layoutSize={layoutSize}
+              isPremium={isPremium}
+              backgroundStyle={backgroundStyle}
+              isDarkMode={true}
+            />
+          ),
+        });
       }
       break;
 
     case "WIDGET_RESIZED":
       {
-        const { friends, hasAnyFriends } = await loadWidgetData(
-          widgetInfo.widgetId
-        );
-        props.renderWidget(
-          <Widget
-            friends={friends}
-            hasAnyFriends={hasAnyFriends}
-            layoutSize={layoutSize}
-          />
-        );
+        const { friends, hasAnyFriends, isPremium, backgroundStyle } =
+          await loadWidgetData(widgetInfo.widgetId);
+        props.renderWidget({
+          light: (
+            <Widget
+              friends={friends}
+              hasAnyFriends={hasAnyFriends}
+              layoutSize={layoutSize}
+              isPremium={isPremium}
+              backgroundStyle={backgroundStyle}
+              isDarkMode={false}
+            />
+          ),
+          dark: (
+            <Widget
+              friends={friends}
+              hasAnyFriends={hasAnyFriends}
+              layoutSize={layoutSize}
+              isPremium={isPremium}
+              backgroundStyle={backgroundStyle}
+              isDarkMode={true}
+            />
+          ),
+        });
       }
       break;
 
     case "WIDGET_DELETED":
       {
-        // Clean up configuration when widget is deleted
         const configKey = `${WIDGET_CONFIG_KEY_PREFIX}${String(
           widgetInfo.widgetId
         )}`;
+        const bgKey = `${WIDGET_CONFIG_BACKGROUND_PREFIX}${String(
+          widgetInfo.widgetId
+        )}`;
         await AsyncStorage.removeItem(configKey);
+        await AsyncStorage.removeItem(bgKey);
       }
       break;
 
     case "WIDGET_CLICK":
       if (props.clickAction === "REFRESH_WIDGET") {
-        // Handle refresh button click
-        const { friends, hasAnyFriends } = await loadWidgetData(
-          widgetInfo.widgetId
-        );
-        props.renderWidget(
-          <Widget
-            friends={friends}
-            hasAnyFriends={hasAnyFriends}
-            layoutSize={layoutSize}
-          />
-        );
+        const { friends, hasAnyFriends, isPremium, backgroundStyle } =
+          await loadWidgetData(widgetInfo.widgetId);
+        props.renderWidget({
+          light: (
+            <Widget
+              friends={friends}
+              hasAnyFriends={hasAnyFriends}
+              layoutSize={layoutSize}
+              isPremium={isPremium}
+              backgroundStyle={backgroundStyle}
+              isDarkMode={false}
+            />
+          ),
+          dark: (
+            <Widget
+              friends={friends}
+              hasAnyFriends={hasAnyFriends}
+              layoutSize={layoutSize}
+              isPremium={isPremium}
+              backgroundStyle={backgroundStyle}
+              isDarkMode={true}
+            />
+          ),
+        });
       }
       // Note: For "OPEN_APP" clickAction, the library handles opening the app automatically.
       // We don't need to handle it here, which allows the native intent to proceed normally.

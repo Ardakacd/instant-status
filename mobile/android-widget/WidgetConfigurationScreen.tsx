@@ -7,12 +7,19 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { WidgetConfigurationScreenProps } from "react-native-android-widget";
+import {
+  type WidgetConfigurationScreenProps,
+  requestWidgetUpdate,
+} from "react-native-android-widget";
+import { SAFE_AREA_BOTTOM } from "../src/design";
 import {
   InstantStatusWidget,
   type FriendStatusWidgetItem,
   type WidgetLayoutSize,
+  type WidgetBackgroundStyle,
+  WIDGET_BACKGROUND_OPTIONS,
 } from "./InstantStatusWidget";
 
 function getWidgetLayout(width: number, height: number): WidgetLayoutSize {
@@ -24,19 +31,38 @@ function getWidgetLayout(width: number, height: number): WidgetLayoutSize {
 
 const WIDGET_DATA_KEY = "widget_status_data";
 const WIDGET_CONFIG_KEY_PREFIX = "widget_config_";
+const WIDGET_CONFIG_BACKGROUND_PREFIX = "widget_config_background_";
+const IS_PREMIUM_KEY = "is_premium";
 
-export function WidgetConfigurationScreen({
+export function WidgetConfigurationScreen(
+  props: WidgetConfigurationScreenProps
+) {
+  return (
+    <SafeAreaProvider>
+      <WidgetConfigurationScreenContent {...props} />
+    </SafeAreaProvider>
+  );
+}
+
+function WidgetConfigurationScreenContent({
   widgetInfo,
   renderWidget,
   setResult,
 }: WidgetConfigurationScreenProps) {
+  const insets = useSafeAreaInsets();
   const [friends, setFriends] = useState<FriendStatusWidgetItem[]>([]);
   const [selectedFriendIds, setSelectedFriendIds] = useState<Set<string>>(
     new Set()
   );
+  const [backgroundStyle, setBackgroundStyle] =
+    useState<WidgetBackgroundStyle>("default");
+  const [isPremium, setIsPremium] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const configKey = `${WIDGET_CONFIG_KEY_PREFIX}${String(widgetInfo.widgetId)}`;
+  const bgConfigKey = `${WIDGET_CONFIG_BACKGROUND_PREFIX}${String(
+    widgetInfo.widgetId
+  )}`;
 
   useEffect(() => {
     loadFriendsAndSelection();
@@ -44,20 +70,17 @@ export function WidgetConfigurationScreen({
 
   async function loadFriendsAndSelection() {
     try {
-      // Load friends from storage
       const data = await AsyncStorage.getItem(WIDGET_DATA_KEY);
       if (data) {
         const parsedData: FriendStatusWidgetItem[] = JSON.parse(data);
         setFriends(parsedData);
       }
 
-      // Load previously selected friends for this widget
       const savedSelection = await AsyncStorage.getItem(configKey);
       if (savedSelection) {
         const selectedIds: string[] = JSON.parse(savedSelection);
         setSelectedFriendIds(new Set(selectedIds));
       } else {
-        // Default: select first 8 friends if no selection exists
         const data = await AsyncStorage.getItem(WIDGET_DATA_KEY);
         if (data) {
           const parsedData: FriendStatusWidgetItem[] = JSON.parse(data);
@@ -65,6 +88,14 @@ export function WidgetConfigurationScreen({
             new Set(parsedData.slice(0, 8).map((f) => f.id))
           );
         }
+      }
+
+      const isPremiumRaw = await AsyncStorage.getItem(IS_PREMIUM_KEY);
+      setIsPremium(isPremiumRaw === "true");
+
+      const savedBg = await AsyncStorage.getItem(bgConfigKey);
+      if (savedBg && WIDGET_BACKGROUND_OPTIONS.some((o) => o.value === savedBg)) {
+        setBackgroundStyle(savedBg as WidgetBackgroundStyle);
       }
     } catch (error) {
       console.error("Error loading widget configuration:", error);
@@ -85,29 +116,35 @@ export function WidgetConfigurationScreen({
 
   async function handleSave() {
     try {
-      // Save selected friend IDs for this widget
       const selectedIds = Array.from(selectedFriendIds);
       await AsyncStorage.setItem(configKey, JSON.stringify(selectedIds));
+      if (isPremium) {
+        await AsyncStorage.setItem(bgConfigKey, backgroundStyle);
+      }
 
-      // Filter friends based on selection
       const selectedFriends = friends.filter((f) =>
         selectedFriendIds.has(f.id)
       );
-
-      // Render widget preview with selected friends
       const layoutSize = getWidgetLayout(
         widgetInfo.width,
         widgetInfo.height
       );
+      // Config screen only supports single element; use light variant for preview.
+      // Actual widget uses light/dark variants from task handler.
       renderWidget(
         <InstantStatusWidget
           friends={selectedFriends}
           hasAnyFriends={friends.length > 0}
           layoutSize={layoutSize}
+          isPremium={isPremium}
+          backgroundStyle={backgroundStyle}
+          isDarkMode={false}
         />
       );
 
-      // Mark configuration as complete
+      await requestWidgetUpdate({
+        widgetName: "InstantStatusWidget",
+      } as any);
       setResult("ok");
     } catch (error) {
       console.error("Error saving widget configuration:", error);
@@ -133,7 +170,12 @@ export function WidgetConfigurationScreen({
   if (friends.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.emptyContainer}>
+        <View
+          style={[
+            styles.emptyContainer,
+            { paddingBottom: 40 + insets.bottom },
+          ]}
+        >
           <Text style={styles.emptyTitle}>No friends available</Text>
           <Text style={styles.emptySubtitle}>
             Add some friends in the app first
@@ -154,6 +196,40 @@ export function WidgetConfigurationScreen({
           Choose which friends to show in the widget
         </Text>
       </View>
+
+      {isPremium && (
+        <View style={styles.backgroundSection}>
+          <Text style={styles.sectionLabel}>Background</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.backgroundOptions}
+          >
+            {WIDGET_BACKGROUND_OPTIONS.map((opt) => {
+              const isSelected = backgroundStyle === opt.value;
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    styles.backgroundChip,
+                    isSelected && styles.backgroundChipSelected,
+                  ]}
+                  onPress={() => setBackgroundStyle(opt.value)}
+                >
+                  <Text
+                    style={[
+                      styles.backgroundChipText,
+                      isSelected && styles.backgroundChipTextSelected,
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView style={styles.scrollView}>
         {friends.map((friend) => {
@@ -186,7 +262,12 @@ export function WidgetConfigurationScreen({
         })}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom },
+        ]}
+      >
         <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
@@ -237,6 +318,39 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: "#8E8E93",
+  },
+  backgroundSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5EA",
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000000",
+    marginBottom: 8,
+  },
+  backgroundOptions: {
+    flexDirection: "row",
+    paddingRight: 20,
+  },
+  backgroundChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6",
+    marginRight: 8,
+  },
+  backgroundChipSelected: {
+    backgroundColor: "#007AFF",
+  },
+  backgroundChipText: {
+    fontSize: 13,
+    color: "#374151",
+  },
+  backgroundChipTextSelected: {
+    color: "#FFFFFF",
   },
   scrollView: {
     flex: 1,

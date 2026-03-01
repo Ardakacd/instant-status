@@ -21,10 +21,153 @@ export interface FriendStatusWidgetItem {
 
 export type WidgetLayoutSize = "small" | "medium" | "large";
 
+/** Display names for config UI; maps to internal style keys (matches iOS) */
+export const WIDGET_BACKGROUND_OPTIONS = [
+  { value: "default", label: "Default" },
+  { value: "gradient", label: "Mint-Violet" },
+  { value: "contrast", label: "Contrast" },
+  { value: "aurora", label: "Aurora" },
+  { value: "plum", label: "Plum Noir" },
+  { value: "mermaid", label: "Mermaidcore" },
+  { value: "sunset", label: "Golden Hour" },
+  { value: "deepspace", label: "Deep Space" },
+  { value: "softclay", label: "Soft Clay" },
+] as const;
+
+export type WidgetBackgroundStyle =
+  | "default"
+  | "gradient"
+  | "contrast"
+  | "aurora"
+  | "plum"
+  | "mermaid"
+  | "sunset"
+  | "deepspace"
+  | "softclay";
+
 interface InstantStatusWidgetProps {
   friends?: FriendStatusWidgetItem[];
   hasAnyFriends?: boolean;
   layoutSize?: WidgetLayoutSize;
+  backgroundStyle?: WidgetBackgroundStyle;
+  isPremium?: boolean;
+  /** System dark mode - used for adaptive text/background (default, contrast) */
+  isDarkMode?: boolean;
+}
+
+function getWidgetBackgroundStyle(
+  style: WidgetBackgroundStyle,
+  isDarkMode: boolean
+): {
+  backgroundColor?: `#${string}`;
+  backgroundGradient?: {
+    from: `#${string}`;
+    to: `#${string}`;
+    orientation: "TL_BR" | "TOP_BOTTOM";
+  };
+} {
+  switch (style) {
+    case "gradient":
+      return {
+        backgroundGradient: {
+          from: "#10B981",
+          to: "#A78BFA",
+          orientation: "TL_BR",
+        },
+      };
+    case "plum":
+      return { backgroundColor: "#2B1538" };
+    case "mermaid":
+      return {
+        backgroundGradient: {
+          from: "#7ED4AD",
+          to: "#A78BFA",
+          orientation: "TL_BR",
+        },
+      };
+    case "sunset":
+      return {
+        backgroundGradient: {
+          from: "#FF5F6D",
+          to: "#FFC371",
+          orientation: "TOP_BOTTOM",
+        },
+      };
+    case "deepspace":
+      return { backgroundColor: "#101417" };
+    case "softclay":
+      return { backgroundColor: "#F4EBD2" };
+    case "contrast":
+      return { backgroundColor: isDarkMode ? "#FFFFFF" : "#000000" };
+    case "aurora":
+      return {
+        backgroundGradient: {
+          from: "#E0E7FF",
+          to: "#FCE7F3",
+          orientation: "TL_BR",
+        },
+      };
+    default:
+      return { backgroundColor: isDarkMode ? "#121212" : "#FFFFFF" };
+  }
+}
+
+function getContentColors(style: WidgetBackgroundStyle, isDarkMode: boolean) {
+  // Contrast: adaptive (black bg + white text in light, white bg + black text in dark)
+  if (style === "contrast") {
+    return isDarkMode
+      ? {
+          primary: "#000000" as const,
+          secondary: "rgba(0, 0, 0, 0.75)" as const,
+          muted: "#8E8E93" as const,
+        }
+      : {
+          primary: "#FFFFFF" as const,
+          secondary: "rgba(255, 255, 255, 0.85)" as const,
+          muted: "#8E8E93" as const,
+        };
+  }
+  // Default: adaptive (system background + primary text)
+  if (style === "default") {
+    return isDarkMode
+      ? {
+          primary: "#FFFFFF" as const,
+          secondary: "rgba(255, 255, 255, 0.85)" as const,
+          muted: "#8E8E93" as const,
+        }
+      : {
+          primary: "#000000" as const,
+          secondary: "rgba(0, 0, 0, 0.75)" as const,
+          muted: "#8E8E93" as const,
+        };
+  }
+  // Fixed dark backgrounds: white text
+  const darkStyles: WidgetBackgroundStyle[] = [
+    "plum",
+    "mermaid",
+    "sunset",
+    "deepspace",
+  ];
+  if (darkStyles.includes(style)) {
+    return {
+      primary: "#FFFFFF" as const,
+      secondary: "rgba(255, 255, 255, 0.85)" as const,
+      muted: "#8E8E93" as const,
+    };
+  }
+  if (style === "softclay") {
+    return {
+      primary: "#333333" as const,
+      secondary: "rgba(51, 51, 51, 0.75)" as const,
+      muted: "#6B7280" as const,
+    };
+  }
+  // Default: aurora, gradient (light backgrounds)
+  return {
+    primary: "#000000" as const,
+    secondary: "rgba(0, 0, 0, 0.75)" as const,
+    muted: "#8E8E93" as const,
+  };
 }
 
 function getEffectiveStatus(friend: FriendStatusWidgetItem): {
@@ -90,7 +233,13 @@ function formatTimeUntil(expiresAt: string): string {
   }
 }
 
-function FriendRow({ friend }: { friend: FriendStatusWidgetItem }) {
+function FriendRow({
+  friend,
+  colors,
+}: {
+  friend: FriendStatusWidgetItem;
+  colors: { primary: string; secondary: string; muted: string };
+}) {
   const effectiveStatus = getEffectiveStatus(friend);
   const isExpired =
     friend.expiresAt &&
@@ -145,7 +294,7 @@ function FriendRow({ friend }: { friend: FriendStatusWidgetItem }) {
             style={{
               fontSize: 13,
               fontWeight: "bold",
-              color: isExpired ? "#8E8E93" : "#000000",
+              color: (isExpired ? colors.muted : colors.primary) as `#${string}`,
             }}
             maxLines={1}
           />
@@ -168,7 +317,7 @@ function FriendRow({ friend }: { friend: FriendStatusWidgetItem }) {
           text={displayNote}
           style={{
             fontSize: 10,
-            color: "#8E8E93",
+            color: colors.muted as "#8E8E93" | "#6B7280",
           }}
           maxLines={1}
         />
@@ -187,9 +336,23 @@ export function InstantStatusWidget({
   friends = [],
   hasAnyFriends = true,
   layoutSize = "medium",
+  backgroundStyle = "default",
+  isPremium = false,
+  isDarkMode = false,
 }: InstantStatusWidgetProps) {
   const maxFriends = MAX_FRIENDS_BY_LAYOUT[layoutSize];
   const displayFriends = friends.slice(0, maxFriends);
+
+  const effectiveStyle: WidgetBackgroundStyle =
+    isPremium && backgroundStyle ? backgroundStyle : "default";
+  const bgStyle = getWidgetBackgroundStyle(effectiveStyle, isDarkMode);
+  const colors = getContentColors(effectiveStyle, isDarkMode);
+
+  const hasLightBackground =
+    (effectiveStyle === "default" && !isDarkMode) ||
+    effectiveStyle === "aurora" ||
+    (effectiveStyle === "contrast" && isDarkMode) ||
+    effectiveStyle === "softclay";
 
   if (displayFriends.length === 0) {
     return (
@@ -200,9 +363,9 @@ export function InstantStatusWidget({
           width: "match_parent",
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#FFFFFF",
           borderRadius: 16,
           padding: 16,
+          ...bgStyle,
         }}
       >
         <FlexWidget
@@ -216,7 +379,7 @@ export function InstantStatusWidget({
             style={{
               fontSize: 13,
               fontWeight: "500",
-              color: "#8E8E93",
+              color: colors.muted,
               marginBottom: 4,
             }}
           />
@@ -226,7 +389,7 @@ export function InstantStatusWidget({
             }
             style={{
               fontSize: 11,
-              color: "#8E8E93",
+              color: colors.muted,
             }}
           />
         </FlexWidget>
@@ -240,9 +403,9 @@ export function InstantStatusWidget({
       style={{
         height: "match_parent",
         width: "match_parent",
-        backgroundColor: "#FFFFFF",
         borderRadius: 16,
         padding: 16,
+        ...bgStyle,
       }}
     >
       {/* Content */}
@@ -253,9 +416,9 @@ export function InstantStatusWidget({
           paddingBottom: 8,
         }}
       >
-        {displayFriends.map((friend, index) => {
-          return <FriendRow key={friend.id} friend={friend} />;
-        })}
+        {displayFriends.map((friend) => (
+          <FriendRow key={friend.id} friend={friend} colors={colors} />
+        ))}
       </FlexWidget>
 
       {/* Refresh Button - Top Right */}
@@ -275,7 +438,9 @@ export function InstantStatusWidget({
               width: 24,
               height: 24,
               borderRadius: 12,
-              backgroundColor: "#F3F4F6",
+              backgroundColor: hasLightBackground
+                ? "#F3F4F6"
+                : ("rgba(255, 255, 255, 0.2)" as const),
               justifyContent: "center",
               alignItems: "center",
               padding: 4,
@@ -286,7 +451,7 @@ export function InstantStatusWidget({
               style={{
                 fontSize: 12,
                 fontWeight: "600",
-                color: "#8E8E93",
+                color: colors.muted,
               }}
             />
           </FlexWidget>

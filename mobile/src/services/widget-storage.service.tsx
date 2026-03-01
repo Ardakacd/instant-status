@@ -206,15 +206,17 @@ export class WidgetStorageService {
   }
 
   /**
-   * Sync premium status to App Group so the widget can gate premium backgrounds.
+   * Sync premium status to App Group (iOS) / AsyncStorage (Android) so the widget can gate premium backgrounds.
    */
-  setPremiumStatus(isPremium: boolean): void {
+  async setPremiumStatus(isPremium: boolean): Promise<void> {
     try {
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(IS_PREMIUM_KEY, isPremium ? "true" : "false");
         ExtensionStorage.reloadWidget("InstantStatusWidget");
+      } else if (Platform.OS === "android") {
+        await AsyncStorage.setItem(IS_PREMIUM_KEY, isPremium ? "true" : "false");
+        await this.triggerAndroidUpdate();
       }
-      // Android: no premium background gating yet; could add later
     } catch (error) {
       console.error("Error syncing premium status:", error);
     }
