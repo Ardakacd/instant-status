@@ -386,7 +386,7 @@ function AppNavigator() {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
       </View>
     );
   }
@@ -605,7 +605,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
         <AppNavigator />
         <Toast config={toastConfig} topOffset={60} />
       </AuthProvider>
