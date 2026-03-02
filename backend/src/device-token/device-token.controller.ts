@@ -32,8 +32,8 @@ export class DeviceTokenController {
   }
 
   @Delete(':id')
-  async deleteToken(@Param('id') id: string) {
-    await this.deviceTokenService.deleteToken(id);
+  async deleteToken(@Request() req, @Param('id') id: string) {
+    await this.deviceTokenService.deleteToken(id, req.user.id);
     return { message: 'Device token deleted' };
   }
 }

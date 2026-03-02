@@ -101,12 +101,15 @@ export class DeviceTokenService {
     }
   }
 
-  async deleteToken(id: string) {
+  async deleteToken(id: string, userId: string) {
     try {
-      const result = await this.deviceTokenRepository.delete(id);
+      const result = await this.deviceTokenRepository.delete({
+        id,
+        user_id: userId,
+      });
       if (result.affected === 0) {
         this.logger.warn(
-          `Attempted to delete non-existent device token: ${id}`
+          `Attempted to delete non-existent or unauthorized device token: ${id}`
         );
       }
     } catch (error: any) {
