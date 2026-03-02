@@ -10,6 +10,7 @@ import * as admin from "firebase-admin";
 import { UserService } from "../user/user.service";
 import { EmailService } from "../email/email.service";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
+import { redactEmail, redactUid } from "../utils/redact";
 
 @Injectable()
 export class AuthService {
@@ -31,15 +32,15 @@ export class AuthService {
   async hardDeleteUser(user: User): Promise<{ success: boolean }> {
     try {
       await this.userService.delete(user.id);
-      this.logger.log(`DB records wiped for user ${user.id} (UID: ${user.firebase_uid})`);
+      this.logger.log(`DB records wiped for user (UID: ${redactUid(user.firebase_uid)})`);
 
       await this.firebaseAdmin.auth().deleteUser(user.firebase_uid);
-      this.logger.log(`Firebase account deleted for UID: ${user.firebase_uid}`);
+      this.logger.log(`Firebase account deleted (UID: ${redactUid(user.firebase_uid)})`);
 
       return { success: true };
     } catch (error: any) {
       this.logger.error(
-        `Deletion failed for ${user.firebase_uid}: ${error.message}`,
+        `Deletion failed (UID: ${redactUid(user.firebase_uid)}): ${error.message}`,
         error.stack,
       );
       throw new InternalServerErrorException(
@@ -193,7 +194,7 @@ export class AuthService {
               // Old Firebase user doesn't exist - delete orphaned record and retry
               if (firebaseError.code === "auth/user-not-found") {
                 this.logger.log(
-                  `Deleting orphaned user record for email ${email} and retrying creation`,
+                  `Deleting orphaned user record for ${redactEmail(email)} and retrying creation`,
                 );
                 await this.userService.delete(existingUser.id);
                 // Retry creation
@@ -291,7 +292,7 @@ export class AuthService {
         // Don't reveal if email exists or not (security best practice)
         // Still return success to prevent email enumeration
         this.logger.log(
-          `Password reset requested for non-existent email: ${email}`,
+          `Password reset requested for non-existent email: ${redactEmail(email)}`,
         );
         return;
       }
@@ -303,9 +304,9 @@ export class AuthService {
       } catch (firebaseError: any) {
         if (firebaseError.code === "auth/user-not-found") {
           // User doesn't exist in Firebase - don't reveal this
-          this.logger.log(
-            `Password reset requested for email not in Firebase: ${email}`,
-          );
+        this.logger.log(
+          `Password reset requested for email not in Firebase: ${redactEmail(email)}`,
+        );
           return;
         }
         throw firebaseError;
@@ -338,7 +339,7 @@ export class AuthService {
       // Send email via Postmark
       await this.emailService.sendPasswordResetEmail(email, resetLink);
 
-      this.logger.log(`Password reset email sent to ${email}`);
+      this.logger.log(`Password reset email sent to ${redactEmail(email)}`);
     } catch (error: any) {
       // Don't reveal specific errors to prevent email enumeration
       this.logger.error(

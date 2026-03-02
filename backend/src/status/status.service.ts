@@ -15,6 +15,7 @@ import { User } from "../entities/user.entity";
 import { StatusOptionService } from "../status-option/status-option.service";
 import * as admin from "firebase-admin";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
+import { redactUid } from "../utils/redact";
 
 @Injectable()
 export class StatusService {
@@ -372,7 +373,7 @@ export class StatusService {
         // If option is null (shouldn't happen with eager loading, but handle gracefully)
         if (!status.option) {
           this.logger.warn(
-            `Status for user ${status.user_id} has invalid option_id: ${status.option_id}`
+            `Status for user ${redactUid(status.user_id)} has invalid option_id: ${status.option_id}`
           );
         }
 
@@ -598,22 +599,7 @@ export class StatusService {
         
         // Log detailed error info for third-party-auth-error
         if (error.code === "messaging/third-party-auth-error" || error.message?.includes("authentication credential")) {
-          this.logger.error(
-            `🔴 Authentication Error Details:`,
-            {
-              code: error.code,
-              message: error.message,
-              projectId: this.firebaseAdmin.options.projectId,
-              credentialType: this.firebaseAdmin.options.credential ? "cert" : "none",
-            }
-          );
-          this.logger.error(
-            `💡 Troubleshooting:`,
-            `1. Verify FIREBASE_PRIVATE_KEY includes full key with BEGIN/END markers`,
-            `2. Ensure Firebase Cloud Messaging API is enabled in Google Cloud Console`,
-            `3. Check service account has 'Firebase Cloud Messaging Admin' role`,
-            `4. Verify project ID matches between mobile app and backend`
-          );
+          this.logger.error(`FCM auth error: ${error.code} - ${error.message}`);
         }
         // Push notification failures shouldn't fail status updates
       }

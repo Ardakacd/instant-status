@@ -11,6 +11,7 @@ import { Status } from "../entities/status.entity";
 import { EmailService } from "../email/email.service";
 import { StatusOptionService } from "../status-option/status-option.service";
 import { LIFETIME_PREMIUM_UNTIL } from "../utils/premium";
+import { redactEmail, redactUid } from "../utils/redact";
 
 @Injectable()
 export class UserService {
@@ -121,7 +122,7 @@ export class UserService {
             updatedUser.first_name,
           );
           this.logger.log(
-            `Welcome email sent to ${updatedUser.email} after onboarding completion`,
+            `Welcome email sent to ${redactEmail(updatedUser.email)} after onboarding completion`,
           );
         } catch (error: any) {
           // Don't fail update if welcome email fails
@@ -256,7 +257,7 @@ export class UserService {
     const user = await this.findUserByRevenueCatIdentifier(identifier);
 
     if (!user) {
-      this.logger.warn(`User not found for RevenueCat ID: ${identifier}`);
+      this.logger.warn(`User not found for RevenueCat ID: ${redactUid(identifier)}`);
       return null;
     }
 

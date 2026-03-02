@@ -41,9 +41,7 @@ export function getFirebaseAdmin(): admin.app.App {
       }),
     });
 
-    console.log(
-      `✅ Firebase Admin initialized successfully for project: ${projectId}`
-    );
+    console.log("Firebase Admin initialized successfully");
 
     return firebaseAdmin;
   } catch (error: any) {

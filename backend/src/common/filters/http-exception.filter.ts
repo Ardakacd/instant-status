@@ -9,6 +9,21 @@ import {
 import { Request, Response } from "express";
 import { ZodError } from "zod";
 
+/** Strip sensitive query params from URL for logging */
+function sanitizeUrlForLog(url: string): string {
+  try {
+    const [path, query] = url.split("?");
+    if (!query) return path || url;
+    const params = new URLSearchParams(query);
+    const sensitive = ["oobCode", "token", "code", "state"];
+    sensitive.forEach((key) => params.delete(key));
+    const remaining = params.toString();
+    return remaining ? `${path}?${remaining}` : path;
+  } catch {
+    return url;
+  }
+}
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
@@ -61,7 +76,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error(
         `Unexpected error: ${exception instanceof Error ? exception.message : String(exception)}`,
         exception instanceof Error ? exception.stack : undefined,
-        `${request.method} ${request.url}`
+        `${request.method} ${sanitizeUrlForLog(request.url)}`
       );
     }
 
@@ -72,7 +87,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (status !== HttpStatus.NOT_FOUND && !isExpected401) {
       this.logger.warn(
-        `${request.method} ${request.url} - ${status} - ${typeof message === "string" ? message : JSON.stringify(message)}`
+        `${request.method} ${sanitizeUrlForLog(request.url)} - ${status} - ${typeof message === "string" ? message : JSON.stringify(message)}`
       );
     }
 
@@ -82,7 +97,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message: Array.isArray(message) ? message : [message],
       error: error,
       timestamp: new Date().toISOString(),
-      path: request.url,
+      path: sanitizeUrlForLog(request.url),
     };
 
     // Add errorCode if present (for structured error handling on frontend)

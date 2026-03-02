@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { redactEmail } from "../utils/redact";
 import * as postmark from "postmark";
 
 @Injectable()
@@ -39,10 +40,10 @@ export class EmailService {
         MessageStream: "outbound",
       });
 
-      this.logger.log(`Email verification sent to ${email}`);
+      this.logger.log(`Email verification sent to ${redactEmail(email)}`);
     } catch (error: any) {
       this.logger.error(
-        `Failed to send email verification to ${email}: ${error.message}`,
+        `Failed to send email verification to ${redactEmail(email)}: ${error.message}`,
         error.stack
       );
       throw new Error("Failed to send verification email");
@@ -176,10 +177,10 @@ Didn't create an account? If you didn't sign up for Instant Status, you can safe
         MessageStream: "outbound",
       });
 
-      this.logger.log(`New device alert sent to ${email}`);
+      this.logger.log(`New device alert sent to ${redactEmail(email)}`);
     } catch (error: any) {
       this.logger.error(
-        `Failed to send new device alert to ${email}: ${error.message}`,
+        `Failed to send new device alert to ${redactEmail(email)}: ${error.message}`,
         error.stack
       );
       throw new Error("Failed to send new device alert");
@@ -399,10 +400,10 @@ This is an automated security notification. If you have any concerns about your 
         MessageStream: "outbound",
       });
 
-      this.logger.log(`Password reset email sent to ${email}`);
+      this.logger.log(`Password reset email sent to ${redactEmail(email)}`);
     } catch (error: any) {
       this.logger.error(
-        `Failed to send password reset email to ${email}: ${error.message}`,
+        `Failed to send password reset email to ${redactEmail(email)}: ${error.message}`,
         error.stack
       );
       throw new Error("Failed to send password reset email");

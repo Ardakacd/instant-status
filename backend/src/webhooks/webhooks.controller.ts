@@ -72,9 +72,7 @@ export class WebhooksController {
       return { received: true };
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        this.logger.error(
-          `Invalid webhook payload: ${JSON.stringify(error.errors)}`
-        );
+        this.logger.error(`Invalid webhook payload (validation failed)`);
         throw new BadRequestException("Invalid webhook payload");
       }
       

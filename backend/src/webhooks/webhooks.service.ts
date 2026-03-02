@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { redactUid } from "../utils/redact";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { UserService } from "../user/user.service";
@@ -110,7 +111,7 @@ export class WebhooksService {
         case "NON_RENEWING_PURCHASE": {
           const identifier = await this.resolveUserIdentifier(event.event);
           if (!identifier) {
-            this.logger.warn(`No user found for ${type} (app_user_id: ${app_user_id})`);
+            this.logger.warn(`No user found for ${type} (app_user_id: ${redactUid(app_user_id)})`);
             break;
           }
           await this.userService.updatePremiumExpirationByRevenueCatId(
@@ -130,7 +131,7 @@ export class WebhooksService {
             identifier,
             null
           );
-          this.logger.log(`Updated user ${identifier} to free (expired)`);
+          this.logger.log(`Updated user ${redactUid(identifier)} to free (expired)`);
           break;
         }
 
@@ -143,7 +144,7 @@ export class WebhooksService {
             new Date(expiration_at_ms)
           );
           this.logger.log(
-            `Updated user ${identifier} cancellation (active until: ${premiumUntil.toISOString()})`
+            `Updated user ${redactUid(identifier)} cancellation (active until: ${premiumUntil.toISOString()})`
           );
           break;
         }
@@ -151,14 +152,14 @@ export class WebhooksService {
         case "BILLING_ISSUE":
           // Do NOT revoke. RevenueCat sends EXPIRATION when grace period ends.
           this.logger.warn(
-            `Billing issue for user ${app_user_id} - premium maintained until expiration`
+            `Billing issue for user ${redactUid(app_user_id)} - premium maintained until expiration`
           );
           break;
 
         case "SUBSCRIPTION_PAUSED":
         case "SUBSCRIPTION_EXTENDED":
           this.logger.log(
-            `[${environment ?? "unknown"}] User ${app_user_id ?? "?"} ${type}. No premium change needed.`
+            `[${environment ?? "unknown"}] User ${redactUid(app_user_id ?? "?")} ${type}. No premium change needed.`
           );
           break;
 
@@ -177,7 +178,7 @@ export class WebhooksService {
             }
           }
           this.logger.log(
-            `Transfer: from [${fromIds.join(", ")}] to [${(transferred_to ?? []).join(", ")}]`
+            `Transfer: from [${fromIds.map(redactUid).join(", ")}] to [${(transferred_to ?? []).map(redactUid).join(", ")}]`
           );
           break;
         }

@@ -13,6 +13,7 @@ import { User } from "../entities/user.entity";
 import { isUserPremium } from "../utils/premium";
 import * as admin from "firebase-admin";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
+import { redactUid } from "../utils/redact";
 
 /**
  * Normalizes a user pair to ensure consistent ordering.
@@ -489,7 +490,7 @@ export class ConnectionsService {
       }
 
       this.logger.log(
-        `Sending friend added push notifications to user ${friendUserId}`
+        `Sending friend added push notifications to user ${redactUid(friendUserId)}`
       );
 
       try {
