@@ -1,6 +1,7 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { NestExpressApplication } from "@nestjs/platform-express";
+import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { DataSource } from "typeorm";
@@ -13,6 +14,8 @@ async function bootstrap() {
     app.set("trust proxy", 1); // Trust exactly one proxy (ALB) for correct client IP
   }
 
+  app.use(helmet());
+
   app.useGlobalFilters(new HttpExceptionFilter());
 
   app.useGlobalPipes(
@@ -24,7 +27,10 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: true,
+    origin:
+      process.env.NODE_ENV === "production"
+        ? ["https://instantstatus.app"]
+        : true,
     credentials: true,
   });
 
