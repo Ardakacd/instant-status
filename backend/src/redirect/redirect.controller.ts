@@ -43,8 +43,8 @@ export class RedirectController {
         .send("Missing mode or oobCode parameter");
     }
 
-    // Redirect to deep link with query parameters
-    const deepLink = `instant-status://verify?mode=${mode}&oobCode=${oobCode}`;
+    // Redirect to deep link with query parameters (encode to prevent injection)
+    const deepLink = `instant-status://verify?mode=${encodeURIComponent(mode)}&oobCode=${encodeURIComponent(oobCode)}`;
     return res.redirect(HttpStatus.MOVED_PERMANENTLY, deepLink);
   }
 }
