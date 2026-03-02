@@ -27,13 +27,6 @@ export class UserService {
   async deleteMe(): Promise<void> {
     await api.delete("/user/me");
   }
-
-  async deleteByFirebaseUid(firebaseUid: string): Promise<void> {
-    await api.delete("/user/by-firebase-uid", {
-      data: { firebase_uid: firebaseUid },
-    });
-  }
-
 }
 
 export const userService = new UserService();

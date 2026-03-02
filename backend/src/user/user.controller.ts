@@ -91,21 +91,4 @@ export class UserController {
     return { message: "Account deleted successfully" };
   }
 
-  @Delete("by-firebase-uid")
-  async deleteByFirebaseUid(@Body() body: unknown) {
-    const { firebase_uid } = z
-      .object({
-        firebase_uid: z.string(),
-      })
-      .strict() // Reject unknown fields
-      .parse(body);
-
-    const user = await this.userService.findByFirebaseUid(firebase_uid);
-    if (!user) {
-      throw new NotFoundException("User not found");
-    }
-
-    await this.userService.delete(user.id);
-    return { message: "Account deleted successfully" };
-  }
 }
