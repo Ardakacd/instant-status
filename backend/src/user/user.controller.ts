@@ -16,8 +16,8 @@ import { z } from "zod";
 const UpdateUserDtoSchema = z
   .object({
     email: z.string().email().optional(),
-    first_name: z.string().optional(),
-    last_name: z.string().optional(),
+    first_name: z.string().max(255).optional(),
+    last_name: z.string().max(255).optional(),
   })
   .strict(); // Reject unknown fields
 
