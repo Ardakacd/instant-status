@@ -508,9 +508,10 @@ export class ConnectionsService {
             if (!result.success && result.error) {
               const message = messages[index];
               const errorCode = result.error.code;
+              const deviceTokenId = tokenToIdMap.get(message.token);
 
               this.logger.warn(
-                `Failed to send friend added notification: ${errorCode} - ${result.error.message} (token: ${message.token.substring(0, 20)}...)`
+                `Failed to send friend added notification: ${errorCode} - ${result.error.message} (deviceTokenId: ${deviceTokenId ?? "unknown"})`
               );
 
               // Delete tokens for these error codes (invalid/expired tokens)
@@ -520,7 +521,6 @@ export class ConnectionsService {
                 errorCode === "messaging/invalid-argument" ||
                 errorCode === "messaging/third-party-auth-error"
               ) {
-                const deviceTokenId = tokenToIdMap.get(message.token);
                 if (deviceTokenId) {
                   invalidTokenIds.push(deviceTokenId);
                 }
