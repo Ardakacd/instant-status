@@ -1,5 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { AuthModule } from "./auth/auth.module";
 import { UserModule } from "./user/user.module";
@@ -20,6 +22,15 @@ import { ProcessedWebhook } from "./entities/processed-webhook.entity";
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [
+        { name: "default", ttl: 60000, limit: 100 },
+        { name: "extended", ttl: 3600000, limit: 100 },
+      ],
+      getTracker: (req) => {
+        return `ip-${req.ip}`;
+      },
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath:
@@ -47,6 +58,12 @@ import { ProcessedWebhook } from "./entities/processed-webhook.entity";
     WebhooksModule,
     DeviceTokenModule,
     RedirectModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

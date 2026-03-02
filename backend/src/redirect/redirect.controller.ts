@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Query, Res, HttpStatus } from "@nestjs/common";
 import { Response } from "express";
+import { Throttle } from "@nestjs/throttler";
 
 /**
  * Public redirect controller for universal links
@@ -10,9 +11,11 @@ import { Response } from "express";
 export class RedirectController {
   /**
    * Redirect endpoint for connection links
+   * Rate limited to prevent abuse / enumeration
    * Redirects from https://instantstatus.app/connect/{userId} to instant-status://connect/{userId}
    */
   @Get("connect/:userId")
+  @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 req/min per IP
   async redirectToDeepLink(
     @Param("userId") userId: string,
     @Res() res: Response
@@ -32,8 +35,10 @@ export class RedirectController {
   /**
    * Redirect endpoint for email verification links
    * Redirects from https://instantstatus.app/verify?mode=verifyEmail&oobCode=... to instant-status://verify?mode=verifyEmail&oobCode=...
+   * Rate limited to prevent abuse
    */
   @Get("verify")
+  @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 req/min per IP
   async redirectVerifyEmail(@Res() res: Response, @Query() query: any) {
     const { mode, oobCode } = query;
 

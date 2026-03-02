@@ -1,4 +1,5 @@
 import { Controller, Post, Body, UseGuards, Request } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { InviteCodeService } from "./invite-code.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { z } from "zod";
@@ -35,6 +36,7 @@ export class InviteCodeController {
 
   @Post("redeem")
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 req/min – prevent brute force
   async redeemCode(@Request() req, @Body() body: unknown) {
     const { code } = RedeemCodeDtoSchema.parse(body);
     return this.inviteCodeService.redeemCode(req.user.id, code);

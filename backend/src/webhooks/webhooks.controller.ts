@@ -9,15 +9,17 @@ import {
   BadRequestException,
   UnauthorizedException,
 } from "@nestjs/common";
+import { SkipThrottle } from "@nestjs/throttler";
 import { ConfigService } from "@nestjs/config";
 import { WebhooksService } from "./webhooks.service";
 import { z } from "zod";
 
 /**
  * RevenueCat Webhook Controller
- * 
+ *
  * Handles webhook events from RevenueCat to keep premium status in sync.
- * 
+ * Skip rate limiting – webhooks use Bearer auth and RevenueCat may retry.
+ *
  * Webhook events handled:
  * - INITIAL_PURCHASE: User makes their first purchase
  * - RENEWAL: Subscription renews
@@ -26,9 +28,10 @@ import { z } from "zod";
  * - NON_RENEWING_PURCHASE: One-time purchase (like lifetime)
  * - EXPIRATION: Subscription expires
  * - BILLING_ISSUE: Payment failed
- * 
+ *
  * Security: In production, verify webhook signature from RevenueCat
  */
+@SkipThrottle()
 @Controller("webhooks")
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);

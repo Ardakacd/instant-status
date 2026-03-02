@@ -1,12 +1,17 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { DataSource } from "typeorm";
 import { seedDefaultStatusOptions } from "./status-option/status-option.seed";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  if (process.env.NODE_ENV === "production") {
+    app.set("trust proxy", 1); // Trust exactly one proxy (ALB) for correct client IP
+  }
 
   app.useGlobalFilters(new HttpExceptionFilter());
 
