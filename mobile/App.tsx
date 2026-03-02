@@ -531,25 +531,34 @@ function AppNavigator() {
   );
 }
 
-// RevenueCat API Key
-const REVENUECAT_API_KEY = "test_rXxPaWZYHrzNjCPKZgIxnOFZXYQ";
-
-// Move RevenueCat configuration OUTSIDE the component so it runs as soon as the file loads
-// This ensures the SDK is ready before the component tree tries to render
-if (Platform.OS !== "web") {
-  // RevenueCat doesn't run on web
-  try {
-    Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-    Purchases.configure({ apiKey: REVENUECAT_API_KEY });
-    console.log("RevenueCat initialized successfully");
-  } catch (error) {
-    console.error("Failed to initialize RevenueCat:", error);
-  }
-}
-
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
   const appState = useRef(AppState.currentState);
+
+  // RevenueCat: configure once at app startup (not in screens, not in re-renders)
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+
+    const apiKey =
+      Platform.OS === "ios"
+        ? process.env.EXPO_PUBLIC_RC_IOS_KEY
+        : process.env.EXPO_PUBLIC_RC_ANDROID_KEY;
+
+    if (!apiKey) {
+      console.warn("RevenueCat API key missing");
+      return;
+    }
+
+    try {
+      if (__DEV__) {
+        Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+      }
+      Purchases.configure({ apiKey });
+      console.log("RevenueCat initialized");
+    } catch (error) {
+      console.error("RevenueCat init failed:", error);
+    }
+  }, []);
 
   useEffect(() => {
     async function prepare() {

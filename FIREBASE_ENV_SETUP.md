@@ -29,6 +29,10 @@ EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-google-web-client-id.apps.googleuserconten
 
 # Backend API URL
 EXPO_PUBLIC_API_URL=http://localhost:3000
+
+# RevenueCat (subscriptions - platform-specific keys required)
+EXPO_PUBLIC_RC_IOS_KEY=appl_xxxxx
+EXPO_PUBLIC_RC_ANDROID_KEY=goog_xxxxx
 ```
 
 **Where to find these:**

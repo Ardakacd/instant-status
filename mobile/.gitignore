@@ -13,6 +13,7 @@ web-build/
 .env
 .env.development
 .env.production
+public/firebase-config.js
 credentials.json
 # macOS
 .DS_Store

@@ -1,6 +1,7 @@
 {
   "hosting": {
     "public": "public",
+    "predeploy": ["node scripts/generate-firebase-config.js"],
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {

@@ -92,6 +92,8 @@
         color: #34c759;
       }
     </style>
+    <!-- Firebase config (generated from .env - run scripts/generate-firebase-config.js before deploy) -->
+    <script src="/firebase-config.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -112,21 +114,11 @@
     </div>
 
     <script>
-      // Firebase configuration
-      const firebaseConfig = {
-        apiKey: "AIzaSyDPPG_-9OO8PoCt4XoKQEX6hi_8l5j-p54",
-        authDomain: "instant-status-8d123.firebaseapp.com",
-        projectId: "instant-status-8d123",
-        storageBucket: "instant-status-8d123.firebasestorage.app",
-        messagingSenderId: "70279102156",
-        appId: "1:70279102156:web:28d20293cec8fc2f9c4c69"
-      };
-
-      // Initialize Firebase
-      if (!firebase.apps.length) {
+      // Firebase config from firebase-config.js (generated from .env)
+      const firebaseConfig = window.__FIREBASE_CONFIG__ || {};
+      if (!firebase.apps.length && firebaseConfig.apiKey) {
         firebase.initializeApp(firebaseConfig);
       }
-      const auth = firebase.auth();
 
       // Extract mode and oobCode from URL query parameters
       const urlParams = new URLSearchParams(window.location.search);

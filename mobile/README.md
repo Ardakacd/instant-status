@@ -21,7 +21,11 @@ EXPO_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
 EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
 EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
 EXPO_PUBLIC_FIREBASE_APP_ID=your-app-id
+EXPO_PUBLIC_RC_IOS_KEY=appl_xxxxx
+EXPO_PUBLIC_RC_ANDROID_KEY=goog_xxxxx
 ```
+
+   For Firebase Hosting (verify, reset-password pages): Run `node scripts/generate-firebase-config.js` before deploying. This creates `public/firebase-config.js` from your .env (the file is gitignored).
 
 3. Set up Firebase:
 

@@ -108,21 +108,17 @@
       </a>
     </div>
 
+    <!-- Firebase config (generated from .env - run scripts/generate-firebase-config.js before deploy) -->
+    <script src="/firebase-config.js"></script>
     <!-- Firebase SDK -->
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
       import { getAuth, applyActionCode } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-      // Firebase config - matches your mobile app config
-      const firebaseConfig = {
-        apiKey: "AIzaSyDPPG_-9OO8PoCt4XoKQEX6hi_8l5j-p54",
-        authDomain: "instant-status-8d123.firebaseapp.com",
-        projectId: "instant-status-8d123",
-        storageBucket: "instant-status-8d123.firebasestorage.app",
-        messagingSenderId: "70279102156",
-        appId: "1:70279102156:web:28d20293cec8fc2f9c4c69"
-      };
-
+      const firebaseConfig = window.__FIREBASE_CONFIG__ || {};
+      if (!firebaseConfig.apiKey) {
+        throw new Error("Firebase config missing. Run: node scripts/generate-firebase-config.js");
+      }
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
 
