@@ -40,7 +40,7 @@ export class RedirectController {
 
     this.logger.debug(`Redirect connect -> deep link (target: ${redactUid(userId)})`);
     const deepLink = `instant-status://connect/${userId}`;
-    return res.redirect(HttpStatus.MOVED_PERMANENTLY, deepLink);
+    return res.redirect(HttpStatus.FOUND, deepLink);
   }
 
   /**
@@ -62,6 +62,6 @@ export class RedirectController {
 
     this.logger.debug(`Redirect verify -> deep link (mode: ${mode})`);
     const deepLink = `instant-status://verify?mode=${encodeURIComponent(mode)}&oobCode=${encodeURIComponent(oobCode)}`;
-    return res.redirect(HttpStatus.MOVED_PERMANENTLY, deepLink);
+    return res.redirect(HttpStatus.FOUND, deepLink);
   }
 }
