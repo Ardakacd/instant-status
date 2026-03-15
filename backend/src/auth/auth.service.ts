@@ -102,7 +102,8 @@ export class AuthService {
     );
 
     const onboarding = !user.first_name || !user.last_name;
-    const emailVerified = decodedToken.email_verified ?? true;
+    // Fail-safe: if the claim is absent, treat as unverified rather than accidentally granting access
+    const emailVerified = decodedToken.email_verified ?? false;
 
     // For new password users with unverified email, send verification (non-blocking)
     const signInProvider = (decodedToken as any).firebase?.sign_in_provider;
