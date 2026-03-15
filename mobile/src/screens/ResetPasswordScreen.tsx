@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   TouchableOpacity,
@@ -30,6 +30,24 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [globalError, setGlobalError] = useState("");
   const [resetting, setResetting] = useState(false);
+  const [validatingCode, setValidatingCode] = useState(true);
+  const [codeError, setCodeError] = useState("");
+
+  // Verify the oobCode on mount so the user gets an error immediately if
+  // the link has already been used or expired, rather than after typing a password.
+  useEffect(() => {
+    const { oobCode } = route.params || {};
+    if (!oobCode) {
+      setValidatingCode(false);
+      return;
+    }
+    authService.verifyResetCode(oobCode).then(() => {
+      setValidatingCode(false);
+    }).catch((err: any) => {
+      setCodeError(err.message || "Invalid or expired reset link.");
+      setValidatingCode(false);
+    });
+  }, []);
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
@@ -103,7 +121,8 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
   };
 
   const { oobCode, mode } = route.params || {};
-  const isValidLink = mode === "resetPassword" && oobCode;
+  // isValidLink: route params present and server confirmed code is valid
+  const isValidLink = mode === "resetPassword" && oobCode && !codeError;
 
   const scrollContentStyle = [
     styles.scrollContent,
@@ -112,7 +131,15 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
     },
   ];
 
+  if (validatingCode) {
+    // Show nothing while we verify the code so there's no flash of invalid-link UI
+    return <View style={[styles.container, { paddingTop: insets.top }]} />;
+  }
+
   if (!isValidLink) {
+    const subtitle = codeError
+      ? codeError
+      : "This password reset link is invalid or has expired. Please request a new one.";
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <ScrollView
@@ -128,7 +155,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
               </View>
               <Text variant="primary" style={styles.title}>Invalid Reset Link</Text>
               <Text variant="secondary" style={styles.subtitle}>
-                This password reset link is invalid or has expired. Please request a new one.
+                {subtitle}
               </Text>
             </View>
 

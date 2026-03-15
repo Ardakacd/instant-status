@@ -11,6 +11,7 @@ import {
   updatePassword,
   applyActionCode,
   confirmPasswordReset,
+  verifyPasswordResetCode,
 } from "firebase/auth";
 import { auth, mapSignInError, mapSignupError } from "../config/firebase";
 import api, { resetAuthReady, setLoggingOut } from "../config/api";
@@ -319,11 +320,11 @@ export class AuthService {
   }
 
   getAuthProvider(): string | null {
-    const currentUser = auth.currentUser;
-    if (currentUser?.providerData && currentUser.providerData.length > 0) {
-      return currentUser.providerData[0].providerId;
-    }
-    return null;
+    const providers = auth.currentUser?.providerData ?? [];
+    // If the user has a password provider (possibly alongside a social provider),
+    // return 'password' so the profile screen shows the "Change password" option.
+    if (providers.some((p) => p.providerId === "password")) return "password";
+    return providers[0]?.providerId ?? null;
   }
 
   async sendEmailVerification(): Promise<void> {
@@ -398,6 +399,21 @@ export class AuthService {
       } else {
         throw new Error("Failed to send password reset email");
       }
+    }
+  }
+
+  /**
+   * Verify a password reset code is still valid (not expired/already used).
+   * Throws if the code is invalid or expired.
+   */
+  async verifyResetCode(oobCode: string): Promise<void> {
+    try {
+      await verifyPasswordResetCode(auth, oobCode);
+    } catch (error: any) {
+      if (error.code === "auth/expired-action-code") {
+        throw new Error("Password reset link has expired. Please request a new one.");
+      }
+      throw new Error("Invalid password reset link. Please request a new one.");
     }
   }
 
