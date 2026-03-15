@@ -204,7 +204,6 @@
             // Redirect to app immediately
             redirectToApp();
           } catch (error) {
-            console.error("Verification error:", error);
             showError(error.message || "Failed to verify email. Please try again.");
             buttonEl.style.display = "inline-block";
           }
