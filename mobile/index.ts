@@ -1,6 +1,7 @@
 import { registerRootComponent } from "expo";
 import { getMessaging, setBackgroundMessageHandler } from "@react-native-firebase/messaging";
 import { widgetStorageService } from "./src/services/widget-storage.service";
+import Sentry from "./sentry";
 import {
   registerWidgetTaskHandler,
   registerWidgetConfigurationScreen,
@@ -46,7 +47,8 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
       );
 
     }
-  } catch {
+  } catch (error) {
+    Sentry.Native.captureException(error);
   }
 });
 
