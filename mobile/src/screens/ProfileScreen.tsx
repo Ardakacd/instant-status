@@ -177,9 +177,9 @@ export default function ProfileScreen() {
         if (!hasPermission) {
           const granted = await messagingService.requestPermission();
           if (granted) {
-            setPushNotifications(true);
             const token = await messagingService.getToken();
             if (token && user) await deviceTokenService.registerToken(token);
+            setPushNotifications(true);
           } else {
             Alert.alert(
               "Permission Required",
@@ -198,9 +198,9 @@ export default function ProfileScreen() {
             setPushNotifications(false);
           }
         } else {
-          setPushNotifications(true);
           const token = await messagingService.getToken();
           if (token && user) await deviceTokenService.registerToken(token);
+          setPushNotifications(true);
         }
       } else {
         Alert.alert(
