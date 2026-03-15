@@ -77,7 +77,10 @@ export default function ManageStatusScreen() {
     setEmoji("😎");
     setColor("#3B82F6");
     setSelectedOption(null);
-    setSaving(false); // Reset saving state
+    setSaving(false);
+    setGlobalError("");
+    setLabelError("");
+    setEmojiError("");
     setCreateModalVisible(true);
   };
 
@@ -94,7 +97,10 @@ export default function ManageStatusScreen() {
     setEmoji(option.emoji);
     setColor(option.color);
     setSelectedOption(option);
-    setSaving(false); // Reset saving state
+    setSaving(false);
+    setGlobalError("");
+    setLabelError("");
+    setEmojiError("");
     setEditModalVisible(true);
   };
 
@@ -117,13 +123,13 @@ export default function ManageStatusScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              setGlobalError(""); // Clear any previous errors
+              setGlobalError("");
               await statusOptionService.deleteStatusOption(option.id);
+              setEditModalVisible(false);
               Toast.show({
                 type: "success",
                 text1: "Status option deleted",
               });
-              setGlobalError("");
               loadStatusOptions();
             } catch (error: any) {
               setGlobalError(
@@ -387,6 +393,9 @@ export default function ManageStatusScreen() {
         onRequestClose={() => {
           setCreateModalVisible(false);
           setSaving(false);
+          setGlobalError("");
+          setLabelError("");
+          setEmojiError("");
         }}
       >
         <View style={styles.modalOverlay}>
@@ -512,6 +521,7 @@ export default function ManageStatusScreen() {
         onRequestClose={() => {
           setEditModalVisible(false);
           setSaving(false);
+          setGlobalError("");
           setLabelError("");
           setEmojiError("");
         }}
@@ -530,6 +540,7 @@ export default function ManageStatusScreen() {
               <TouchableOpacity
                 onPress={() => {
                   setEditModalVisible(false);
+                  setGlobalError("");
                   setLabelError("");
                   setEmojiError("");
                 }}
@@ -605,7 +616,6 @@ export default function ManageStatusScreen() {
                 style={styles.deleteButton}
                 onPress={() => {
                   if (selectedOption) {
-                    setEditModalVisible(false);
                     handleDelete(selectedOption);
                   }
                 }}
