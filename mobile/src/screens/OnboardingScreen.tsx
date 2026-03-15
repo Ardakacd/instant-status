@@ -73,7 +73,7 @@ export default function OnboardingScreen() {
       });
       await refreshUser();
     } catch (error: any) {
-      setGlobalError(error.message || "Failed to save your information. Please try again.");
+      setGlobalError(error.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
