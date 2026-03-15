@@ -32,10 +32,8 @@ export class AuthService {
         webClientId: webClientId, // Required for iOS and Android (OAuth 2.0 Web Client ID)
         offlineAccess: true, // If you want to access Google API on behalf of the user FROM YOUR SERVER
       });
-    } else {
-      console.warn(
-        "Google Sign-In not configured: EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is missing",
-      );
+    } else if (__DEV__) {
+      console.warn("Google Sign-In not configured: EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is missing");
     }
   }
 
@@ -77,8 +75,7 @@ export class AuthService {
       if (!isAnonymous) {
         await Purchases.logOut();
       }
-    } catch (revenuecatError: any) {
-      console.warn("Failed to log out from RevenueCat:", revenuecatError);
+    } catch {
     }
   }
 
@@ -97,15 +94,10 @@ export class AuthService {
         const { deviceTokenService } = await import("./device-token.service");
         try {
           await deviceTokenService.unregisterToken();
-        } catch (backendError) {
-          console.warn(
-            "Failed to unregister token from backend:",
-            backendError,
-          );
+        } catch {
         }
       }
-    } catch (tokenError) {
-      console.warn("Error unregistering device token:", tokenError);
+    } catch {
     }
   }
 
@@ -121,8 +113,7 @@ export class AuthService {
     try {
       const { widgetStorageService } = await import("./widget-storage.service");
       await widgetStorageService.clearAll();
-    } catch (widgetError) {
-      console.warn("Error clearing widget storage:", widgetError);
+    } catch {
     }
   }
 
@@ -137,7 +128,6 @@ export class AuthService {
       await this.handleAuthSuccess(userCredential);
       return;
     } catch (error: any) {
-      console.error("Error signing up:", error);
       throw new Error(mapSignupError(error));
     }
   }
@@ -151,7 +141,6 @@ export class AuthService {
       );
       await this.handleAuthSuccess(userCredential);
     } catch (error: any) {
-      console.error("Error signing in:", JSON.stringify(error, null, 2));
       throw new Error(mapSignInError(error));
     }
   }
@@ -171,7 +160,6 @@ export class AuthService {
       await signOut(auth);
       resetAuthReady(); // Reset auth ready state so it can be re-initialized on next login
     } catch (error: any) {
-      console.error("Error logging out:", error);
       throw new Error("Failed to log out");
     } finally {
       setLoggingOut(false);
@@ -222,7 +210,6 @@ export class AuthService {
       await this.handleAuthSuccess(userCredential);
       return true; // Success - AuthContext uses !result to detect cancel
     } catch (error: any) {
-      console.error("Error signing in with Google:", error);
 
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         // User cancelled the flow (tapped back on Android or Cancel on iOS)
@@ -273,7 +260,6 @@ export class AuthService {
       try {
         userCredential = await signInWithCredential(auth, credential);
       } catch (firebaseError: any) {
-        console.error("Firebase sign-in error:", firebaseError);
         throw new Error(
           firebaseError.message || "Failed to sign in with Apple",
         );
@@ -281,8 +267,6 @@ export class AuthService {
 
       await this.handleAuthSuccess(userCredential);
     } catch (error: any) {
-      console.error("Error signing in with Apple:", error);
-
       // Handle user cancellation
       if (
         error.code === "ERR_REQUEST_CANCELED" ||
@@ -325,7 +309,6 @@ export class AuthService {
       // Update password
       await updatePassword(currentUser, newPassword);
     } catch (error: any) {
-      console.error("Error changing password:", error);
 
       // Map Firebase errors to user-friendly messages
       if (error.code === "auth/invalid-credential") {
@@ -357,7 +340,6 @@ export class AuthService {
       // Send email verification via backend (uses Postmark)
       await api.post("/auth/send-email-verification");
     } catch (error: any) {
-      console.error("Error sending verification email:", error);
       if (error.message) {
         throw new Error(error.message);
       } else {
@@ -411,7 +393,6 @@ export class AuthService {
       // This ensures we use our custom email template and have better control
       await api.post("/auth/forgot-password", { email });
     } catch (error: any) {
-      console.error("Error sending password reset email:", error);
       if (error.message) {
         throw new Error(error.message);
       } else {
@@ -430,7 +411,6 @@ export class AuthService {
     try {
       await confirmPasswordReset(auth, oobCode, newPassword);
     } catch (error: any) {
-      console.error("Error confirming password reset:", error);
       if (error.code === "auth/expired-action-code") {
         throw new Error(
           "Password reset link has expired. Please request a new one.",

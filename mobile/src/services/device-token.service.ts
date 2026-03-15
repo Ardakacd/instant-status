@@ -44,15 +44,10 @@ export class DeviceTokenService {
         await this.deleteToken(deviceTokenId);
         // Clear stored ID
         await AsyncStorage.removeItem(DEVICE_TOKEN_ID_KEY);
-      } else {
-        console.warn(
-          "Device token ID not found, cannot unregister from backend"
-        );
       }
     } catch (error: any) {
       // Don't fail logout if backend deletion fails
       // The token will be invalidated on Firebase side anyway
-      console.warn("Could not unregister token from backend:", error.message);
       // Still try to clear stored ID
       await AsyncStorage.removeItem(DEVICE_TOKEN_ID_KEY).catch(() => {});
     }

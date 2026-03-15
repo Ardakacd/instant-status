@@ -59,8 +59,7 @@ export class MessagingService {
 
         return enabled;
       }
-    } catch (error) {
-      console.error("Error requesting notification permission:", error);
+    } catch {
       return false;
     }
   }
@@ -106,8 +105,7 @@ export class MessagingService {
     try {
       await firebaseRegisterDevice(this.messagingInstance);
       return true;
-    } catch (error: any) {
-      console.warn("iOS Remote Message Registration Error:", error?.message);
+    } catch {
       return false;
     }
   }
@@ -125,8 +123,7 @@ export class MessagingService {
         await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
       }
       return token;
-    } catch (error) {
-      console.error("Error getting FCM token:", error);
+    } catch {
       return null;
     }
   }
@@ -158,8 +155,7 @@ export class MessagingService {
       // 3. Clear our local cache
       await AsyncStorage.removeItem(FCM_TOKEN_KEY);
 
-    } catch (error) {
-      console.error("Error during unregister:", error);
+    } catch {
       // Fallback: at least clear local storage so the app thinks it's logged out
       await AsyncStorage.removeItem(FCM_TOKEN_KEY).catch(() => {});
     }

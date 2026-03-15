@@ -41,8 +41,7 @@ export function useIsPremium() {
       try {
         const info = await Purchases.getCustomerInfo();
         updatePremiumState(info);
-      } catch (e) {
-        console.error("Failed to fetch customer info", e);
+      } catch {
         setIsPremium(false);
         widgetStorageService.setPremiumStatus(false);
         setWillRenew(null);
