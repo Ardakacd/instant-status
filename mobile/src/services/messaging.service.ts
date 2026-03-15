@@ -178,8 +178,12 @@ export class MessagingService {
 
   onTokenRefresh(handler: (token: string) => void) {
     return onTokenRefresh(this.messagingInstance, async (token) => {
-      await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
-      handler(token);
+      try {
+        await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
+        handler(token);
+      } catch {
+        // Ignore storage errors — token will be refreshed on next app launch
+      }
     });
   }
 }
