@@ -5,7 +5,10 @@
       {
         "appID": "FPQ5Q94QY6.com.arda.instantstatus.dev",
         "paths": [
+          "/verify",
           "/verify/*",
+          "/reset-password",
+          "/reset-password/*",
           "/connect/*"
         ]
       }

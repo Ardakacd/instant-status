@@ -67,6 +67,11 @@
               "scheme": "https",
               "host": "instantstatus.app",
               "pathPrefix": "/connect"
+            },
+            {
+              "scheme": "https",
+              "host": "instantstatus.app",
+              "pathPrefix": "/reset-password"
             }
           ],
           "category": [
