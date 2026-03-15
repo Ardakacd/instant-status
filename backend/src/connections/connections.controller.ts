@@ -9,10 +9,13 @@ import {
   UseGuards,
   Request,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { ConnectionsService } from "./connections.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { UserService } from "../user/user.service";
 import { z } from "zod";
+
+const FriendIdParamSchema = z.string().uuid();
 
 const FromInviteDtoSchema = z
   .object({
@@ -68,17 +71,21 @@ export class ConnectionsController {
   }
 
   @Delete(":friend_id")
-  async deleteConnection(@Request() req, @Param("friend_id") friendId: string) {
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 removals/min
+  async deleteConnection(@Request() req, @Param("friend_id") rawFriendId: string) {
+    const friendId = FriendIdParamSchema.parse(rawFriendId);
     await this.connectionsService.delete(req.user.id, friendId);
     return { message: "Connection removed" };
   }
 
   @Patch(":friend_id/visibility")
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 toggles/min
   async updateVisibility(
     @Request() req,
-    @Param("friend_id") friendId: string,
+    @Param("friend_id") rawFriendId: string,
     @Body() body: unknown
   ) {
+    const friendId = FriendIdParamSchema.parse(rawFriendId);
     const { shows_status } = z
       .object({ shows_status: z.boolean() })
       .strict() // Reject unknown fields
