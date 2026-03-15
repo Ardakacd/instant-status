@@ -11,7 +11,7 @@ import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 import { UserService } from "../user/user.service";
 import { z } from "zod";
-import { AuthGuard } from "./auth.guard";
+import { AuthGuard, AllowUnverifiedEmail } from "./auth.guard";
 
 const VerifyTokenDtoSchema = z
   .object({
@@ -58,6 +58,7 @@ export class AuthController {
 
   @Post("send-email-verification")
   @UseGuards(AuthGuard)
+  @AllowUnverifiedEmail() // Must work before the user has verified their email
   @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 req/min – prevent abuse
   async sendEmailVerification(@Request() req) {
     const user = await this.userService.findById(req.user.id);

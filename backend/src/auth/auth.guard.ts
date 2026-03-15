@@ -3,11 +3,22 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  ForbiddenException,
+  SetMetadata,
 } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { StructuredLogger } from "../common/logger/structured-logger";
 import { AuthService } from "./auth.service";
 import { UserService } from "../user/user.service";
 import { redactUid } from "../utils/redact";
+
+/**
+ * Decorator for endpoints that must work before the user has verified their
+ * email — specifically POST /auth/send-email-verification.
+ */
+export const ALLOW_UNVERIFIED_EMAIL_KEY = "allow_unverified_email";
+export const AllowUnverifiedEmail = () =>
+  SetMetadata(ALLOW_UNVERIFIED_EMAIL_KEY, true);
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -16,6 +27,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private authService: AuthService,
     private userService: UserService,
+    private reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -54,11 +66,29 @@ export class AuthGuard implements CanActivate {
         });
       }
 
+      // Enforce email verification unless the endpoint explicitly opts out.
+      // This is defence-in-depth: the mobile app already gates unverified users
+      // out of protected screens, but a raw API call with an unverified token
+      // should still be rejected server-side.
+      const allowUnverified = this.reflector.getAllAndOverride<boolean>(
+        ALLOW_UNVERIFIED_EMAIL_KEY,
+        [context.getHandler(), context.getClass()],
+      );
+      if (!allowUnverified && !decodedToken.email_verified) {
+        throw new ForbiddenException({
+          message: "Please verify your email address to continue.",
+          errorCode: "EMAIL_NOT_VERIFIED",
+        });
+      }
+
       request.user = user;
       return true;
     } catch (error) {
-      // If it's already an UnauthorizedException with errorCode, re-throw as-is
-      if (error instanceof UnauthorizedException) {
+      // If it's already an Unauthorized/ForbiddenException, re-throw as-is
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof ForbiddenException
+      ) {
         throw error;
       }
       // Otherwise, log and wrap in generic unauthorized error

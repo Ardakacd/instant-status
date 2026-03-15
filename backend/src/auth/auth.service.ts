@@ -202,11 +202,17 @@ export class AuthService {
     } catch (error: any) {
       // Handle unique constraint violation (email already exists)
       if (error.code === "23505" && error.constraint?.includes("email")) {
-        // Email constraint violation - try to find and clean up orphaned record
         if (email) {
           const existingUser = await this.userService.findByEmail(email);
-          if (existingUser && existingUser.firebase_uid !== uid) {
-            // Check if old Firebase user exists
+          if (existingUser) {
+            if (existingUser.firebase_uid === uid) {
+              // A concurrent request for the same user already created the record.
+              // Simply return it — no conflict.
+              return existingUser;
+            }
+
+            // Different Firebase UID — could be an orphaned record or a real conflict.
+            // Check if the old Firebase user still exists.
             try {
               await this.firebaseAdmin
                 .auth()
