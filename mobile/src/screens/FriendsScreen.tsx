@@ -29,6 +29,7 @@ export default function FriendsScreen() {
   const [manageMenuVisible, setManageMenuVisible] = useState(false);
   const [selectedConnection, setSelectedConnection] =
     useState<Connection | null>(null);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
 
   useEffect(() => {
     loadConnections();
@@ -40,6 +41,10 @@ export default function FriendsScreen() {
       const conns = await connectionsService.getConnections();
       setConnections(conns);
     } catch {
+      Toast.show({
+        type: "error",
+        text1: "Failed to load friends. Check your connection.",
+      });
     } finally {
       setRefreshing(false);
     }
@@ -96,30 +101,15 @@ export default function FriendsScreen() {
   };
 
   const handleToggleVisibility = async () => {
-    if (!selectedConnection) return;
+    if (!selectedConnection || togglingVisibility) return;
 
-    // Toggle this user's visibility setting
     const newUserShowsStatus = !selectedConnection.user_shows_status;
 
+    setTogglingVisibility(true);
     try {
       await connectionsService.updateVisibility(
         selectedConnection.friend_id,
         newUserShowsStatus,
-      );
-
-      // Update local state
-      // Note: visibility (combined) will be recalculated on next fetch
-      setConnections((prev) =>
-        prev.map((conn) =>
-          conn.id === selectedConnection.id
-            ? {
-                ...conn,
-                user_shows_status: newUserShowsStatus,
-                // Update combined visibility: both must be true
-                visibility: newUserShowsStatus && (conn.visibility || false),
-              }
-            : conn,
-        ),
       );
 
       closeManageMenu();
@@ -130,6 +120,9 @@ export default function FriendsScreen() {
           ? "You've enabled status sharing. They can now see your status."
           : "You've hidden your status. They can't see your status until you enable it again.",
       });
+
+      // Re-fetch to get accurate combined visibility from server
+      loadConnections();
     } catch (error: any) {
       Toast.show({
         type: "error",
@@ -137,6 +130,8 @@ export default function FriendsScreen() {
           error.message ||
           "Failed to update visibility. Check your connection and try again.",
       });
+    } finally {
+      setTogglingVisibility(false);
     }
   };
 
@@ -351,6 +346,7 @@ export default function FriendsScreen() {
                 <TouchableOpacity
                   style={styles.manageMenuItem}
                   onPress={handleToggleVisibility}
+                  disabled={togglingVisibility}
                   activeOpacity={0.7}
                 >
                   <Ionicons
