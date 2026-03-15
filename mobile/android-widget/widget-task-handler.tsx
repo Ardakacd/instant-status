@@ -52,7 +52,8 @@ async function loadWidgetData(widgetId: number): Promise<{
       const selectedIds: string[] = JSON.parse(savedSelection);
       filteredFriends = allFriends.filter((f) => selectedIds.includes(f.id));
     } else {
-      filteredFriends = allFriends.slice(0, 16);
+      // No config: use all friends (same as iOS). Widget caps by layout (4/8/16).
+      filteredFriends = [...allFriends];
     }
 
     // Load premium status and background style

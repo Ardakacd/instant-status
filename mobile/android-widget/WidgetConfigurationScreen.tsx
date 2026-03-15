@@ -82,12 +82,11 @@ function WidgetConfigurationScreenContent({
         const selectedIds: string[] = JSON.parse(savedSelection);
         setSelectedFriendIds(new Set(selectedIds));
       } else {
+        // No saved selection: pre-select all friends (same as iOS "no config = all")
         const data = await AsyncStorage.getItem(WIDGET_DATA_KEY);
         if (data) {
           const parsedData: FriendStatusWidgetItem[] = JSON.parse(data);
-          setSelectedFriendIds(
-            new Set(parsedData.slice(0, 8).map((f) => f.id))
-          );
+          setSelectedFriendIds(new Set(parsedData.map((f) => f.id)));
         }
       }
 
