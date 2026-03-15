@@ -43,10 +43,16 @@ export default function OnboardingScreen() {
     if (!firstName.trim()) {
       setFirstNameError("First name is required");
       isValid = false;
+    } else if (firstName.trim().length > 50) {
+      setFirstNameError("First name must be 50 characters or less");
+      isValid = false;
     }
 
     if (!lastName.trim()) {
       setLastNameError("Last name is required");
+      isValid = false;
+    } else if (lastName.trim().length > 50) {
+      setLastNameError("Last name must be 50 characters or less");
       isValid = false;
     }
 

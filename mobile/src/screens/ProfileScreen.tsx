@@ -127,6 +127,10 @@ export default function ProfileScreen() {
       setEditingFirstName(false);
       return;
     }
+    if (firstName.trim().length > 50) {
+      Toast.show({ type: "error", text1: "First name must be 50 characters or less" });
+      return;
+    }
     setSaving(true);
     try {
       await userService.updateMe({ first_name: firstName.trim() });
@@ -146,6 +150,10 @@ export default function ProfileScreen() {
       Toast.show({ type: "error", text1: "Last name cannot be empty" });
       setLastName(user?.last_name || "");
       setEditingLastName(false);
+      return;
+    }
+    if (lastName.trim().length > 50) {
+      Toast.show({ type: "error", text1: "Last name must be 50 characters or less" });
       return;
     }
     setSaving(true);
