@@ -76,7 +76,12 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadStatusOptions();
-    loadFriendsStatus().catch(() => {});
+    loadFriendsStatus().catch(() => {
+      Toast.show({
+        type: "error",
+        text1: "Failed to load friends. Check your connection.",
+      });
+    });
     loadCurrentStatus().catch(() => {});
     checkRefreshHint();
   }, []);
