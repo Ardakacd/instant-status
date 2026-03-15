@@ -454,23 +454,13 @@ function AppNavigator() {
               Connect: "connect/:userId",
               EmailVerification: {
                 path: "verify",
-                // Query parameters (mode, oobCode) will be automatically parsed from URL
+                // Query parameters (mode, oobCode) are automatically parsed from URL
               },
-              // ResetPassword is handled manually in useEffect to avoid navigation state errors
-              // since it's conditionally rendered based on auth state
+              // ResetPassword is handled manually in handleInitialURL / Linking.addEventListener
+              // because it is conditionally rendered based on auth state.
+              // It is intentionally absent from this config so React Navigation does not
+              // try to parse reset-password URLs (they are not in the screen config anyway).
             },
-          },
-          // Custom getStateFromPath to handle reset-password links manually
-          getStateFromPath: (path, options) => {
-            // If it's a reset-password link, return null so we handle it manually
-            if (
-              path.includes("reset-password") ||
-              path.includes("mode=resetPassword")
-            ) {
-              return undefined; // Let manual navigation handle it
-            }
-            // Use default React Navigation state parsing for other paths
-            return undefined;
           },
         }}
       >

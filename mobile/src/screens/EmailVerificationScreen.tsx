@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import * as Linking from "expo-linking";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authService } from "../services/auth.service";
 import { auth } from "../config/firebase";
@@ -31,37 +30,22 @@ export default function EmailVerificationScreen({ route }: Props) {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [hasHandledVerification, setHasHandledVerification] = useState(false);
 
-  // Handle email verification link (oobCode from universal link)
+  // Handle email verification link (oobCode from universal link via route.params)
   useEffect(() => {
     if (hasHandledVerification) return;
 
     const { oobCode, mode } = route.params || {};
+    if (mode !== "verifyEmail") return;
 
-    // Also try to get params from URL if route.params is empty (deep link case)
-    const getParamsFromURL = async () => {
-      const url = await Linking.getInitialURL();
-      if (url && (!oobCode || !mode)) {
-        const parsed = Linking.parse(url);
-        const queryParams = parsed.queryParams || {};
-        return {
-          mode: mode || (queryParams.mode as string),
-          oobCode: oobCode || (queryParams.oobCode as string),
-        };
-      }
-      return { mode, oobCode };
-    };
+    // Set guard synchronously so a re-mount before async work completes cannot double-fire
+    setHasHandledVerification(true);
 
-    getParamsFromURL().then(({ mode: finalMode, oobCode: finalOobCode }) => {
-      if (finalMode === "verifyEmail") {
-        setHasHandledVerification(true);
-        if (finalOobCode) {
-          handleVerifyEmail(finalOobCode);
-        } else {
-          handleCheckVerificationOnly();
-        }
-      }
-    });
-  }, [route.params, hasHandledVerification]);
+    if (oobCode) {
+      handleVerifyEmail(oobCode);
+    } else {
+      handleCheckVerificationOnly();
+    }
+  }, [route.params]);
 
   const handleCheckVerificationOnly = async () => {
     setVerifying(true);

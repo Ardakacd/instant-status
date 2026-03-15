@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   TouchableOpacity,
@@ -8,7 +8,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import * as Linking from "expo-linking";
 import { authService } from "../services/auth.service";
 import { RootStackParamList } from "../../App";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -31,43 +30,6 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [globalError, setGlobalError] = useState("");
   const [resetting, setResetting] = useState(false);
-  const [hasHandledReset, setHasHandledReset] = useState(false);
-  const [urlParams, setUrlParams] = useState<{ mode?: string; oobCode?: string }>({});
-
-  // Get URL params as fallback if route params are not available
-  useEffect(() => {
-    const getUrlParams = async () => {
-      const url = await Linking.getInitialURL();
-      if (url) {
-        const parsed = Linking.parse(url);
-        setUrlParams({
-          mode: parsed.queryParams?.mode as string,
-          oobCode: parsed.queryParams?.oobCode as string,
-        });
-      }
-    };
-    getUrlParams();
-  }, []);
-
-  // Handle password reset link (oobCode from universal link)
-  useEffect(() => {
-    if (hasHandledReset) return;
-
-    const { oobCode, mode } = route.params || {};
-    const finalMode = mode || urlParams.mode;
-    const finalOobCode = oobCode || urlParams.oobCode;
-    
-    // Check if we have valid parameters
-    if (finalMode === "resetPassword" && finalOobCode) {
-      setHasHandledReset(true);
-      return;
-    }
-
-    // If we have mode but no oobCode, it's invalid
-    if (finalMode === "resetPassword" && !finalOobCode) {
-      setHasHandledReset(true);
-    }
-  }, [route.params, urlParams, hasHandledReset, navigation]);
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
@@ -108,8 +70,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
       return;
     }
 
-    // Get oobCode from route params or URL params
-    const finalOobCode = route.params?.oobCode || urlParams.oobCode;
+    const finalOobCode = route.params?.oobCode;
     if (!finalOobCode) {
       setGlobalError("Invalid reset link. Please request a new password reset email.");
       return;
@@ -141,11 +102,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
     }
   };
 
-  // Get oobCode and mode from route params or URL params
-  const routeOobCode = route.params?.oobCode;
-  const routeMode = route.params?.mode;
-  const oobCode = routeOobCode || urlParams.oobCode;
-  const mode = routeMode || urlParams.mode;
+  const { oobCode, mode } = route.params || {};
   const isValidLink = mode === "resetPassword" && oobCode;
 
   const scrollContentStyle = [
