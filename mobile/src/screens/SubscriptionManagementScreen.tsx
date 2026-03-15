@@ -31,6 +31,7 @@ export default function SubscriptionManagementScreen() {
   const { isPremium, willRenew, expirationDate } = useIsPremium();
 
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [offerings, setOfferings] = useState<any>(null);
   const [currentPackageId, setCurrentPackageId] = useState<string | null>(null);
   const [purchasing, setPurchasing] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export default function SubscriptionManagementScreen() {
   const loadSubscriptionData = async () => {
     try {
       setLoading(true);
+      setLoadError(false);
 
       // Get offerings
       const offeringsData = await getOfferings();
@@ -67,6 +69,7 @@ export default function SubscriptionManagementScreen() {
         setCurrentPackageId(null);
       }
     } catch (error: any) {
+      setLoadError(true);
       Toast.show({
         type: "error",
         text1:
@@ -296,6 +299,38 @@ export default function SubscriptionManagementScreen() {
           <Text variant="secondary" style={styles.loadingText}>
             Loading subscription options...
           </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (loadError && !offerings) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+          <Text variant="primary" style={styles.headerTitle}>
+            Subscription
+          </Text>
+          <View style={styles.backButton} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <Text variant="secondary" style={styles.loadingText}>
+            Failed to load subscription options.
+          </Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={loadSubscriptionData}
+          >
+            <Text variant="primary" style={styles.retryButtonText}>
+              Try Again
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -774,6 +809,18 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: Spacing.md,
     fontSize: 14,
+  },
+  retryButton: {
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    backgroundColor: Colors.interaction.primary,
+    borderRadius: Borders.radius.medium,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.canvas.background,
   },
   currentPlanCard: {
     backgroundColor: Colors.canvas.background,
