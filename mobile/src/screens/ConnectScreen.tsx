@@ -32,6 +32,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
   const [shareableLink, setShareableLink] = useState("");
   const [redeemingCode, setRedeemingCode] = useState(false);
   const [connectingByLink, setConnectingByLink] = useState(false);
+  const [inviteCodeError, setInviteCodeError] = useState(false);
   useEffect(() => {
     loadMyInviteCode();
     generateShareableLink();
@@ -52,10 +53,16 @@ export default function ConnectScreen({ navigation, route }: Props) {
   }, [route.params?.userId, user]);
 
   const loadMyInviteCode = async () => {
+    setInviteCodeError(false);
     try {
       const result = await inviteService.generateCode();
       setMyInviteCode(result.code);
     } catch {
+      setInviteCodeError(true);
+      Toast.show({
+        type: "error",
+        text1: "Failed to load your invite code. Check your connection.",
+      });
     }
   };
 
@@ -250,9 +257,17 @@ export default function ConnectScreen({ navigation, route }: Props) {
               Your Invite Code
             </Text>
             <View style={styles.codeContainer}>
-              <Text variant="primary" style={styles.codeText}>
-                {myInviteCode || "Loading..."}
-              </Text>
+              {inviteCodeError ? (
+                <TouchableOpacity onPress={loadMyInviteCode}>
+                  <Text variant="secondary" style={styles.retryText}>
+                    Tap to retry
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text variant="primary" style={styles.codeText}>
+                  {myInviteCode || "Loading..."}
+                </Text>
+              )}
               <View style={styles.codeActions}>
                 <TouchableOpacity
                   style={styles.iconButton}
@@ -463,6 +478,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
     letterSpacing: 2,
+  },
+  retryText: {
+    fontSize: 14,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.interaction.primary,
   },
   codeActions: {
     flexDirection: "row",
