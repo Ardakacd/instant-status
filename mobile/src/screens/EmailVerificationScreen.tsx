@@ -108,6 +108,10 @@ export default function EmailVerificationScreen({ route }: Props) {
         text1: "Verification email has been sent. Please check your inbox.",
       });
     } catch (error: any) {
+      // Apply cooldown on rate-limit errors too so rapid taps don't keep hitting the backend
+      if ((error as any).statusCode === 429) {
+        setResendCooldown(60);
+      }
       Toast.show({
         type: "error",
         text1: error.message || "Failed to send verification email. Please try again.",
