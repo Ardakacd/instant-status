@@ -22,7 +22,7 @@ import { ColorPicker } from "../components/ColorPicker";
 import StatusPreviewCard from "../components/StatusPreviewCard";
 import { useIsPremium } from "../hooks/useIsPremium";
 import { PurchasesService } from "../services/purchases.service";
-import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM } from "../design";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 import { TextInput } from "../components/inputs/TextInput";
@@ -32,6 +32,7 @@ const MAX_CUSTOM_OPTIONS = 4;
 export default function ManageStatusScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { horizontalPadding } = useResponsive();
   const { isPremium } = useIsPremium();
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -296,7 +297,12 @@ export default function ManageStatusScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingHorizontal: horizontalPadding,
+          },
+        ]}
         keyboardShouldPersistTaps="always"
       >
         {/* Global Error Banner */}
@@ -664,7 +670,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: Spacing.lg,
+    paddingVertical: Spacing.lg,
     paddingBottom: Spacing.xxl,
   },
   loadingContainer: {

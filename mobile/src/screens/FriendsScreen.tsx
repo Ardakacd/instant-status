@@ -16,13 +16,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { Connection } from "../types";
 import { connectionsService } from "../services/connections.service";
 import Toast from "react-native-toast-message";
-import { Colors, Borders, Spacing, Typography } from "../design";
+import { Colors, Borders, Spacing, Typography, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 import { InlineAction } from "../components/actions/InlineAction";
 
 export default function FriendsScreen() {
   const navigation = useNavigation();
+  const { horizontalPadding } = useResponsive();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [manageMenuVisible, setManageMenuVisible] = useState(false);
@@ -38,8 +39,7 @@ export default function FriendsScreen() {
     try {
       const conns = await connectionsService.getConnections();
       setConnections(conns);
-    } catch (error) {
-      console.error("Error loading connections:", error);
+    } catch {
     } finally {
       setRefreshing(false);
     }
@@ -169,7 +169,11 @@ export default function FriendsScreen() {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          { flexGrow: 1, paddingTop: Spacing.md },
+          {
+            flexGrow: 1,
+            paddingTop: Spacing.md,
+            paddingHorizontal: horizontalPadding,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -432,7 +436,6 @@ const styles = StyleSheet.create({
   },
   friendsSection: {
     marginTop: Spacing.md,
-    paddingHorizontal: Spacing.lg,
   },
   sectionHeader: {
     flexDirection: "row",

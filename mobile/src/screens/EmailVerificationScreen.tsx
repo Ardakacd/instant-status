@@ -16,7 +16,7 @@ import { auth } from "../config/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { RootStackParamList } from "../../App";
 import Toast from "react-native-toast-message";
-import { Colors, Spacing, Typography } from "../design";
+import { Colors, Spacing, Typography, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
@@ -24,6 +24,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "EmailVerification">;
 
 export default function EmailVerificationScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
+  const { horizontalPadding } = useResponsive();
   const { checkEmailVerification, logout, authError } = useAuth();
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -168,7 +169,14 @@ export default function EmailVerificationScreen({ route }: Props) {
         </Text>
       </TouchableOpacity>
 
-      <View style={styles.content}>
+      <View
+        style={[
+          styles.content,
+          {
+            paddingHorizontal: horizontalPadding,
+          },
+        ]}
+      >
         <View style={styles.iconContainer}>
           <Ionicons name="mail-outline" size={80} color={Colors.interaction.primary} />
         </View>

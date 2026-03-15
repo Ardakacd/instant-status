@@ -13,7 +13,7 @@ import { authService } from "../services/auth.service";
 import { RootStackParamList } from "../../App";
 import { ErrorBanner } from "../components/ErrorBanner";
 import Toast from "react-native-toast-message";
-import { Colors, Spacing, Typography } from "../design";
+import { Colors, Spacing, Typography, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
@@ -24,6 +24,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "ResetPassword">;
 
 export default function ResetPasswordScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { horizontalPadding } = useResponsive();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -147,11 +148,18 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
   const mode = routeMode || urlParams.mode;
   const isValidLink = mode === "resetPassword" && oobCode;
 
+  const scrollContentStyle = [
+    styles.scrollContent,
+    {
+      paddingHorizontal: horizontalPadding,
+    },
+  ];
+
   if (!isValidLink) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={scrollContentStyle}
           keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
           bounces={true}
@@ -182,7 +190,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={scrollContentStyle}
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
         bounces={true}
@@ -277,7 +285,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xxl,
     paddingBottom: Spacing.xl,
   },

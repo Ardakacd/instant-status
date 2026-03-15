@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { userService } from "../services/user.service";
 import { ErrorBanner } from "../components/ErrorBanner";
-import { Colors, Spacing, Typography } from "../design";
+import { Colors, Spacing, Typography, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
@@ -16,6 +16,7 @@ import { Section } from "../components/containers/Section";
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
+  const { horizontalPadding } = useResponsive();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [firstNameError, setFirstNameError] = useState("");
@@ -66,7 +67,6 @@ export default function OnboardingScreen() {
       });
       await refreshUser();
     } catch (error: any) {
-      console.error("Error completing onboarding:", error);
       setGlobalError(error.message || "Failed to save your information. Please try again.");
     } finally {
       setLoading(false);
@@ -76,7 +76,12 @@ export default function OnboardingScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingHorizontal: horizontalPadding,
+          },
+        ]}
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
         bounces={true}
@@ -146,9 +151,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center", // Center content vertically
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl    
-    
+    paddingBottom: Spacing.xl,
   },
   content: {
   },

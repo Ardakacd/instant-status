@@ -25,12 +25,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import { useIsPremium } from "../hooks/useIsPremium";
 import { presentPaywall } from "../services/purchases.service";
-import { Colors, Borders, Spacing, Typography } from "../design";
+import { Colors, Borders, Spacing, Typography, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
 export default function HomeScreen() {
-
+  const { horizontalPadding } = useResponsive();
   const navigation = useNavigation();
   const route = useRoute();
   const { isPremium, loading: premiumLoading } = useIsPremium();
@@ -70,7 +70,6 @@ export default function HomeScreen() {
         navigation.navigate("ManageStatus" as never);
       }
     } catch (error: any) {
-      console.error("Error opening paywall:", error);
       Toast.show({
         type: "error",
         text1: error.message || "Failed to open subscription options. Please try again.",
@@ -101,8 +100,7 @@ export default function HomeScreen() {
     try {
       const options = await statusOptionService.getStatusOptions();
       setStatusOptions(options);
-    } catch (error) {
-      console.error("Error loading status options:", error);
+    } catch {
     }
   };
 
@@ -115,8 +113,7 @@ export default function HomeScreen() {
       pendingFriendIdRef.current = friendId;
       
       // Refresh friends status first to ensure we have the latest data
-      loadFriendsStatus().catch((error) => {
-        console.error("Error refreshing friend status:", error);
+      loadFriendsStatus().catch(() => {
         // If refresh fails, try to open modal with existing data
         const friend = friendsStatus.find((f) => f.user_id === friendId);
         if (friend) {
@@ -165,8 +162,7 @@ export default function HomeScreen() {
           }).start();
         }, 1000);
       }
-    } catch (error) {
-      console.error("Error checking refresh hint:", error);
+    } catch {
     }
   };
 
@@ -181,8 +177,7 @@ export default function HomeScreen() {
       }).start(() => {
         setShowRefreshHint(false);
       });
-    } catch (error) {
-      console.error("Error dismissing refresh hint:", error);
+    } catch {
       setShowRefreshHint(false);
     }
   };
@@ -209,16 +204,14 @@ export default function HomeScreen() {
   const loadSignMethods = async () => {
     try {
       await fetchSignInMethodsForEmail(auth, "kabadayi_arda@hotmail.com");
-    } catch (error) {
-      console.error("Error loading sign methods:", error);
+    } catch {
     }
   };
   const loadCurrentStatus = async () => {
     try {
       const status = await statusService.getMyStatus();
       setMyStatus(status);
-    } catch (error) {
-      console.error("Error loading current status:", error);
+    } catch {
     }
   };
 
@@ -229,8 +222,7 @@ export default function HomeScreen() {
 
       // Save friend statuses to widget storage
       await widgetStorageService.saveAllFriendStatuses(statuses);
-    } catch (error) {
-      console.error("Error loading friends status:", error);
+    } catch {
     }
   };
 
@@ -255,7 +247,6 @@ export default function HomeScreen() {
       setModalVisible(false);
       setSelectedOption(null);
     } catch (error: any) {
-      console.error("Error updating status:", error);
       Toast.show({
         type: "error",
         text1: error.message || "Check your connection and try again.",
@@ -371,6 +362,7 @@ export default function HomeScreen() {
           {
             flexGrow: 1,
             paddingTop: Spacing.md + (showRefreshHint ? 56 : 0),
+            paddingHorizontal: horizontalPadding,
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -891,7 +883,6 @@ const styles = StyleSheet.create({
   },
   friendsSection: {
     marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
   },
   sectionHeader: {
     flexDirection: "row",

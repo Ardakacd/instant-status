@@ -17,7 +17,7 @@ import { RootStackParamList } from "../../App";
 import { authService } from "../services/auth.service";
 import { ErrorBanner } from "../components/ErrorBanner";
 import Toast from "react-native-toast-message";
-import { Colors, Borders, Spacing, Typography, PhysicalShift } from "../design";
+import { Colors, Borders, Spacing, Typography, PhysicalShift, useResponsive } from "../design";
 import { createPhysicalShiftTransform } from "../design/styles";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
@@ -69,6 +69,7 @@ const SocialButtonWrapper: React.FC<{
 
 export default function LoginScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { horizontalPadding } = useResponsive();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -214,7 +215,12 @@ export default function LoginScreen({ navigation }: Props) {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingHorizontal: horizontalPadding,
+          },
+        ]}
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
         bounces={true}
@@ -435,7 +441,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1, // Crucial: allows the spacers to expand
     justifyContent: "center", // Center content vertically
-    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xxl,
     paddingBottom: Spacing.xl,
   },

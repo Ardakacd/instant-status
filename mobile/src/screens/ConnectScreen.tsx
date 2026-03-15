@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RootStackParamList } from "../../App";
 import Toast from "react-native-toast-message";
 
-import { Colors, Borders, Spacing, Typography } from "../design";
+import { Colors, Borders, Spacing, Typography, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 import { TextInput } from "../components/inputs/TextInput";
@@ -26,6 +26,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Connect">;
 export default function ConnectScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { horizontalPadding } = useResponsive();
   const [inviteCode, setInviteCode] = useState("");
   const [myInviteCode, setMyInviteCode] = useState("");
   const [shareableLink, setShareableLink] = useState("");
@@ -54,8 +55,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
     try {
       const result = await inviteService.generateCode();
       setMyInviteCode(result.code);
-    } catch (error) {
-      console.error("Error loading invite code:", error);
+    } catch {
     }
   };
 
@@ -100,8 +100,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
       await Share.share({
         message: `Join me on Instant Status! Use my invite code: ${myInviteCode}`,
       });
-    } catch (error) {
-      console.error("Error sharing:", error);
+    } catch {
     }
   };
 
@@ -138,8 +137,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
     try {
       const shareMessage = `${shareableLink}\n\nConnect with me on Instant Status!`;
       await Share.share({ message: shareMessage });
-    } catch (error) {
-      console.error("Error sharing:", error);
+    } catch {
     }
   };
 
@@ -204,7 +202,11 @@ export default function ConnectScreen({ navigation, route }: Props) {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          { flexGrow: 1, paddingTop: insets.top + Spacing.sm },
+          {
+            flexGrow: 1,
+            paddingTop: insets.top + Spacing.sm,
+            paddingHorizontal: horizontalPadding,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="always"

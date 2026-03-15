@@ -21,12 +21,13 @@ import {
   presentCustomerCenter,
 } from "../services/purchases.service";
 import { useIsPremium } from "../hooks/useIsPremium";
-import { Colors, Borders, Spacing, Typography } from "../design";
+import { Colors, Borders, Spacing, Typography, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 
 export default function SubscriptionManagementScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { horizontalPadding } = useResponsive();
   const { isPremium, willRenew, expirationDate } = useIsPremium();
 
   const [loading, setLoading] = useState(true);
@@ -66,7 +67,6 @@ export default function SubscriptionManagementScreen() {
         setCurrentPackageId(null);
       }
     } catch (error: any) {
-      console.error("Error loading subscription data:", error);
       Toast.show({
         type: "error",
         text1:
@@ -221,7 +221,6 @@ export default function SubscriptionManagementScreen() {
         presentCustomerCenter();
       }
     } catch (error: any) {
-      console.error("Error opening cancellation page:", error);
       Toast.show({
         type: "error",
         text1:
@@ -357,6 +356,12 @@ export default function SubscriptionManagementScreen() {
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingHorizontal: horizontalPadding,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="always"
       >
@@ -757,6 +762,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: Spacing.xl,
+  },
   loadingContainer: {
     flex: 1,
     alignItems: "center",
@@ -769,7 +777,6 @@ const styles = StyleSheet.create({
   },
   currentPlanCard: {
     backgroundColor: Colors.canvas.background,
-    marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
     padding: Spacing.lg,
@@ -837,7 +844,6 @@ const styles = StyleSheet.create({
   },
   lifetimeCard: {
     backgroundColor: Colors.canvas.background,
-    marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
     padding: Spacing.lg,

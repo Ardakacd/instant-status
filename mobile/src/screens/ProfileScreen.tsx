@@ -30,7 +30,7 @@ import {
 import { useIsPremium } from "../hooks/useIsPremium";
 import Toast from "react-native-toast-message";
 
-import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM } from "../design";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 import { TextInput as DesignTextInput } from "../components/inputs/TextInput";
@@ -41,6 +41,7 @@ type ProfileScreenNavigationProp =
 export default function ProfileScreen() {
   const { user, logout, deleteAccount, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
+  const { horizontalPadding } = useResponsive();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const {
     isPremium,
@@ -91,8 +92,7 @@ export default function ProfileScreen() {
     try {
       const hasPermission = await messagingService.hasPermission();
       setPushNotifications(hasPermission);
-    } catch (error) {
-      console.error("Error checking notification permissions:", error);
+    } catch {
     }
   };
 
@@ -112,8 +112,7 @@ export default function ProfileScreen() {
       } catch {
         try {
           await Linking.openSettings();
-        } catch (e) {
-          console.error("Failed to open settings", e);
+        } catch {
         }
       }
     } else {
@@ -328,7 +327,10 @@ export default function ProfileScreen() {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + Spacing.lg },
+          {
+            paddingTop: insets.top + Spacing.lg,
+            paddingHorizontal: horizontalPadding,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="always"
@@ -677,7 +679,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
   },
   header: {
