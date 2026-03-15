@@ -316,52 +316,53 @@ export class AuthService {
   }
 
   /**
-   * Generate password reset link and send via Postmark
-   * Link expires in 15 minutes for security
+   * Generate password reset link and send via Postmark.
+   * Link expires in 15 minutes for security.
+   *
+   * A baseline delay is started at the very beginning and every code path
+   * awaits it before returning. This prevents timing-based enumeration of
+   * which emails exist and which auth providers they use.
    */
   async sendPasswordResetEmail(email: string): Promise<void> {
+    // 800 ms covers the typical email-send latency so all paths finish in ~800 ms.
+    const baseline = new Promise<void>((resolve) => setTimeout(resolve, 800));
+
     try {
-      // Check if user exists with this email
       const user = await this.userService.findByEmail(email);
       if (!user) {
-        // Don't reveal if email exists or not (security best practice)
-        // Still return success to prevent email enumeration
         this.logger.log(
           `Password reset requested for non-existent email: ${redactEmail(email)}`,
         );
+        await baseline;
         return;
       }
 
-      // Get Firebase user by email
       let firebaseUser;
       try {
         firebaseUser = await this.firebaseAdmin.auth().getUserByEmail(email);
       } catch (firebaseError: any) {
         if (firebaseError.code === "auth/user-not-found") {
-          // User doesn't exist in Firebase - don't reveal this
-        this.logger.warn(
-          `Password reset requested for email not in Firebase: ${redactEmail(email)}`,
-        );
+          this.logger.warn(
+            `Password reset requested for email not in Firebase: ${redactEmail(email)}`,
+          );
+          await baseline;
           return;
         }
         throw firebaseError;
       }
 
-      // Check if user signed up with email/password (not social login)
       const hasPasswordProvider = firebaseUser.providerData.some(
         (provider) => provider.providerId === "password",
       );
 
       if (!hasPasswordProvider) {
-        // User signed up with Google/Apple - they don't have a password
-        // Don't reveal this, just return success
         this.logger.warn(
           `Password reset requested for social login user: ${redactEmail(email)}`,
         );
+        await baseline;
         return;
       }
 
-      // Generate password reset link (expires in 15 minutes)
       const actionCodeSettings = {
         url: "https://instantstatus.app/reset-password",
         handleCodeInApp: true,
@@ -371,16 +372,19 @@ export class AuthService {
         .auth()
         .generatePasswordResetLink(email, actionCodeSettings);
 
-      // Send email via Postmark
-      await this.emailService.sendPasswordResetEmail(email, resetLink);
+      // Run the email send and the baseline delay concurrently — the response
+      // is held until both complete, so legitimate requests also take ≥ 800 ms.
+      await Promise.all([
+        baseline,
+        this.emailService.sendPasswordResetEmail(email, resetLink),
+      ]);
     } catch (error: any) {
-      // Don't reveal specific errors to prevent email enumeration
       this.logger.error(
         `Error sending password reset email: ${error.message}`,
         error.stack,
       );
-      // Return success even on error to prevent email enumeration
-      // The error is logged for debugging
+      // Absorb the error and wait out the baseline to maintain constant timing
+      await baseline;
     }
   }
 }
