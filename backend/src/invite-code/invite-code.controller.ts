@@ -16,6 +16,7 @@ export class InviteCodeController {
 
   @Post()
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 generates/min
   async generateCode(@Request() req, @Body() body: unknown) {
     const { expires_in_hours } = z
       .object({ expires_in_hours: z.number().optional() })
@@ -44,6 +45,7 @@ export class InviteCodeController {
 
   @Post("connect-by-link")
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 connects/min
   async connectByLink(@Request() req, @Body() body: unknown) {
     const { user_id } = z
       .object({ user_id: z.string().uuid() })
