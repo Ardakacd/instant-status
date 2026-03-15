@@ -136,9 +136,14 @@ export class WidgetStorageService {
       const friendIndex = friendsData.findIndex((f) => f.id === userId);
       if (friendIndex >= 0) {
         const existing = friendsData[friendIndex];
-        const hasChanged = existing.optionId !== friendStatusItem.optionId || 
-                           existing.note !== friendStatusItem.note || 
-                           existing.expiresAt !== friendStatusItem.expiresAt;
+        const hasChanged = existing.optionId !== friendStatusItem.optionId ||
+                           existing.optionLabel !== friendStatusItem.optionLabel ||
+                           existing.optionEmoji !== friendStatusItem.optionEmoji ||
+                           existing.optionColor !== friendStatusItem.optionColor ||
+                           existing.note !== friendStatusItem.note ||
+                           existing.expiresAt !== friendStatusItem.expiresAt ||
+                           existing.firstName !== friendStatusItem.firstName ||
+                           existing.lastName !== friendStatusItem.lastName;
         if (!hasChanged) return;
         friendsData[friendIndex] = friendStatusItem;
       } else {
