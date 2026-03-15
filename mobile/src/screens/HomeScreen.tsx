@@ -17,10 +17,7 @@ import { Status, StatusOption } from "../types";
 import { statusService } from "../services/status.service";
 import { statusOptionService } from "../services/status-option.service";
 import { widgetStorageService } from "../services/widget-storage.service";
-import { useAuth } from "../contexts/AuthContext";
 import StatusChangeModal from "../components/StatusChangeModal";
-import { fetchSignInMethodsForEmail } from "firebase/auth";
-import { auth } from "../config/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import { useIsPremium } from "../hooks/useIsPremium";
@@ -79,9 +76,8 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadStatusOptions();
-    loadFriendsStatus();
-    loadCurrentStatus();
-    loadSignMethods();
+    loadFriendsStatus().catch(() => {});
+    loadCurrentStatus().catch(() => {});
     checkRefreshHint();
   }, []);
 
@@ -190,40 +186,29 @@ export default function HomeScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    try {
-      await Promise.all([
-        loadStatusOptions(),
-        loadFriendsStatus(),
-        loadCurrentStatus(),
-      ]);
-    } finally {
-      setRefreshing(false);
+    const results = await Promise.allSettled([
+      loadStatusOptions(),
+      loadFriendsStatus(),
+      loadCurrentStatus(),
+    ]);
+    setRefreshing(false);
+    if (results.some((r) => r.status === "rejected")) {
+      Toast.show({
+        type: "error",
+        text1: "Failed to refresh. Check your connection.",
+      });
     }
   };
 
-  const loadSignMethods = async () => {
-    try {
-      await fetchSignInMethodsForEmail(auth, "kabadayi_arda@hotmail.com");
-    } catch {
-    }
-  };
   const loadCurrentStatus = async () => {
-    try {
-      const status = await statusService.getMyStatus();
-      setMyStatus(status);
-    } catch {
-    }
+    const status = await statusService.getMyStatus();
+    setMyStatus(status);
   };
 
   const loadFriendsStatus = async () => {
-    try {
-      const statuses = await statusService.getFriendsStatus();
-      setFriendsStatus(statuses);
-
-      // Save friend statuses to widget storage
-      await widgetStorageService.saveAllFriendStatuses(statuses);
-    } catch {
-    }
+    const statuses = await statusService.getFriendsStatus();
+    setFriendsStatus(statuses);
+    await widgetStorageService.saveAllFriendStatuses(statuses);
   };
 
   const handleStatusButtonPress = (option: StatusOption) => {
