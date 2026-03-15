@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { StatusOptionService } from "./status-option.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { z } from "zod";
@@ -59,6 +60,7 @@ export class StatusOptionController {
    * Create a custom status option
    */
   @Post()
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 creates/min
   async createStatusOption(@Request() req, @Body() body: unknown) {
     const data = CreateStatusOptionDtoSchema.parse(body);
     return await this.statusOptionService.createCustomStatusOption(
@@ -74,6 +76,7 @@ export class StatusOptionController {
    * Update a custom status option
    */
   @Patch(":id")
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 updates/min
   async updateStatusOption(
     @Request() req,
     @Param("id") id: string,
@@ -91,6 +94,7 @@ export class StatusOptionController {
    * Delete a custom status option
    */
   @Delete(":id")
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 deletes/min
   async deleteStatusOption(@Request() req, @Param("id") id: string) {
     await this.statusOptionService.deleteCustomStatusOption(id, req.user.id);
     return { message: "Status option deleted successfully" };
