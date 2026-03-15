@@ -51,13 +51,10 @@ export class WebhooksController {
       this.configService.get<string>("REVENUECAT_WEBHOOK_SECRET");
     if (!secret) {
       this.logger.error("REVENUECAT_WEBHOOK_SECRET is not set");
-      throw new Error("REVENUECAT_WEBHOOK_SECRET is not set");
+      throw new UnauthorizedException("Invalid webhook authorization");
     }
-    const expectedAuth = secret ? `Bearer ${secret}` : null;
-    if (
-      !expectedAuth ||
-      authHeader?.trim() !== expectedAuth
-    ) {
+    const expectedAuth = `Bearer ${secret}`;
+    if (authHeader?.trim() !== expectedAuth) {
       this.logger.warn("Invalid webhook authorization");
       throw new UnauthorizedException("Invalid webhook authorization");
     }
