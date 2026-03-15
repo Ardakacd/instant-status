@@ -21,6 +21,7 @@ import {
   type WidgetBackgroundStyle,
   WIDGET_BACKGROUND_OPTIONS,
 } from "./InstantStatusWidget";
+import Sentry from "../sentry";
 
 function getWidgetLayout(width: number, height: number): WidgetLayoutSize {
   const minDim = Math.min(width, height);
@@ -98,7 +99,7 @@ function WidgetConfigurationScreenContent({
         setBackgroundStyle(savedBg as WidgetBackgroundStyle);
       }
     } catch (error) {
-      console.error("Error loading widget configuration:", error);
+      Sentry.Native.captureException(error);
     } finally {
       setLoading(false);
     }
@@ -147,7 +148,7 @@ function WidgetConfigurationScreenContent({
       } as any);
       setResult("ok");
     } catch (error) {
-      console.error("Error saving widget configuration:", error);
+      Sentry.Native.captureException(error);
       setResult("cancel");
     }
   }

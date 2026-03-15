@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { User } from "../types";
 import { authService } from "../services/auth.service";
+import Sentry from "../../sentry";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "../config/firebase";
 import { setOnSessionDead } from "../config/api";
@@ -57,8 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await AsyncStorage.setItem("firebase_uid", result.user.firebase_uid);
     } catch (error: any) {
-      console.error("Error syncing with backend:", error);
-
       if (error?.isSessionDead) {
         setNoInternet(false);
         await authService.logout();
@@ -108,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               await Purchases.logIn(firebaseUser.uid);
             }
           } catch (rcError: any) {
-            console.warn("RevenueCat sync failed", rcError?.message || rcError);
+            Sentry.Native.captureException(rcError);
           }
 
           // 2. Await atomic sync before hiding splash - avoid empty state / Login redirect
@@ -152,9 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setNoInternet(false);
 
     // authService.logout() sets setLoggingOut internally (closes micro race)
-    authService.logout().catch((error) => {
-      console.error("Error during logout cleanup:", error);
-    });
+    authService.logout().catch(() => {});
   }
 
   async function deleteAccount() {

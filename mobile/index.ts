@@ -46,8 +46,7 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
       );
 
     }
-  } catch (error) {
-    console.error("FCM Background Handler Error:", error);
+  } catch {
   }
 });
 

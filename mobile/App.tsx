@@ -1,3 +1,5 @@
+import * as Sentry from 'sentry-expo';
+import './sentry'; // initialize first
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -233,9 +235,10 @@ function AppNavigator() {
     const handleInitialURL = async () => {
       const initialUrl = await Linking.getInitialURL();
       if (initialUrl && isNavReady && navigationRef.current) {
-        const parsed = Linking.parse(initialUrl);
-        // Handle reset password links manually since screen is conditionally rendered
-        if (
+        try {
+          const parsed = Linking.parse(initialUrl);
+          // Handle reset password links manually since screen is conditionally rendered
+          if (
           parsed.path === "reset-password" ||
           parsed.path === "/reset-password" ||
           parsed.queryParams?.mode === "resetPassword"
@@ -248,6 +251,9 @@ function AppNavigator() {
           return; // Don't let React Navigation handle this automatically
         }
         // Let React Navigation handle other links automatically
+        } catch (error) {
+          Sentry.Native.captureException(error);
+        }
       }
     };
 
@@ -258,20 +264,24 @@ function AppNavigator() {
     // Handle URL changes when app is already open
     const subscription = Linking.addEventListener("url", (event) => {
       if (isNavReady && navigationRef.current) {
-        const parsed = Linking.parse(event.url);
-        // Handle reset password links manually
-        if (
-          parsed.path === "reset-password" ||
-          parsed.path === "/reset-password" ||
-          parsed.queryParams?.mode === "resetPassword"
-        ) {
+        try {
+          const parsed = Linking.parse(event.url);
+          // Handle reset password links manually
+          if (
+            parsed.path === "reset-password" ||
+            parsed.path === "/reset-password" ||
+            parsed.queryParams?.mode === "resetPassword"
+          ) {
           navigationRef.current.navigate("ResetPassword", {
             mode: parsed.queryParams?.mode as string,
             oobCode: parsed.queryParams?.oobCode as string,
           });
           return; // Don't let React Navigation handle this automatically
+          }
+          // Let React Navigation handle other links automatically
+        } catch (error) {
+          Sentry.Native.captureException(error);
         }
-        // Let React Navigation handle other links automatically
       }
     });
 
@@ -531,7 +541,7 @@ function AppNavigator() {
   );
 }
 
-export default function App() {
+function App() {
   const [appIsReady, setAppIsReady] = useState(false);
   const appState = useRef(AppState.currentState);
 
@@ -545,7 +555,7 @@ export default function App() {
         : process.env.EXPO_PUBLIC_RC_ANDROID_KEY;
 
     if (!apiKey) {
-      console.warn("RevenueCat API key missing");
+      if (__DEV__) console.warn("RevenueCat API key missing");
       return;
     }
 
@@ -554,9 +564,11 @@ export default function App() {
         Purchases.setLogLevel(LOG_LEVEL.DEBUG);
       }
       Purchases.configure({ apiKey });
-      console.log("RevenueCat initialized");
+      if (__DEV__) {
+        console.log("RevenueCat initialized");
+      }
     } catch (error) {
-      console.error("RevenueCat init failed:", error);
+      Sentry.Native.captureException(error);
     }
   }, []);
 
@@ -577,8 +589,7 @@ export default function App() {
         await Font.loadAsync(fontMap);
 
         setAppIsReady(true);
-      } catch (e) {
-        console.error("Error loading fonts:", e);
+      } catch {
         // Continue even if font loading fails (fallback to system font)
         setAppIsReady(true);
       } finally {
@@ -621,3 +632,5 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+export default Sentry.Native.wrap(App);

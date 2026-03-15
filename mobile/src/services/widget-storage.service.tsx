@@ -3,6 +3,7 @@ import { ExtensionStorage } from "@bacons/apple-targets";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Status } from "../types";
 import { requestWidgetUpdate } from "react-native-android-widget";
+import Sentry from "../../sentry";
 
 const APP_GROUP_ID = "group.com.arda.instantstatus.dev";
 const WIDGET_DATA_KEY = "widget_status_data";
@@ -74,7 +75,7 @@ export class WidgetStorageService {
       } as any);
       this.lastReloadTime = Date.now();
     } catch (error) {
-      console.error("Android widget update failed:", error);
+      Sentry.Native.captureException(error);
     }
   }
 
@@ -155,7 +156,7 @@ export class WidgetStorageService {
         await this.triggerAndroidUpdate();
       }
     } catch (error) {
-      console.error("Error updating widget storage:", error);
+      Sentry.Native.captureException(error);
     }
   }
 
@@ -190,7 +191,7 @@ export class WidgetStorageService {
         await this.triggerAndroidUpdate();
       }
     } catch (error) {
-      console.error("Error saving all friend statuses:", error);
+      Sentry.Native.captureException(error);
     }
   }
 
@@ -218,7 +219,7 @@ export class WidgetStorageService {
         await this.triggerAndroidUpdate();
       }
     } catch (error) {
-      console.error("Error syncing premium status:", error);
+      Sentry.Native.captureException(error);
     }
   }
 
@@ -241,7 +242,7 @@ export class WidgetStorageService {
         await this.triggerAndroidUpdate();
       }
     } catch (error) {
-      console.error("Error clearing widget storage:", error);
+      Sentry.Native.captureException(error);
     }
   }
 }

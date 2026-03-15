@@ -6,6 +6,7 @@ import {
   type FriendStatusWidgetItem,
   type WidgetBackgroundStyle,
 } from "./InstantStatusWidget";
+import Sentry from "../sentry";
 
 const WIDGET_DATA_KEY = "widget_status_data";
 const WIDGET_CONFIG_KEY_PREFIX = "widget_config_";
@@ -70,7 +71,7 @@ async function loadWidgetData(widgetId: number): Promise<{
       backgroundStyle,
     };
   } catch (error) {
-    console.error("Error loading widget data:", error);
+    Sentry.Native.captureException(error);
     return {
       friends: [],
       hasAnyFriends: false,

@@ -1,5 +1,6 @@
 import PurchasesUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 import Purchases, { CustomerInfo } from "react-native-purchases";
+import Sentry from "../../sentry";
 
 /**
  * Present the RevenueCat Paywall UI
@@ -25,7 +26,7 @@ export async function presentPaywall(): Promise<boolean> {
         return false;
     }
   } catch (error) {
-    console.error("Paywall error:", error);
+    Sentry.Native.captureException(error);
     throw error;
   }
 }
@@ -40,7 +41,7 @@ export function presentCustomerCenter(): void {
   try {
     PurchasesUI.presentCustomerCenter();
   } catch (error) {
-    console.error("Customer center error:", error);
+    Sentry.Native.captureException(error);
     throw error;
   }
 }
@@ -58,7 +59,6 @@ export async function getOfferings() {
     }
     return offerings;
   } catch (error) {
-    console.error("Error fetching offerings:", error);
     throw error;
   }
 }
@@ -75,11 +75,10 @@ export async function purchasePackage(pkg: any): Promise<CustomerInfo> {
     const { customerInfo } = await Purchases.purchasePackage(pkg);
     return customerInfo;
   } catch (error: any) {
-    // User cancelled is not an error we should throw
     if (error.userCancelled) {
       throw new Error("Purchase cancelled by user");
     }
-    console.error("Error purchasing package:", error);
+    Sentry.Native.captureException(error);
     throw error;
   }
 }
@@ -95,7 +94,7 @@ export async function restorePurchases(): Promise<CustomerInfo> {
     const customerInfo = await Purchases.restorePurchases();
     return customerInfo;
   } catch (error) {
-    console.error("Error restoring purchases:", error);
+    Sentry.Native.captureException(error);
     throw error;
   }
 }
@@ -109,7 +108,7 @@ export async function getCustomerInfo(): Promise<CustomerInfo> {
   try {
     return await Purchases.getCustomerInfo();
   } catch (error) {
-    console.error("Error fetching customer info:", error);
+    Sentry.Native.captureException(error);
     throw error;
   }
 }
