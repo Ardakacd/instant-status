@@ -5,10 +5,10 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
-  Logger,
   BadRequestException,
   UnauthorizedException,
 } from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { SkipThrottle } from "@nestjs/throttler";
 import { ConfigService } from "@nestjs/config";
 import { WebhooksService } from "./webhooks.service";
@@ -34,7 +34,7 @@ import { z } from "zod";
 @SkipThrottle()
 @Controller("webhooks")
 export class WebhooksController {
-  private readonly logger = new Logger(WebhooksController.name);
+  private readonly logger = new StructuredLogger(WebhooksController.name);
 
   constructor(
     private webhooksService: WebhooksService,
@@ -48,8 +48,9 @@ export class WebhooksController {
     @Headers("authorization") authHeader?: string,
   ) {
     const secret =
-      this.configService.get<string>("REVENUECAT_WEBHOOK_SECRET")
+      this.configService.get<string>("REVENUECAT_WEBHOOK_SECRET");
     if (!secret) {
+      this.logger.error("REVENUECAT_WEBHOOK_SECRET is not set");
       throw new Error("REVENUECAT_WEBHOOK_SECRET is not set");
     }
     const expectedAuth = secret ? `Bearer ${secret}` : null;
@@ -57,6 +58,7 @@ export class WebhooksController {
       !expectedAuth ||
       authHeader?.trim() !== expectedAuth
     ) {
+      this.logger.warn("Invalid webhook authorization");
       throw new UnauthorizedException("Invalid webhook authorization");
     }
 
@@ -72,7 +74,14 @@ export class WebhooksController {
       return { received: true };
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        this.logger.error(`Invalid webhook payload (validation failed)`);
+        const details = error.errors.map((e: { path: (string | number)[]; message: string }) => ({
+          field: e.path.join("."),
+          message: e.message,
+        }));
+        this.logger.error("Invalid webhook payload (validation failed)", {
+          event: "webhook_validation",
+          errors: details,
+        });
         throw new BadRequestException("Invalid webhook payload");
       }
       

@@ -3,17 +3,18 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
-  Logger,
 } from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { InviteCode } from "../entities/invite-code.entity";
 import { User } from "../entities/user.entity";
 import { ConnectionsService } from "../connections/connections.service";
+import { redactUid } from "../utils/redact";
 
 @Injectable()
 export class InviteCodeService {
-  private readonly logger = new Logger(InviteCodeService.name);
+  private readonly logger = new StructuredLogger(InviteCodeService.name);
 
   constructor(
     @InjectRepository(User)
@@ -152,7 +153,7 @@ export class InviteCodeService {
           );
 
           this.logger.log(
-            `User ${userId} successfully redeemed invite code from user ${inviteCode.owner_user_id}`
+            `User ${redactUid(userId)} successfully redeemed invite code from user ${redactUid(inviteCode.owner_user_id)}`
           );
 
           return {
@@ -240,7 +241,7 @@ export class InviteCodeService {
       );
 
       this.logger.log(
-        `User ${userId} successfully connected to user ${targetUserId} via shareable link`
+        `User ${redactUid(userId)} successfully connected to user ${redactUid(targetUserId)} via shareable link`
       );
 
       return {

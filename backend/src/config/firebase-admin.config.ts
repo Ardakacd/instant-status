@@ -1,5 +1,7 @@
 import * as admin from "firebase-admin";
+import { StructuredLogger } from "../common/logger/structured-logger";
 
+const logger = new StructuredLogger("FirebaseAdmin");
 let firebaseAdmin: admin.app.App | null = null;
 
 export function getFirebaseAdmin(): admin.app.App {
@@ -41,11 +43,11 @@ export function getFirebaseAdmin(): admin.app.App {
       }),
     });
 
-    console.log("Firebase Admin initialized successfully");
+    logger.log("Initialized successfully");
 
     return firebaseAdmin;
   } catch (error: any) {
-    console.error("❌ Firebase Admin initialization failed:", error.message);
+    logger.error(`Initialization failed: ${error.message}`);
     throw new Error(
       `Failed to initialize Firebase Admin SDK: ${error.message}\n` +
         `Please verify your FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL environment variables are correct.\n` +

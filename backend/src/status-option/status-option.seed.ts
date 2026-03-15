@@ -1,20 +1,23 @@
 import { DataSource, IsNull } from "typeorm";
 import { StatusOption } from "../entities/status-option.entity";
+import { StructuredLogger } from "../common/logger/structured-logger";
 
 /**
  * Seeds default system status options
  * Run this after database migrations to populate initial status options
  */
-export async function seedDefaultStatusOptions(dataSource: DataSource) {
+export async function seedDefaultStatusOptions(
+  dataSource: DataSource,
+  logger: StructuredLogger
+) {
   const statusOptionRepository = dataSource.getRepository(StatusOption);
 
-  // Check if default statuses already exist
   const existingCount = await statusOptionRepository.count({
     where: { user_id: IsNull() },
   });
 
   if (existingCount > 0) {
-    console.log("Default status options already exist, skipping seed");
+    logger.log("Default status options already exist, skipping seed");
     return;
   }
 
@@ -38,6 +41,6 @@ export async function seedDefaultStatusOptions(dataSource: DataSource) {
   const statusOptions = statusOptionRepository.create(defaultStatuses);
   await statusOptionRepository.save(statusOptions);
 
-  console.log(`✅ Seeded ${defaultStatuses.length} default status options`);
+  logger.log(`Seeded ${defaultStatuses.length} default status options`);
 }
 

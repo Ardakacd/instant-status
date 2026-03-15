@@ -2,9 +2,9 @@ import {
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
-  Logger,
   BadRequestException,
 } from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { User } from "../entities/user.entity";
 import * as admin from "firebase-admin";
 import { UserService } from "../user/user.service";
@@ -14,7 +14,7 @@ import { redactEmail, redactUid } from "../utils/redact";
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
+  private readonly logger = new StructuredLogger(AuthService.name);
   private firebaseAdmin: admin.app.App;
 
   constructor(
@@ -25,28 +25,43 @@ export class AuthService {
   }
 
   /**
-   * Backend-led account deletion: DB first, then Firebase.
-   * If DB fails, Firebase stays intact so user can retry.
-   * Admin SDK bypasses auth/requires-recent-login.
+   * Firebase-first account deletion.
+   * If Firebase deletion fails, nothing is deleted — user can retry.
+   * If Firebase succeeds but DB fails, the Firebase account is already gone so
+   * the user cannot authenticate again; we log critically for manual cleanup
+   * but still return success since the account is effectively inaccessible.
    */
   async hardDeleteUser(user: User): Promise<{ success: boolean }> {
     try {
-      await this.userService.delete(user.id);
-      this.logger.log(`DB records wiped for user (UID: ${redactUid(user.firebase_uid)})`);
-
       await this.firebaseAdmin.auth().deleteUser(user.firebase_uid);
       this.logger.log(`Firebase account deleted (UID: ${redactUid(user.firebase_uid)})`);
-
-      return { success: true };
     } catch (error: any) {
-      this.logger.error(
-        `Deletion failed (UID: ${redactUid(user.firebase_uid)}): ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Firebase deletion failed — DB untouched, user can retry: ${error.message}`, {
+        event: "account_deletion_firebase_failed",
+        userId: redactUid(user.firebase_uid),
+        error: error.message,
+        stack: error.stack,
+      });
       throw new InternalServerErrorException(
         "Failed to delete account. Please try again.",
       );
     }
+
+    try {
+      await this.userService.delete(user.id);
+      this.logger.log(`DB records wiped for user (UID: ${redactUid(user.firebase_uid)})`);
+    } catch (error: any) {
+      // Firebase account is already gone — the user cannot authenticate.
+      // Log critically for manual DB cleanup but do not surface to the user.
+      this.logger.error(`DB deletion failed after Firebase deletion — manual cleanup required: ${error.message}`, {
+        event: "account_deletion_db_failed",
+        userId: redactUid(user.firebase_uid),
+        error: error.message,
+        stack: error.stack,
+      });
+    }
+
+    return { success: true };
   }
 
   async verifyFirebaseToken(
@@ -58,7 +73,10 @@ export class AuthService {
         .verifyIdToken(idToken);
       return decodedToken;
     } catch (error: any) {
-      this.logger.error(`Firebase token verification failed: ${error.message}`);
+      this.logger.error(`Firebase token verification failed: ${error.message}`, {
+        event: "token_verification",
+        error: error.message,
+      });
       throw new UnauthorizedException("You are not authorized");
     }
   }
@@ -139,9 +157,15 @@ export class AuthService {
               // Safe to delete the orphaned backend record
               if (firebaseError.code === "auth/user-not-found") {
                 this.logger.log(
-                  `Deleting orphaned user record for email ${email} (Firebase UID ${existingUserByEmail.firebase_uid} no longer exists)`,
+                  `Deleting orphaned user record for ${redactEmail(email)} (Firebase UID ${redactUid(existingUserByEmail.firebase_uid)} no longer exists)`,
                 );
                 await this.userService.delete(existingUserByEmail.id);
+              } else {
+                this.logger.error(
+                  `Error checking Firebase user for orphan cleanup: ${firebaseError.message}`,
+                  firebaseError.stack
+                );
+                throw firebaseError;
               }
             }
           }
@@ -204,6 +228,12 @@ export class AuthService {
                   first_name: null,
                   last_name: null,
                 });
+              } else {
+                this.logger.error(
+                  `Error checking Firebase user for email conflict: ${firebaseError.message}`,
+                  firebaseError.stack
+                );
+                throw firebaseError;
               }
             }
           }
@@ -261,8 +291,6 @@ export class AuthService {
         firebaseUser.email,
         verificationLink,
       );
-
-      this.logger.log(`Email verification sent to ${firebaseUser.email}`);
     } catch (error: any) {
       if (
         error instanceof BadRequestException ||
@@ -304,7 +332,7 @@ export class AuthService {
       } catch (firebaseError: any) {
         if (firebaseError.code === "auth/user-not-found") {
           // User doesn't exist in Firebase - don't reveal this
-        this.logger.log(
+        this.logger.warn(
           `Password reset requested for email not in Firebase: ${redactEmail(email)}`,
         );
           return;
@@ -320,8 +348,8 @@ export class AuthService {
       if (!hasPasswordProvider) {
         // User signed up with Google/Apple - they don't have a password
         // Don't reveal this, just return success
-        this.logger.log(
-          `Password reset requested for social login user: ${email}`,
+        this.logger.warn(
+          `Password reset requested for social login user: ${redactEmail(email)}`,
         );
         return;
       }
@@ -338,8 +366,6 @@ export class AuthService {
 
       // Send email via Postmark
       await this.emailService.sendPasswordResetEmail(email, resetLink);
-
-      this.logger.log(`Password reset email sent to ${redactEmail(email)}`);
     } catch (error: any) {
       // Don't reveal specific errors to prevent email enumeration
       this.logger.error(

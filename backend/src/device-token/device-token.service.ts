@@ -2,10 +2,10 @@ import {
   Injectable,
   BadRequestException,
   InternalServerErrorException,
-  Logger,
   Inject,
   forwardRef,
 } from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { DeviceToken, Platform } from "../entities/device-token.entity";
@@ -14,7 +14,7 @@ import { EmailService } from "../email/email.service";
 
 @Injectable()
 export class DeviceTokenService {
-  private readonly logger = new Logger(DeviceTokenService.name);
+  private readonly logger = new StructuredLogger(DeviceTokenService.name);
 
   constructor(
     @InjectRepository(DeviceToken)

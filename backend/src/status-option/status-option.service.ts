@@ -3,10 +3,10 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
-  Logger,
   forwardRef,
   Inject,
 } from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource, IsNull } from "typeorm";
 import { StatusOption } from "../entities/status-option.entity";
@@ -15,7 +15,7 @@ import { UserService } from "../user/user.service";
 
 @Injectable()
 export class StatusOptionService {
-  private readonly logger = new Logger(StatusOptionService.name);
+  private readonly logger = new StructuredLogger(StatusOptionService.name);
 
   constructor(
     @InjectRepository(StatusOption)

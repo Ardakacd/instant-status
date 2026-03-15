@@ -1,4 +1,5 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { redactUid } from "../utils/redact";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
@@ -9,7 +10,7 @@ import { LIFETIME_PREMIUM_UNTIL } from "../utils/premium";
 
 @Injectable()
 export class WebhooksService {
-  private readonly logger = new Logger(WebhooksService.name);
+  private readonly logger = new StructuredLogger(WebhooksService.name);
 
   constructor(
     private userService: UserService,
@@ -79,6 +80,10 @@ export class WebhooksService {
         this.logger.debug(`Event ${eventId} already handled. Ignoring.`);
         return;
       }
+      this.logger.error(
+        `Error claiming webhook event ${eventId}: ${error.message}`,
+        error.stack
+      );
       throw error;
     }
 

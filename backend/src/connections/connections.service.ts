@@ -3,8 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
-  Logger,
 } from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
 import { EntityManager, Repository, In } from "typeorm";
 import { Connection } from "../entities/connection.entity";
@@ -26,7 +26,7 @@ function normalizePair(userId: string, friendId: string): [string, string] {
 
 @Injectable()
 export class ConnectionsService {
-  private readonly logger = new Logger(ConnectionsService.name);
+  private readonly logger = new StructuredLogger(ConnectionsService.name);
   private firebaseAdmin: admin.app.App;
 
   constructor(
@@ -489,15 +489,12 @@ export class ConnectionsService {
         });
       }
 
-      this.logger.log(
-        `Sending friend added push notifications to user ${redactUid(friendUserId)}`
-      );
 
       try {
         const response = await this.firebaseAdmin
           .messaging()
           .sendEach(messages);
-        this.logger.log(
+        this.logger.debug(
           `Sent ${response.successCount}/${messages.length} friend added push notifications`
         );
         if (response.failureCount > 0) {

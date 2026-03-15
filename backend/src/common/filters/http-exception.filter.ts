@@ -4,8 +4,8 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
-  Logger,
 } from "@nestjs/common";
+import { StructuredLogger } from "../logger/structured-logger";
 import { Request, Response } from "express";
 import { ZodError } from "zod";
 
@@ -26,7 +26,7 @@ function sanitizeUrlForLog(url: string): string {
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpExceptionFilter.name);
+  private readonly logger = new StructuredLogger(HttpExceptionFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -75,8 +75,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       
       this.logger.error(
         `Unexpected error: ${exception instanceof Error ? exception.message : String(exception)}`,
-        exception instanceof Error ? exception.stack : undefined,
-        `${request.method} ${sanitizeUrlForLog(request.url)}`
+        {
+          stack: exception instanceof Error ? exception.stack : undefined,
+          path: `${request.method} ${sanitizeUrlForLog(request.url)}`,
+        }
       );
     }
 
@@ -86,8 +88,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
       errorCode === 'AUTH_REQUIRED';
 
     if (status !== HttpStatus.NOT_FOUND && !isExpected401) {
-      this.logger.warn(
-        `${request.method} ${sanitizeUrlForLog(request.url)} - ${status} - ${typeof message === "string" ? message : JSON.stringify(message)}`
+      const level = status >= 500 ? "error" : "warn";
+      const logFn = level === "error" ? this.logger.error.bind(this.logger) : this.logger.warn.bind(this.logger);
+      logFn(
+        `${request.method} ${sanitizeUrlForLog(request.url)} - ${status} - ${typeof message === "string" ? message : JSON.stringify(message)}`,
+        {
+          event: "http_error",
+          path: `${request.method} ${sanitizeUrlForLog(request.url)}`,
+          status,
+        }
       );
     }
 

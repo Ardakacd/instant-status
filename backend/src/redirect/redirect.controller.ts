@@ -1,6 +1,15 @@
-import { Controller, Get, Param, Query, Res, HttpStatus } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  Res,
+  HttpStatus,
+} from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { Response } from "express";
 import { Throttle } from "@nestjs/throttler";
+import { redactUid } from "../utils/redact";
 
 /**
  * Public redirect controller for universal links
@@ -9,6 +18,7 @@ import { Throttle } from "@nestjs/throttler";
  */
 @Controller()
 export class RedirectController {
+  private readonly logger = new StructuredLogger(RedirectController.name);
   /**
    * Redirect endpoint for connection links
    * Rate limited to prevent abuse / enumeration
@@ -24,10 +34,11 @@ export class RedirectController {
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(userId)) {
+      this.logger.warn("Connect redirect rejected: invalid user ID format");
       return res.status(HttpStatus.BAD_REQUEST).send("Invalid user ID format");
     }
 
-    // Redirect to deep link
+    this.logger.debug(`Redirect connect -> deep link (target: ${redactUid(userId)})`);
     const deepLink = `instant-status://connect/${userId}`;
     return res.redirect(HttpStatus.MOVED_PERMANENTLY, deepLink);
   }
@@ -43,12 +54,13 @@ export class RedirectController {
     const { mode, oobCode } = query;
 
     if (!mode || !oobCode) {
+      this.logger.warn("Verify redirect rejected: missing mode or oobCode");
       return res
         .status(HttpStatus.BAD_REQUEST)
         .send("Missing mode or oobCode parameter");
     }
 
-    // Redirect to deep link with query parameters (encode to prevent injection)
+    this.logger.debug(`Redirect verify -> deep link (mode: ${mode})`);
     const deepLink = `instant-status://verify?mode=${encodeURIComponent(mode)}&oobCode=${encodeURIComponent(oobCode)}`;
     return res.redirect(HttpStatus.MOVED_PERMANENTLY, deepLink);
   }

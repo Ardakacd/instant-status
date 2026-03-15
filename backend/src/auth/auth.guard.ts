@@ -4,11 +4,15 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { AuthService } from "./auth.service";
 import { UserService } from "../user/user.service";
+import { redactUid } from "../utils/redact";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private readonly logger = new StructuredLogger(AuthGuard.name);
+
   constructor(
     private authService: AuthService,
     private userService: UserService,
@@ -41,6 +45,9 @@ export class AuthGuard implements CanActivate {
       const user = await this.userService.findByFirebaseUid(decodedToken.uid);
 
       if (!user) {
+        this.logger.warn(
+          `Valid Firebase token but user not found in DB (uid: ${redactUid(decodedToken.uid)})`
+        );
         throw new UnauthorizedException({
           message: "User not found",
           errorCode: "UNAUTHORIZED",
@@ -54,7 +61,15 @@ export class AuthGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      // Otherwise, wrap in generic unauthorized error
+      // Otherwise, log and wrap in generic unauthorized error
+      this.logger.error(
+        `Auth guard error: ${error instanceof Error ? error.message : String(error)}`,
+        {
+          event: "auth_guard",
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        }
+      );
       throw new UnauthorizedException({
         message: "You are not authorized",
         errorCode: "UNAUTHORIZED",

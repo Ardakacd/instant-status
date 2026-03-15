@@ -23,7 +23,7 @@ const VerifyTokenDtoSchema = z
 export class AuthController {
   constructor(
     private authService: AuthService,
-    private userService: UserService
+    private userService: UserService,
   ) {}
 
   @Post("sync")
@@ -32,8 +32,6 @@ export class AuthController {
     const { idToken } = VerifyTokenDtoSchema.parse(body);
     return this.authService.syncAuthState(idToken);
   }
-
-
 
   @Post("refresh-token")
   @UseGuards(AuthGuard)
@@ -78,7 +76,10 @@ export class AuthController {
   }
 
   @Post("forgot-password")
-  @Throttle({ default: { limit: 3, ttl: 60000 }, extended: { limit: 10, ttl: 3600000 } }) // 3/min + 10/hr per IP
+  @Throttle({
+    default: { limit: 3, ttl: 60000 },
+    extended: { limit: 10, ttl: 3600000 },
+  }) // 3/min + 10/hr per IP
   async forgotPassword(@Body() body: unknown) {
     const { email } = z
       .object({

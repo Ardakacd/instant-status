@@ -1,11 +1,12 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { ConfigService } from "@nestjs/config";
 import { redactEmail } from "../utils/redact";
 import * as postmark from "postmark";
 
 @Injectable()
 export class EmailService {
-  private readonly logger = new Logger(EmailService.name);
+  private readonly logger = new StructuredLogger(EmailService.name);
   private client: postmark.ServerClient | null = null;
 
   constructor(private configService: ConfigService) {
@@ -145,10 +146,10 @@ Didn't create an account? If you didn't sign up for Instant Status, you can safe
         MessageStream: "outbound",
       });
 
-      this.logger.log(`Welcome email sent to ${email}`);
+      this.logger.log(`Welcome email sent to ${redactEmail(email)}`);
     } catch (error: any) {
       this.logger.error(
-        `Failed to send welcome email to ${email}: ${error.message}`,
+        `Failed to send welcome email to ${redactEmail(email)}: ${error.message}`,
         error.stack
       );
       throw new Error("Failed to send welcome email");

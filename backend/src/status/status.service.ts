@@ -2,9 +2,9 @@ import {
   Injectable,
   InternalServerErrorException,
   BadRequestException,
-  Logger,
   NotFoundException,
 } from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, In } from "typeorm";
 import { Status } from "../entities/status.entity";
@@ -19,7 +19,7 @@ import { redactUid } from "../utils/redact";
 
 @Injectable()
 export class StatusService {
-  private readonly logger = new Logger(StatusService.name);
+  private readonly logger = new StructuredLogger(StatusService.name);
   private firebaseAdmin: admin.app.App;
 
   constructor(
@@ -196,7 +196,7 @@ export class StatusService {
             );
           });
       } else {
-        this.logger.error(
+        this.logger.warn(
           "Cannot correct expired status: default status option not found"
         );
       }
@@ -533,16 +533,11 @@ export class StatusService {
       }
 
       try {
-        // Log message details for debugging
-        this.logger.log(
-          `Attempting to send ${messages.length} push notification(s) via Firebase Admin`
-        );
-        
         const response = await this.firebaseAdmin
           .messaging()
           .sendEach(messages);
 
-        this.logger.log(
+        this.logger.debug(
           `Sent ${response.successCount}/${messages.length} push notifications`
         );
 

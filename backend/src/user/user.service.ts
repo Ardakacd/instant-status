@@ -2,8 +2,8 @@ import {
   Injectable,
   NotFoundException,
   InternalServerErrorException,
-  Logger,
 } from "@nestjs/common";
+import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { User } from "../entities/user.entity";
@@ -15,7 +15,7 @@ import { redactEmail, redactUid } from "../utils/redact";
 
 @Injectable()
 export class UserService {
-  private readonly logger = new Logger(UserService.name);
+  private readonly logger = new StructuredLogger(UserService.name);
 
   constructor(
     @InjectRepository(User)
@@ -90,7 +90,7 @@ export class UserService {
       // Handle unique constraint violations
       if (error.code === "23505") {
         this.logger.warn(
-          `Attempted to create duplicate user: ${data.firebase_uid}`,
+          `Attempted to create duplicate user: ${redactUid(data.firebase_uid)}`,
         );
         throw new InternalServerErrorException("User already exists");
       }
@@ -121,13 +121,10 @@ export class UserService {
             updatedUser.email,
             updatedUser.first_name,
           );
-          this.logger.log(
-            `Welcome email sent to ${redactEmail(updatedUser.email)} after onboarding completion`,
-          );
         } catch (error: any) {
           // Don't fail update if welcome email fails
           this.logger.warn(
-            `Failed to send welcome email to ${updatedUser.email}: ${error.message}`,
+            `Failed to send welcome email to ${redactEmail(updatedUser.email)}: ${error.message}`,
           );
         }
       }
