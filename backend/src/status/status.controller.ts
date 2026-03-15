@@ -6,16 +6,31 @@ import {
   UseGuards,
   Request,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { StatusService } from "./status.service";
 import { StatusOptionService } from "../status-option/status-option.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { z } from "zod";
 
+const MAX_EXPIRATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 const UpdateStatusDtoSchema = z
   .object({
     option_id: z.string().uuid(),
-    note: z.string().optional(),
-    expires_at: z.string().datetime().optional(),
+    note: z.string().max(200).optional(),
+    expires_at: z
+      .string()
+      .datetime()
+      .optional()
+      .refine(
+        (val) => {
+          if (val === undefined) return true;
+          const ts = new Date(val).getTime();
+          const now = Date.now();
+          return ts > now && ts <= now + MAX_EXPIRATION_MS;
+        },
+        { message: "Expiration must be in the future and within 30 days" },
+      ),
   })
   .strict(); // Reject unknown fields
 
@@ -28,6 +43,7 @@ export class StatusController {
   ) {}
 
   @Patch()
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 updates/min per user
   async updateStatus(@Request() req, @Body() body: unknown) {
     const { option_id, note, expires_at } = UpdateStatusDtoSchema.parse(body);
 
