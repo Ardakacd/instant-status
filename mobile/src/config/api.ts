@@ -148,7 +148,15 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${freshToken}`;
           return api(originalRequest);
         }
-        // getFreshToken returned null: corrupted token, revoked session, or user deleted
+
+        // getFreshToken returned null: corrupted token, revoked session, or user deleted.
+        // Re-check after the await — another concurrent 401 handler may have already
+        // started logout while we were waiting for the token refresh.
+        if (isLoggingOut) {
+          (error as ApiError).isSessionDead = true;
+          return Promise.reject(error);
+        }
+
         setLoggingOut(true);
         try {
           if (onSessionDead) {
@@ -179,6 +187,13 @@ api.interceptors.response.use(
           (hasStoredFirebaseUid || auth.currentUser));
 
       if (isRealAuthFailure) {
+        // Re-check after the await — another concurrent 401 handler may have already
+        // started logout while we were waiting for AsyncStorage.
+        if (isLoggingOut) {
+          (error as ApiError).isSessionDead = true;
+          return Promise.reject(error);
+        }
+
         setLoggingOut(true);
         try {
           if (onSessionDead) {
@@ -188,14 +203,12 @@ api.interceptors.response.use(
             await AsyncStorage.removeItem("firebase_uid");
             resetAuthReady();
           }
-        } catch (logoutError) {
-          console.error("Session dead handler failed:", logoutError);
+        } catch {
           try {
             await signOut(auth);
             await AsyncStorage.removeItem("firebase_uid");
             resetAuthReady();
-          } catch (fallbackError) {
-            console.error("Fallback cleanup failed:", fallbackError);
+          } catch {
           }
         } finally {
           setLoggingOut(false);
