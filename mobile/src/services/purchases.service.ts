@@ -59,6 +59,7 @@ export async function getOfferings() {
     }
     return offerings;
   } catch (error) {
+    Sentry.Native.captureException(error);
     throw error;
   }
 }
