@@ -4,6 +4,15 @@ import { ConfigService } from "@nestjs/config";
 import { redactEmail } from "../utils/redact";
 import * as postmark from "postmark";
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 @Injectable()
 export class EmailService {
   private readonly logger = new StructuredLogger(EmailService.name);
@@ -192,7 +201,7 @@ Didn't create an account? If you didn't sign up for Instant Status, you can safe
    * HTML template for welcome email
    */
   private getWelcomeEmailTemplate(firstName?: string | null): string {
-    const greeting = firstName ? `Hello ${firstName},` : "Hello,";
+    const greeting = firstName ? `Hello ${escapeHtml(firstName)},` : "Hello,";
     
     return `
       <!DOCTYPE html>
@@ -250,7 +259,7 @@ Didn't create an account? If you didn't sign up for Instant Status, you can safe
    * Plain text template for welcome email
    */
   private getWelcomeEmailTextTemplate(firstName?: string | null): string {
-    const greeting = firstName ? `Hello ${firstName},` : "Hello,";
+    const greeting = firstName ? `Hello ${escapeHtml(firstName)},` : "Hello,";
     
     return `
 ${greeting}
@@ -277,7 +286,7 @@ Didn't create an account? If you didn't sign up for Instant Status, please conta
     deviceInfo: { platform: string; location?: string },
     firstName?: string | null
   ): string {
-    const greeting = firstName ? `Hello ${firstName},` : "Hello,";
+    const greeting = firstName ? `Hello ${escapeHtml(firstName)},` : "Hello,";
     const locationText = deviceInfo.location
       ? ` in ${deviceInfo.location}`
       : "";
@@ -350,7 +359,7 @@ Didn't create an account? If you didn't sign up for Instant Status, please conta
     deviceInfo: { platform: string; location?: string },
     firstName?: string | null
   ): string {
-    const greeting = firstName ? `Hello ${firstName},` : "Hello,";
+    const greeting = firstName ? `Hello ${escapeHtml(firstName)},` : "Hello,";
     const locationText = deviceInfo.location
       ? ` in ${deviceInfo.location}`
       : "";
