@@ -69,7 +69,7 @@ const SocialButtonWrapper: React.FC<{
 
 export default function LoginScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { horizontalPadding } = useResponsive();
+  const { horizontalPadding, isSmallScreen } = useResponsive();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -230,7 +230,7 @@ export default function LoginScreen({ navigation }: Props) {
           
 
             <View style={styles.header}>
-              <Text variant="primary" style={styles.title}>Welcome Back</Text>
+              <Text variant="primary" style={[styles.title, isSmallScreen && { fontSize: 24, lineHeight: 30 }]}>Welcome Back</Text>
               <Text variant="secondary" style={styles.subtitle}>Sign in to your account</Text>
             </View>
 
