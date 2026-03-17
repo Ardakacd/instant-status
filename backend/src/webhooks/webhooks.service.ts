@@ -173,13 +173,22 @@ export class WebhooksService {
           // Transferee will receive RENEWAL/INITIAL_PURCHASE separately.
           const fromIds = transferred_from ?? [];
           for (const oldId of fromIds) {
-            const user = await this.userService.findUserByRevenueCatIdentifier(oldId);
-            if (user) {
-              await this.userService.updatePremiumExpirationByRevenueCatId(
-                oldId,
-                null
+            try {
+              const user = await this.userService.findUserByRevenueCatIdentifier(oldId);
+              if (user) {
+                await this.userService.updatePremiumExpirationByRevenueCatId(
+                  oldId,
+                  null
+                );
+                this.logger.log(`Transfer: revoked premium from ${redactUid(oldId)}`);
+              }
+            } catch (transferError: any) {
+              // Log and continue — partial failure must not block remaining revocations.
+              // The event is already claimed so retries won't re-run this loop.
+              this.logger.error(
+                `Transfer: failed to revoke premium from ${redactUid(oldId)}: ${transferError.message}`,
+                transferError.stack
               );
-              this.logger.log(`Transfer: revoked premium from ${oldId}`);
             }
           }
           this.logger.log(
