@@ -15,6 +15,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { z } from "zod";
 
 const colorRegex = /^#([0-9A-Fa-f]{3}){1,2}$/; // Supports #FFF and #FFFFFF
+const uuidSchema = z.string().uuid();
 
 const CreateStatusOptionDtoSchema = z
   .object({
@@ -52,7 +53,8 @@ export class StatusOptionController {
    * Get a specific status option by ID
    */
   @Get(":id")
-  async getStatusOption(@Request() req, @Param("id") id: string) {
+  async getStatusOption(@Request() req, @Param("id") rawId: string) {
+    const id = uuidSchema.parse(rawId);
     return await this.statusOptionService.getStatusOptionById(id, req.user.id);
   }
 
@@ -79,9 +81,10 @@ export class StatusOptionController {
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 updates/min
   async updateStatusOption(
     @Request() req,
-    @Param("id") id: string,
+    @Param("id") rawId: string,
     @Body() body: unknown
   ) {
+    const id = uuidSchema.parse(rawId);
     const updates = UpdateStatusOptionDtoSchema.parse(body);
     return await this.statusOptionService.updateCustomStatusOption(
       id,
@@ -95,7 +98,8 @@ export class StatusOptionController {
    */
   @Delete(":id")
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 deletes/min
-  async deleteStatusOption(@Request() req, @Param("id") id: string) {
+  async deleteStatusOption(@Request() req, @Param("id") rawId: string) {
+    const id = uuidSchema.parse(rawId);
     await this.statusOptionService.deleteCustomStatusOption(id, req.user.id);
     return { message: "Status option deleted successfully" };
   }
