@@ -178,7 +178,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
   };
 
   const handleRedeemCode = async () => {
-    if (!inviteCode.trim() || inviteCode.length !== 8) {
+    if (!/^[A-Z0-9]{8}$/.test(inviteCode.trim().toUpperCase())) {
       Toast.show({
         type: "error",
         text1: "Please enter a valid 8-character code",
