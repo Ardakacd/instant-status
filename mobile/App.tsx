@@ -1,5 +1,5 @@
-import * as Sentry from 'sentry-expo';
-import './sentry'; // initialize first
+import * as Sentry from "sentry-expo";
+import "./sentry"; // initialize first
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -239,18 +239,18 @@ function AppNavigator() {
           const parsed = Linking.parse(initialUrl);
           // Handle reset password links manually since screen is conditionally rendered
           if (
-          parsed.path === "reset-password" ||
-          parsed.path === "/reset-password" ||
-          parsed.queryParams?.mode === "resetPassword"
-        ) {
-          // Navigate to ResetPassword screen
-          navigationRef.current.navigate("ResetPassword", {
-            mode: parsed.queryParams?.mode as string,
-            oobCode: parsed.queryParams?.oobCode as string,
-          });
-          return; // Don't let React Navigation handle this automatically
-        }
-        // Let React Navigation handle other links automatically
+            parsed.path === "reset-password" ||
+            parsed.path === "/reset-password" ||
+            parsed.queryParams?.mode === "resetPassword"
+          ) {
+            // Navigate to ResetPassword screen
+            navigationRef.current.navigate("ResetPassword", {
+              mode: parsed.queryParams?.mode as string,
+              oobCode: parsed.queryParams?.oobCode as string,
+            });
+            return; // Don't let React Navigation handle this automatically
+          }
+          // Let React Navigation handle other links automatically
         } catch (error) {
           Sentry.Native.captureException(error);
         }
@@ -272,11 +272,11 @@ function AppNavigator() {
             parsed.path === "/reset-password" ||
             parsed.queryParams?.mode === "resetPassword"
           ) {
-          navigationRef.current.navigate("ResetPassword", {
-            mode: parsed.queryParams?.mode as string,
-            oobCode: parsed.queryParams?.oobCode as string,
-          });
-          return; // Don't let React Navigation handle this automatically
+            navigationRef.current.navigate("ResetPassword", {
+              mode: parsed.queryParams?.mode as string,
+              oobCode: parsed.queryParams?.oobCode as string,
+            });
+            return; // Don't let React Navigation handle this automatically
           }
           // Let React Navigation handle other links automatically
         } catch (error) {
@@ -550,9 +550,7 @@ function App() {
     }
 
     try {
-      if (__DEV__) {
-        Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-      }
+      Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.DEBUG : LOG_LEVEL.ERROR);
       Purchases.configure({ apiKey });
       if (__DEV__) {
         console.log("RevenueCat initialized");
