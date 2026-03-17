@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   TouchableOpacity,
@@ -32,6 +32,13 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
   const [resetting, setResetting] = useState(false);
   const [validatingCode, setValidatingCode] = useState(true);
   const [codeError, setCodeError] = useState("");
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    };
+  }, []);
 
   // Verify the oobCode on mount so the user gets an error immediately if
   // the link has already been used or expired, rather than after typing a password.
@@ -104,7 +111,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
         text2: "Your password has been reset successfully. You can now sign in.",
       });
       // Navigate to sign in after a brief delay
-      setTimeout(() => {
+      navTimerRef.current = setTimeout(() => {
         navigation.navigate("SignIn");
       }, 1500);
     } catch (error: any) {

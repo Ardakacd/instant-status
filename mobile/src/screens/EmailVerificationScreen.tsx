@@ -52,8 +52,12 @@ export default function EmailVerificationScreen({ route }: Props) {
     try {
       await authService.reloadUser();
       await checkEmailVerification();
-      setVerifying(false);
     } catch (error: any) {
+      Toast.show({
+        type: "error",
+        text1: "Failed to check verification status. Please try again.",
+      });
+    } finally {
       setVerifying(false);
     }
   };
