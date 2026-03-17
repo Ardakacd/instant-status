@@ -59,6 +59,7 @@ function WidgetConfigurationScreenContent({
     useState<WidgetBackgroundStyle>("default");
   const [isPremium, setIsPremium] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const configKey = `${WIDGET_CONFIG_KEY_PREFIX}${String(widgetInfo.widgetId)}`;
   const bgConfigKey = `${WIDGET_CONFIG_BACKGROUND_PREFIX}${String(
@@ -115,6 +116,8 @@ function WidgetConfigurationScreenContent({
   }
 
   async function handleSave() {
+    if (saving) return;
+    setSaving(true);
     try {
       const selectedIds = Array.from(selectedFriendIds);
       await AsyncStorage.setItem(configKey, JSON.stringify(selectedIds));
@@ -149,6 +152,8 @@ function WidgetConfigurationScreenContent({
     } catch (error) {
       Sentry.Native.captureException(error);
       setResult("cancel");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -277,7 +282,7 @@ function WidgetConfigurationScreenContent({
             selectedFriendIds.size === 0 && styles.saveButtonDisabled,
           ]}
           onPress={handleSave}
-          disabled={selectedFriendIds.size === 0}
+          disabled={selectedFriendIds.size === 0 || saving}
         >
           <Text style={styles.saveButtonText}>
             Save ({selectedFriendIds.size})
