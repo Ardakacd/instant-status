@@ -124,7 +124,7 @@ export class WebhooksService {
             premiumUntil
           );
           this.logger.log(
-            `Updated user ${identifier} premium_until: ${premiumUntil === LIFETIME_PREMIUM_UNTIL ? "lifetime" : premiumUntil.toISOString()}`
+            `Updated user ${redactUid(identifier)} premium_until: ${premiumUntil === LIFETIME_PREMIUM_UNTIL ? "lifetime" : premiumUntil.toISOString()}`
           );
           break;
         }

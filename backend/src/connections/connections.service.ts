@@ -410,7 +410,8 @@ export class ConnectionsService {
         });
         if (!existing) {
           this.logger.error(
-            `Unique constraint violation but connection not found: ${err.message}`
+            `Unique constraint violation but connection not found: ${err.message}`,
+            err.stack
           );
           throw new InternalServerErrorException("Failed to create connection");
         }
