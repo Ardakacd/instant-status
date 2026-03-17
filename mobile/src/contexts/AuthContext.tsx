@@ -56,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       setNoInternet(false);
 
+      Sentry.Native.setUser({ id: result.user.firebase_uid });
       await AsyncStorage.setItem("firebase_uid", result.user.firebase_uid);
     } catch (error: any) {
       if (error?.isSessionDead) {
