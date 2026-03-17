@@ -29,6 +29,7 @@ import {
 } from "../services/purchases.service";
 import { useIsPremium } from "../hooks/useIsPremium";
 import Toast from "react-native-toast-message";
+import Sentry from "../../sentry";
 
 import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
@@ -92,7 +93,8 @@ export default function ProfileScreen() {
     try {
       const hasPermission = await messagingService.hasPermission();
       setPushNotifications(hasPermission);
-    } catch {
+    } catch (error) {
+      Sentry.Native.captureException(error);
     }
   };
 

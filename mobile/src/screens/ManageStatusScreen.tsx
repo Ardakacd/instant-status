@@ -16,6 +16,7 @@ import {
   StatusOption,
 } from "../services/status-option.service";
 import Toast from "react-native-toast-message";
+import Sentry from "../../sentry";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { EmojiPicker } from "../components/EmojiPicker";
 import { ColorPicker } from "../components/ColorPicker";
@@ -64,6 +65,7 @@ export default function ManageStatusScreen() {
       const options = await statusOptionService.getStatusOptions();
       setStatusOptions(options);
     } catch (error: any) {
+      Sentry.Native.captureException(error);
       setGlobalError(
         error.message || "Failed to load status options. Please try again.",
       );

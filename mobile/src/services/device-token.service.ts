@@ -1,6 +1,7 @@
 import api from "../config/api";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Sentry from "../../sentry";
 
 const DEVICE_TOKEN_ID_KEY = "device_token_id";
 
@@ -46,6 +47,7 @@ export class DeviceTokenService {
         await AsyncStorage.removeItem(DEVICE_TOKEN_ID_KEY);
       }
     } catch (error: any) {
+      Sentry.Native.captureException(error);
       // Don't fail logout if backend deletion fails
       // The token will be invalidated on Firebase side anyway
       // Still try to clear stored ID

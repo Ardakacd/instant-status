@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      Sentry.Native.captureException(error);
       setNoInternet(false);
       await authService.logout();
     }

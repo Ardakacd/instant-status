@@ -1,5 +1,6 @@
 import { Platform, PermissionsAndroid } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Sentry from "../../sentry";
 import {
   getMessaging,
   requestPermission,
@@ -123,7 +124,8 @@ export class MessagingService {
         await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
       }
       return token;
-    } catch {
+    } catch (error) {
+      Sentry.Native.captureException(error);
       return null;
     }
   }
@@ -155,7 +157,8 @@ export class MessagingService {
       // 3. Clear our local cache
       await AsyncStorage.removeItem(FCM_TOKEN_KEY);
 
-    } catch {
+    } catch (error) {
+      Sentry.Native.captureException(error);
       // Fallback: at least clear local storage so the app thinks it's logged out
       await AsyncStorage.removeItem(FCM_TOKEN_KEY).catch(() => {});
     }
@@ -181,8 +184,8 @@ export class MessagingService {
       try {
         await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
         handler(token);
-      } catch {
-        // Ignore storage errors — token will be refreshed on next app launch
+      } catch (error) {
+        Sentry.Native.captureException(error);
       }
     });
   }

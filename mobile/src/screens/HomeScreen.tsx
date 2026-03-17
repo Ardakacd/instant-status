@@ -20,6 +20,7 @@ import { widgetStorageService } from "../services/widget-storage.service";
 import StatusChangeModal from "../components/StatusChangeModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import Sentry from "../../sentry";
 import { useIsPremium } from "../hooks/useIsPremium";
 import { presentPaywall } from "../services/purchases.service";
 import { Colors, Borders, Spacing, Typography, useResponsive } from "../design";
@@ -101,7 +102,8 @@ export default function HomeScreen() {
     try {
       const options = await statusOptionService.getStatusOptions();
       setStatusOptions(options);
-    } catch {
+    } catch (error) {
+      Sentry.Native.captureException(error);
     }
   };
 
@@ -306,6 +308,7 @@ export default function HomeScreen() {
         )} ${timeFormatter.format(expirationDate)}`;
       }
     } catch (error) {
+      Sentry.Native.captureException(error);
       return null;
     }
   };
