@@ -83,7 +83,7 @@ export default function SubscriptionManagementScreen() {
 
   const handlePurchasePackage = async (pkg: any) => {
     // Don't allow purchasing the same package (check by product identifier)
-    if (pkg.product && pkg.product.identifier === currentPackageId) {
+    if (isCurrentPackage(pkg)) {
       Toast.show({
         type: "info",
         text1: "This is your current plan",
@@ -261,7 +261,7 @@ export default function SubscriptionManagementScreen() {
   };
 
   const isCurrentPackage = (pkg: any) => {
-    return pkg.identifier === currentPackageId;
+    return pkg?.product?.identifier === currentPackageId;
   };
 
   const calculateSavings = (monthlyPkg: any | null, annualPkg: any | null) => {
@@ -341,24 +341,14 @@ export default function SubscriptionManagementScreen() {
     (pkg: any) => pkg && pkg.identifier && pkg.product,
   );
 
-  // Find current package by matching productIdentifier (not package identifier)
-  // RevenueCat packages have identifiers like "$rc_monthly", but the entitlement.productIdentifier
-  // is the actual product ID from App Store/Play Store, which matches pkg.product.identifier
   const currentPackage = currentPackageId
-    ? allPackages.find(
-        (pkg: any) =>
-          pkg && pkg.product && pkg.product.identifier === currentPackageId,
-      )
+    ? allPackages.find((pkg: any) => isCurrentPackage(pkg))
     : null;
 
   const hasLifetime =
     currentPackageId && currentPackage && isLifetimePackage(currentPackage);
 
-  // Filter out current package - match by product identifier, not package identifier
-  const availablePackages = allPackages.filter(
-    (pkg: any) =>
-      pkg && pkg.product && pkg.product.identifier !== currentPackageId,
-  );
+  const availablePackages = allPackages.filter((pkg: any) => !isCurrentPackage(pkg));
 
   // Find monthly and annual packages for savings calculation
   const monthlyPkg = allPackages.find(
