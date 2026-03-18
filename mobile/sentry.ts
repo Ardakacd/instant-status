@@ -1,6 +1,10 @@
 import * as Sentry from "@sentry/react-native";
 import Constants from "expo-constants";
 
+export const navigationIntegration = Sentry.reactNavigationIntegration({
+  enableTimeToInitialDisplay: true,
+});
+
 /** Redact sensitive keys from objects (recursively) */
 function scrubSensitive(obj: unknown): unknown {
   if (obj === null || obj === undefined) return obj;
@@ -40,6 +44,7 @@ Sentry.init({
   enabled: !__DEV__,
   debug: false,
   tracesSampleRate: 0.1,
+  integrations: [navigationIntegration],
   environment:
     Constants.expoConfig?.extra?.environment || process.env.NODE_ENV,
   beforeSend(event) {

@@ -1,4 +1,4 @@
-import Sentry from "./sentry";
+import Sentry, { navigationIntegration } from "./sentry";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -450,7 +450,10 @@ function AppNavigator() {
     <>
       <NavigationContainer
         ref={navigationRef}
-        onReady={() => setIsNavReady(true)}
+        onReady={() => {
+          navigationIntegration.registerNavigationContainer(navigationRef);
+          setIsNavReady(true);
+        }}
         linking={{
           prefixes: [Linking.createURL("/"), "https://instantstatus.app"],
           config: {
