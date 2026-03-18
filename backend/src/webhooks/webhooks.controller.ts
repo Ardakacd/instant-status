@@ -29,7 +29,7 @@ import { z } from "zod";
  * - EXPIRATION: Subscription expires
  * - BILLING_ISSUE: Payment failed
  *
- * Security: In production, verify webhook signature from RevenueCat
+ * Security: Authenticated via Bearer token
  */
 @SkipThrottle()
 @Controller("webhooks")

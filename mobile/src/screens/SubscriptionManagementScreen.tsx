@@ -28,7 +28,7 @@ export default function SubscriptionManagementScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
-  const { isPremium, willRenew, expirationDate } = useIsPremium();
+  const { isPremium, willRenew, expirationDate, managementURL } = useIsPremium();
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -197,10 +197,6 @@ export default function SubscriptionManagementScreen() {
 
   const handleCancelMembership = async () => {
     try {
-      // Try to get the management URL from RevenueCat
-      const customerInfo = await getCustomerInfo();
-      const managementURL = customerInfo.managementURL;
-
       if (managementURL) {
         // RevenueCat provides a direct link to subscription management
         const canOpen = await Linking.canOpenURL(managementURL);
@@ -903,7 +899,6 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
   },
   sectionTitle: {
     fontSize: 20,
@@ -997,7 +992,6 @@ const styles = StyleSheet.create({
   actionsSection: {
     marginTop: Spacing.lg,
     marginBottom: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
   },
   actionButton: {
     flexDirection: "row",
