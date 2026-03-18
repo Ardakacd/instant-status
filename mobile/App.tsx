@@ -1,5 +1,4 @@
-import * as Sentry from "@sentry/react-native";
-import "./sentry"; // initialize first
+import Sentry from "./sentry";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,

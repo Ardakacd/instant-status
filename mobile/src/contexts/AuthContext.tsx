@@ -151,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setEmailVerified(true);
     setAuthError(null);
     setNoInternet(false);
+    Sentry.setUser(null);
 
     // authService.logout() sets setLoggingOut internally (closes micro race)
     authService.logout().catch(() => {});
@@ -165,6 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setEmailVerified(true);
       setAuthError(null);
       setNoInternet(false);
+      Sentry.setUser(null);
     } finally {
       setLoading(false);
     }
