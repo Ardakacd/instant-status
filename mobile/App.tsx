@@ -310,18 +310,30 @@ function AppNavigator() {
     if (!user || !emailVerified || onboarding) return;
 
     const initMessaging = async () => {
-      // 1. On iOS, request permission automatically on first launch (only once)
-      // On Android, only register token if permission already granted (to avoid permission loop)
-      if (Platform.OS === "ios") {
-        const PERMISSION_ASKED_KEY = "notification_permission_asked_ios";
-        const hasAskedBefore = await AsyncStorage.getItem(PERMISSION_ASKED_KEY);
-        const hasPerm = await messagingService.hasPermission();
+      try {
+        // 1. On iOS, request permission automatically on first launch (only once)
+        // On Android, only register token if permission already granted (to avoid permission loop)
+        if (Platform.OS === "ios") {
+          const PERMISSION_ASKED_KEY = "notification_permission_asked_ios";
+          const hasAskedBefore = await AsyncStorage.getItem(PERMISSION_ASKED_KEY);
+          const hasPerm = await messagingService.hasPermission();
 
-        if (!hasAskedBefore && !hasPerm && isMounted) {
-          // First time, no permission yet - show pre-permission screen before system dialog
-          setShowNotificationModal(true);
+          if (!hasAskedBefore && !hasPerm && isMounted) {
+            // First time, no permission yet - show pre-permission screen before system dialog
+            setShowNotificationModal(true);
+          } else if (isMounted) {
+            // Already asked or already granted - register token if granted
+            if (hasPerm && isMounted) {
+              const token = await messagingService.getToken();
+              if (token && user && isMounted) {
+                await deviceTokenService.registerToken(token);
+              }
+            }
+          }
         } else if (isMounted) {
-          // Already asked or already granted - register token if granted
+          // Android: Only register token if permission already granted
+          // Don't automatically request - let user control via ProfileScreen toggle
+          const hasPerm = await messagingService.hasPermission();
           if (hasPerm && isMounted) {
             const token = await messagingService.getToken();
             if (token && user && isMounted) {
@@ -329,22 +341,14 @@ function AppNavigator() {
             }
           }
         }
-      } else if (isMounted) {
-        // Android: Only register token if permission already granted
-        // Don't automatically request - let user control via ProfileScreen toggle
-        const hasPerm = await messagingService.hasPermission();
-        if (hasPerm && isMounted) {
-          const token = await messagingService.getToken();
-          if (token && user && isMounted) {
-            await deviceTokenService.registerToken(token);
-          }
-        }
-      }
 
-      // 2. Cold Start: Notification that opened the app
-      if (isMounted) {
-        const initial = await messagingService.getInitialNotification();
-        if (initial && isMounted) handleNotificationNavigation(initial);
+        // 2. Cold Start: Notification that opened the app
+        if (isMounted) {
+          const initial = await messagingService.getInitialNotification();
+          if (initial && isMounted) handleNotificationNavigation(initial);
+        }
+      } catch (error) {
+        Sentry.Native.captureException(error);
       }
     };
 
@@ -353,7 +357,9 @@ function AppNavigator() {
     // 3. Listeners
     const unsubToken = messagingService.onTokenRefresh((t) => {
       if (isMounted && user) {
-        deviceTokenService.registerToken(t);
+        deviceTokenService.registerToken(t).catch((error) => {
+          Sentry.Native.captureException(error);
+        });
       }
     });
     const unsubOpened = messagingService.onNotificationOpenedApp(
