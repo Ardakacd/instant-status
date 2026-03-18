@@ -1,5 +1,4 @@
 import { Platform, PermissionsAndroid } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Sentry from "../../sentry";
 import {
   getMessaging,
@@ -15,8 +14,6 @@ import {
   AuthorizationStatus,
   unregisterDeviceForRemoteMessages,
 } from "@react-native-firebase/messaging";
-
-const FCM_TOKEN_KEY = "fcm_token";
 
 export class MessagingService {
   // In React Native Firebase, getMessaging() automatically uses the default app
@@ -119,11 +116,7 @@ export class MessagingService {
       if (Platform.OS === "ios") {
         await this.registerDeviceForRemoteMessages();
       }
-      const token = await getToken(this.messagingInstance);
-      if (token) {
-        await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
-      }
-      return token;
+      return await getToken(this.messagingInstance);
     } catch (error) {
       Sentry.Native.captureException(error);
       return null;
@@ -136,31 +129,21 @@ export class MessagingService {
   async deleteToken(): Promise<void> {
     try {
       await deleteToken(this.messagingInstance);
-      await AsyncStorage.removeItem(FCM_TOKEN_KEY);
-    } catch (error) {
-      await AsyncStorage.removeItem(FCM_TOKEN_KEY);
+    } catch {
+      // best effort
     }
   }
 
   async unregister(): Promise<void> {
     try {
-      const instance = this.messagingInstance;
+      await this.deleteToken();
 
-      // 1. Delete the FCM token from Firebase servers
-      await deleteToken(instance);
-
-      // 2. On iOS, explicitly unregister from APNs
+      // On iOS, explicitly unregister from APNs
       if (Platform.OS === "ios") {
-        await unregisterDeviceForRemoteMessages(instance);
+        await unregisterDeviceForRemoteMessages(this.messagingInstance);
       }
-
-      // 3. Clear our local cache
-      await AsyncStorage.removeItem(FCM_TOKEN_KEY);
-
     } catch (error) {
       Sentry.Native.captureException(error);
-      // Fallback: at least clear local storage so the app thinks it's logged out
-      await AsyncStorage.removeItem(FCM_TOKEN_KEY).catch(() => {});
     }
   }
 
@@ -180,9 +163,8 @@ export class MessagingService {
   }
 
   onTokenRefresh(handler: (token: string) => void) {
-    return onTokenRefresh(this.messagingInstance, async (token) => {
+    return onTokenRefresh(this.messagingInstance, (token) => {
       try {
-        await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
         handler(token);
       } catch (error) {
         Sentry.Native.captureException(error);
