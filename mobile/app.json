@@ -132,6 +132,7 @@
         }
       ],
       "@bacons/apple-targets",
+      "./withFollyCoroutineFix.js",
       "./withNotifeeMavenRepo.js",
       [
         "react-native-android-widget",
@@ -165,7 +166,14 @@
           ]
         }
       ],
-      "sentry-expo"
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "organization": "arda-kabadayi",
+          "project": "react-native"
+        }
+      ]
     ],
     "extra": {
       "eas": {

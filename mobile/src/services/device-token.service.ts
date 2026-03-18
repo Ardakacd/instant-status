@@ -47,7 +47,7 @@ export class DeviceTokenService {
         await AsyncStorage.removeItem(DEVICE_TOKEN_ID_KEY);
       }
     } catch (error: any) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
       // Don't fail logout if backend deletion fails
       // The token will be invalidated on Firebase side anyway
       // Still try to clear stored ID

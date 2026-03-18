@@ -99,7 +99,7 @@ function WidgetConfigurationScreenContent({
         setBackgroundStyle(savedBg as WidgetBackgroundStyle);
       }
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
     } finally {
       setLoading(false);
     }
@@ -150,7 +150,7 @@ function WidgetConfigurationScreenContent({
       } as any);
       setResult("ok");
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
       setResult("cancel");
     } finally {
       setSaving(false);

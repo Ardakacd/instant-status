@@ -1,4 +1,4 @@
-import * as Sentry from "sentry-expo";
+import * as Sentry from "@sentry/react-native";
 import Constants from "expo-constants";
 
 /** Redact sensitive keys from objects (recursively) */
@@ -37,7 +37,7 @@ function scrubSensitive(obj: unknown): unknown {
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  enableInExpoDevelopment: false,
+  enabled: !__DEV__,
   debug: false,
   tracesSampleRate: 0.1,
   environment:

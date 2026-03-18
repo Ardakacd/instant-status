@@ -72,7 +72,7 @@ async function loadWidgetData(widgetId: number): Promise<{
       backgroundStyle,
     };
   } catch (error) {
-    Sentry.Native.captureException(error);
+    Sentry.captureException(error);
     return {
       friends: [],
       hasAnyFriends: false,

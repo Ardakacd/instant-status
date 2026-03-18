@@ -95,7 +95,7 @@ export default function ProfileScreen() {
       const hasPermission = await messagingService.hasPermission();
       setPushNotifications(hasPermission);
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
     }
   };
 

@@ -75,7 +75,7 @@ export class WidgetStorageService {
       } as any);
       this.lastReloadTime = Date.now();
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
     }
   }
 
@@ -161,7 +161,7 @@ export class WidgetStorageService {
         await this.triggerAndroidUpdate();
       }
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
     }
   }
 
@@ -196,7 +196,7 @@ export class WidgetStorageService {
         await this.triggerAndroidUpdate();
       }
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
     }
   }
 
@@ -224,7 +224,7 @@ export class WidgetStorageService {
         await this.triggerAndroidUpdate();
       }
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
     }
   }
 
@@ -282,7 +282,7 @@ export class WidgetStorageService {
         await this.triggerAndroidUpdate();
       }
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
       throw error;
     }
   }
@@ -306,7 +306,7 @@ export class WidgetStorageService {
         await this.triggerAndroidUpdate();
       }
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
     }
   }
 }

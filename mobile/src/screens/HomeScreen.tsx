@@ -103,7 +103,7 @@ export default function HomeScreen() {
       const options = await statusOptionService.getStatusOptions();
       setStatusOptions(options);
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
     }
   };
 
@@ -308,7 +308,7 @@ export default function HomeScreen() {
         )} ${timeFormatter.format(expirationDate)}`;
       }
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
       return null;
     }
   };

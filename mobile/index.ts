@@ -48,7 +48,7 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
 
     }
   } catch (error) {
-    Sentry.Native.captureException(error);
+    Sentry.captureException(error);
   }
 });
 

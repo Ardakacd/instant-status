@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       setNoInternet(false);
 
-      Sentry.Native.setUser({ id: result.user.firebase_uid });
+      Sentry.setUser({ id: result.user.firebase_uid });
       await AsyncStorage.setItem("firebase_uid", result.user.firebase_uid);
     } catch (error: any) {
       if (error?.isSessionDead) {
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
       setNoInternet(false);
       await authService.logout();
     }
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               await Purchases.logIn(firebaseUser.uid);
             }
           } catch (rcError: any) {
-            Sentry.Native.captureException(rcError);
+            Sentry.captureException(rcError);
           }
 
           // 2. Await atomic sync before hiding splash - avoid empty state / Login redirect

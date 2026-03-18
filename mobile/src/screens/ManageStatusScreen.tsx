@@ -65,7 +65,7 @@ export default function ManageStatusScreen() {
       const options = await statusOptionService.getStatusOptions();
       setStatusOptions(options);
     } catch (error: any) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
       setGlobalError(
         error.message || "Failed to load status options. Please try again.",
       );

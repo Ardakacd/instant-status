@@ -118,7 +118,7 @@ export class MessagingService {
       }
       return await getToken(this.messagingInstance);
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
       return null;
     }
   }
@@ -143,7 +143,7 @@ export class MessagingService {
         await unregisterDeviceForRemoteMessages(this.messagingInstance);
       }
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
     }
   }
 
@@ -167,7 +167,7 @@ export class MessagingService {
       try {
         handler(token);
       } catch (error) {
-        Sentry.Native.captureException(error);
+        Sentry.captureException(error);
       }
     });
   }

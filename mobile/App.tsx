@@ -1,4 +1,4 @@
-import * as Sentry from "sentry-expo";
+import * as Sentry from "@sentry/react-native";
 import "./sentry"; // initialize first
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -252,7 +252,7 @@ function AppNavigator() {
           }
           // Let React Navigation handle other links automatically
         } catch (error) {
-          Sentry.Native.captureException(error);
+          Sentry.captureException(error);
         }
       }
     };
@@ -280,7 +280,7 @@ function AppNavigator() {
           }
           // Let React Navigation handle other links automatically
         } catch (error) {
-          Sentry.Native.captureException(error);
+          Sentry.captureException(error);
         }
       }
     });
@@ -348,7 +348,7 @@ function AppNavigator() {
           if (initial && isMounted) handleNotificationNavigation(initial);
         }
       } catch (error) {
-        Sentry.Native.captureException(error);
+        Sentry.captureException(error);
       }
     };
 
@@ -358,7 +358,7 @@ function AppNavigator() {
     const unsubToken = messagingService.onTokenRefresh((t) => {
       if (isMounted && user) {
         deviceTokenService.registerToken(t).catch((error) => {
-          Sentry.Native.captureException(error);
+          Sentry.captureException(error);
         });
       }
     });
@@ -562,7 +562,7 @@ function App() {
         console.log("RevenueCat initialized");
       }
     } catch (error) {
-      Sentry.Native.captureException(error);
+      Sentry.captureException(error);
     }
   }, []);
 
@@ -627,4 +627,4 @@ function App() {
   );
 }
 
-export default Sentry.Native.wrap(App);
+export default Sentry.wrap(App);

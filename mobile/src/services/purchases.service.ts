@@ -26,7 +26,7 @@ export async function presentPaywall(): Promise<boolean> {
         return false;
     }
   } catch (error) {
-    Sentry.Native.captureException(error);
+    Sentry.captureException(error);
     throw error;
   }
 }
@@ -41,7 +41,7 @@ export function presentCustomerCenter(): void {
   try {
     PurchasesUI.presentCustomerCenter();
   } catch (error) {
-    Sentry.Native.captureException(error);
+    Sentry.captureException(error);
     throw error;
   }
 }
@@ -59,7 +59,7 @@ export async function getOfferings() {
     }
     return offerings;
   } catch (error) {
-    Sentry.Native.captureException(error);
+    Sentry.captureException(error);
     throw error;
   }
 }
@@ -79,7 +79,7 @@ export async function purchasePackage(pkg: any): Promise<CustomerInfo> {
     if (error.userCancelled) {
       throw new Error("Purchase cancelled by user");
     }
-    Sentry.Native.captureException(error);
+    Sentry.captureException(error);
     throw error;
   }
 }
@@ -95,7 +95,7 @@ export async function restorePurchases(): Promise<CustomerInfo> {
     const customerInfo = await Purchases.restorePurchases();
     return customerInfo;
   } catch (error) {
-    Sentry.Native.captureException(error);
+    Sentry.captureException(error);
     throw error;
   }
 }
@@ -109,7 +109,7 @@ export async function getCustomerInfo(): Promise<CustomerInfo> {
   try {
     return await Purchases.getCustomerInfo();
   } catch (error) {
-    Sentry.Native.captureException(error);
+    Sentry.captureException(error);
     throw error;
   }
 }
