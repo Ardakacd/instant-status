@@ -40,7 +40,7 @@ export class DeviceTokenService {
         },
       });
 
-      const isNewDevice = !existingToken;
+      const isNewPlatform = !existingToken;
 
       if (existingToken) {
         // Overwrite the token field of the existing row (same device, token refreshed)
@@ -64,7 +64,7 @@ export class DeviceTokenService {
       const savedToken = await this.deviceTokenRepository.save(deviceToken);
 
       // Check if this is a new device (not first login) and send alert
-      if (isNewDevice && hasOtherDevices) {
+      if (isNewPlatform && hasOtherDevices) {
         try {
           const user = await this.userService.findById(userId);
           if (user && user.email && user.first_login_at) {

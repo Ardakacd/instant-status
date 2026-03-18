@@ -6,14 +6,14 @@ import {
 } from "@nestjs/common";
 import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
-import { EntityManager, Repository, In } from "typeorm";
+import { EntityManager, Repository } from "typeorm";
 import { Connection } from "../entities/connection.entity";
 import { DeviceToken } from "../entities/device-token.entity";
 import { User } from "../entities/user.entity";
 import { isUserPremium } from "../utils/premium";
 import * as admin from "firebase-admin";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
-import { redactUid } from "../utils/redact";
+import { sendEachAndCleanup } from "../utils/fcm";
 
 /**
  * Normalizes a user pair to ensure consistent ordering.
@@ -492,63 +492,18 @@ export class ConnectionsService {
 
 
       try {
-        const response = await this.firebaseAdmin
-          .messaging()
-          .sendEach(messages);
-        this.logger.debug(
-          `Sent ${response.successCount}/${messages.length} friend added push notifications`
+        await sendEachAndCleanup(
+          this.firebaseAdmin,
+          messages,
+          tokenToIdMap,
+          this.deviceTokenRepository,
+          this.logger,
         );
-        if (response.failureCount > 0) {
-          // Track invalid token IDs to delete
-          const invalidTokenIds: string[] = [];
-
-          // Log failed messages and identify invalid tokens
-          response.responses.forEach((result, index) => {
-            if (!result.success && result.error) {
-              const message = messages[index];
-              const errorCode = result.error.code;
-              const deviceTokenId = tokenToIdMap.get(message.token);
-
-              this.logger.warn(
-                `Failed to send friend added notification: ${errorCode} - ${result.error.message} (deviceTokenId: ${deviceTokenId ?? "unknown"})`
-              );
-
-              // Delete tokens for these error codes (invalid/expired tokens)
-              if (
-                errorCode === "messaging/invalid-registration-token" ||
-                errorCode === "messaging/registration-token-not-registered" ||
-                errorCode === "messaging/invalid-argument" ||
-                errorCode === "messaging/third-party-auth-error"
-              ) {
-                if (deviceTokenId) {
-                  invalidTokenIds.push(deviceTokenId);
-                }
-              }
-            }
-          });
-
-          // Delete invalid tokens from database
-          if (invalidTokenIds.length > 0) {
-            try {
-              await this.deviceTokenRepository.delete({
-                id: In(invalidTokenIds),
-              });
-              this.logger.log(
-                `Deleted ${invalidTokenIds.length} invalid device token(s) from friend added notifications`
-              );
-            } catch (deleteError: any) {
-              this.logger.error(
-                `Failed to delete invalid tokens: ${deleteError.message}`
-              );
-            }
-          }
-        }
       } catch (error: any) {
         this.logger.error(
           `Error sending friend added push notifications: ${error.message}`,
-          error.stack
+          error.stack,
         );
-        // Push notification failures shouldn't fail connection creation
       }
     } catch (error: any) {
       this.logger.error(

@@ -16,6 +16,7 @@ import { StatusOptionService } from "../status-option/status-option.service";
 import * as admin from "firebase-admin";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
 import { redactUid } from "../utils/redact";
+import { sendEachAndCleanup } from "../utils/fcm";
 
 @Injectable()
 export class StatusService {
@@ -533,70 +534,22 @@ export class StatusService {
       }
 
       try {
-        const response = await this.firebaseAdmin
-          .messaging()
-          .sendEach(messages);
-
-        this.logger.debug(
-          `Sent ${response.successCount}/${messages.length} push notifications`
+        await sendEachAndCleanup(
+          this.firebaseAdmin,
+          messages,
+          tokenToIdMap,
+          this.deviceTokenRepository,
+          this.logger,
         );
-
-        if (response.failureCount > 0) {
-          // Track invalid token IDs to delete
-          const invalidTokenIds: string[] = [];
-
-          // Log failed messages and identify invalid tokens
-          response.responses.forEach((result, index) => {
-            if (!result.success && result.error) {
-              const message = messages[index];
-              const errorCode = result.error.code;
-
-              const deviceTokenId = tokenToIdMap.get(message.token);
-              this.logger.warn(
-                `Failed to send notification: ${errorCode} - ${result.error.message} (deviceTokenId: ${deviceTokenId ?? "unknown"})`
-              );
-
-              // Delete tokens for these error codes (invalid/expired tokens)
-              if (
-                errorCode === "messaging/invalid-registration-token" ||
-                errorCode === "messaging/registration-token-not-registered" ||
-                errorCode === "messaging/invalid-argument" ||
-                errorCode === "messaging/third-party-auth-error"
-              ) {
-                if (deviceTokenId) {
-                  invalidTokenIds.push(deviceTokenId);
-                }
-              }
-            }
-          });
-
-          // Delete invalid tokens from database
-          if (invalidTokenIds.length > 0) {
-            try {
-              await this.deviceTokenRepository.delete({
-                id: In(invalidTokenIds),
-              });
-              this.logger.log(
-                `Deleted ${invalidTokenIds.length} invalid device token(s)`
-              );
-            } catch (deleteError: any) {
-              this.logger.error(
-                `Failed to delete invalid tokens: ${deleteError.message}`
-              );
-            }
-          }
-        }
       } catch (error: any) {
         this.logger.error(
           `Error sending push notifications: ${error.message}`,
-          error.stack
+          error.stack,
         );
-        
         // Log detailed error info for third-party-auth-error
         if (error.code === "messaging/third-party-auth-error" || error.message?.includes("authentication credential")) {
           this.logger.error(`FCM auth error: ${error.code} - ${error.message}`);
         }
-        // Push notification failures shouldn't fail status updates
       }
     } catch (error: any) {
       this.logger.error(
