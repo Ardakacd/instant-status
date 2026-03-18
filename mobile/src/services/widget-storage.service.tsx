@@ -229,6 +229,65 @@ export class WidgetStorageService {
   }
 
   /**
+   * DEV ONLY: Seed mock friends for widget layout testing (e.g. 24 friends for premium large widget).
+   * Call from ProfileScreen dev section. Also sets premium status so large widget shows 16 friends.
+   */
+  async seedMockFriendsForWidgetTesting(count: number): Promise<void> {
+    const MOCK_OPTIONS: Array<{
+      optionId: string;
+      optionLabel: string;
+      optionEmoji: string;
+      optionColor: string;
+    }> = [
+      { optionId: "available", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981" },
+      { optionId: "busy", optionLabel: "Busy", optionEmoji: "🟠", optionColor: "#F59E0B" },
+      { optionId: "focus", optionLabel: "Focus", optionEmoji: "🟣", optionColor: "#8B5CF6" },
+      { optionId: "dnd", optionLabel: "Do Not Disturb", optionEmoji: "🔴", optionColor: "#EF4444" },
+      { optionId: "social", optionLabel: "Social", optionEmoji: "🩷", optionColor: "#EC4899" },
+      { optionId: "commute", optionLabel: "Commute", optionEmoji: "🔵", optionColor: "#3B82F6" },
+    ];
+    const MOCK_FIRST_NAMES = [
+      "Alex", "Emma", "John", "Alice", "James", "Kevin", "Henry", "Melissa",
+      "Eve", "Sam", "Olivia", "Liam", "Ava", "Noah", "Sophia", "Mason",
+      "Isabella", "Lucas", "Mia", "Ethan", "Charlotte", "Oliver", "Amelia", "Elijah",
+    ];
+    const now = new Date().toISOString();
+    const items: FriendStatusWidgetItem[] = Array.from({ length: count }, (_, i) => {
+      const opt = MOCK_OPTIONS[i % MOCK_OPTIONS.length];
+      const firstName = MOCK_FIRST_NAMES[i % MOCK_FIRST_NAMES.length];
+      const hasNote = i % 3 === 0;
+      const hasExpiry = i % 4 === 0;
+      return {
+        id: `mock-${i + 1}`,
+        firstName,
+        lastName: i % 5 === 0 ? `Friend${i}` : null,
+        optionId: opt.optionId,
+        optionLabel: opt.optionLabel,
+        optionEmoji: opt.optionEmoji,
+        optionColor: opt.optionColor,
+        note: hasNote ? `Note for ${firstName}` : null,
+        expiresAt: hasExpiry ? new Date(Date.now() + 3600 * 1000).toISOString() : null,
+        updatedAt: now,
+      };
+    });
+    const jsonString = JSON.stringify(items);
+    try {
+      if (Platform.OS === "ios" && this.storage) {
+        this.storage.set(WIDGET_DATA_KEY, jsonString);
+        this.storage.set(IS_PREMIUM_KEY, "true");
+        ExtensionStorage.reloadWidget("InstantStatusWidget");
+      } else if (Platform.OS === "android") {
+        await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
+        await AsyncStorage.setItem(IS_PREMIUM_KEY, "true");
+        await this.triggerAndroidUpdate();
+      }
+    } catch (error) {
+      Sentry.Native.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
    * Clear all widget data (used during logout to prevent data leakage)
    */
   async clearAll(): Promise<void> {

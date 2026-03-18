@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
 import { messagingService } from "../services/messaging.service";
+import { widgetStorageService } from "../services/widget-storage.service";
 import { useAuth } from "../contexts/AuthContext";
 import { userService } from "../services/user.service";
 import { authService } from "../services/auth.service";
@@ -590,6 +591,29 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {__DEV__ && (
+          <View style={styles.section}>
+            <Text variant="primary" style={styles.sectionTitle}>
+              Developer
+            </Text>
+            <View style={styles.card}>
+              <TouchableOpacity
+                style={styles.actionRow}
+                onPress={async () => {
+                  try {
+                    await widgetStorageService.seedMockFriendsForWidgetTesting(24);
+                    Toast.show({ type: "success", text1: "Seeded 24 mock friends for widget" });
+                  } catch (e) {
+                    Toast.show({ type: "error", text1: "Failed to seed mock friends" });
+                  }
+                }}
+              >
+                <Text variant="primary">Seed 24 mock friends (widget test)</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
