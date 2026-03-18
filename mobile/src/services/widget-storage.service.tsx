@@ -246,27 +246,40 @@ export class WidgetStorageService {
       { optionId: "social", optionLabel: "Social", optionEmoji: "🩷", optionColor: "#EC4899" },
       { optionId: "commute", optionLabel: "Commute", optionEmoji: "🔵", optionColor: "#3B82F6" },
     ];
+    const MOCK_EMOJIS = [
+      "🟢", "🟡", "🟠", "🔴", "🟣", "🩵", "💙", "💜", "🩷", "❤️", "💚", "💛",
+      "🧡", "☕️", "🚀", "💼", "🏃", "🏠", "📞", "📧", "🎯", "🛑", "💤", "🌟",
+    ];
     const MOCK_FIRST_NAMES = [
-      "Alex", "Emma", "John", "Alice", "James", "Kevin", "Henry", "Melissa",
-      "Eve", "Sam", "Olivia", "Liam", "Ava", "Noah", "Sophia", "Mason",
-      "Isabella", "Lucas", "Mia", "Ethan", "Charlotte", "Oliver", "Amelia", "Elijah",
+      "Alexandra", "Emmanuel", "Christopher", "Alexandria", "Benjamin", "Katherine", "Theodore", "Melissa",
+      "Evangeline", "Sebastian", "Olivia", "Alexander", "Anastasia", "Nathaniel", "Sophia", "Maximilian",
+      "Isabella", "Lucas", "Michelle", "Ethan", "Charlotte", "Oliver", "Amelia", "Elizabeth",
+    ];
+    const MOCK_NOTES = [
+      "Working from home today, available for calls in the afternoon",
+      "In a meeting until 3pm, please send an email for urgent matters",
+      "Focus mode: deep work on project deadline, back in 2 hours",
+      "At the gym, will check messages when done around 5pm",
+      "Lunch break with the team, back at desk by 2pm",
+      "Driving to the office, can't respond for about 45 minutes",
     ];
     const now = new Date().toISOString();
     const items: FriendStatusWidgetItem[] = Array.from({ length: count }, (_, i) => {
       const opt = MOCK_OPTIONS[i % MOCK_OPTIONS.length];
       const firstName = MOCK_FIRST_NAMES[i % MOCK_FIRST_NAMES.length];
-      const hasNote = i % 3 === 0;
-      const hasExpiry = i % 4 === 0;
+      const note = MOCK_NOTES[i % MOCK_NOTES.length];
+      const expiresAt = new Date(Date.now() + (i % 3 + 1) * 3600 * 1000).toISOString();
+      const emoji = MOCK_EMOJIS[i % MOCK_EMOJIS.length];
       return {
         id: `mock-${i + 1}`,
         firstName,
         lastName: i % 5 === 0 ? `Friend${i}` : null,
         optionId: opt.optionId,
         optionLabel: opt.optionLabel,
-        optionEmoji: opt.optionEmoji,
+        optionEmoji: emoji,
         optionColor: opt.optionColor,
-        note: hasNote ? `Note for ${firstName}` : null,
-        expiresAt: hasExpiry ? new Date(Date.now() + 3600 * 1000).toISOString() : null,
+        note,
+        expiresAt,
         updatedAt: now,
       };
     });
