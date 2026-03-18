@@ -42,7 +42,7 @@ type ProfileScreenNavigationProp =
 export default function ProfileScreen() {
   const { user, logout, deleteAccount, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
-  const { horizontalPadding } = useResponsive();
+  const { horizontalPadding, fs } = useResponsive();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const {
     isPremium,
@@ -347,7 +347,7 @@ export default function ProfileScreen() {
       >
         {/* Profile Header */}
         <View style={styles.header}>
-          <Text variant="primary" style={styles.displayName}>
+          <Text variant="primary" style={[styles.displayName, { fontSize: fs(20) }]}>
             {displayName}
           </Text>
           <Text variant="secondary" style={styles.email}>
@@ -493,7 +493,7 @@ export default function ProfileScreen() {
               <>
                 <View style={styles.premiumBadge}>
                   <Ionicons name="star" size={18} color={Colors.interaction.accent} />
-                  <Text style={styles.premiumBadgeText}>Premium</Text>
+                  <Text style={[styles.premiumBadgeText, { fontSize: fs(16) }]}>Premium</Text>
                 </View>
                 {willRenew === false && expirationDate && (
                   <Text variant="secondary" style={styles.expiryText}>
@@ -604,7 +604,7 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom }]}>
             <View style={styles.modalHeader}>
-              <Text variant="primary" style={styles.modalTitle}>
+              <Text variant="primary" style={[styles.modalTitle, { fontSize: fs(18) }]}>
                 Change password
               </Text>
               <TouchableOpacity

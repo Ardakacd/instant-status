@@ -21,7 +21,7 @@ import {
   ActivityIndicator,
   type ViewStyle,
 } from "react-native";
-import { Colors, Borders, Spacing, PhysicalShift, Typography } from "../../design";
+import { Colors, Borders, Spacing, PhysicalShift, Typography, useResponsive } from "../../design";
 import { Text as DesignText } from "../primitives/Text";
 import { hapticAction } from "../../utils/haptics";
 
@@ -52,6 +52,7 @@ export const Button = forwardRef<View, ButtonProps>(
     },
     ref
   ) => {
+    const { fs } = useResponsive();
     const isDisabled = disabled || loading || variant === "disabled";
     const pressX = useRef(new Animated.Value(0)).current;
     const pressY = useRef(new Animated.Value(0)).current;
@@ -174,7 +175,7 @@ export const Button = forwardRef<View, ButtonProps>(
               ) : (
                 <DesignText
                   variant="primary"
-                  style={[styles.buttonText, { color: textColor }]}
+                  style={[styles.buttonText, { color: textColor, fontSize: fs(16) }]}
                 >
                   {children}
                 </DesignText>

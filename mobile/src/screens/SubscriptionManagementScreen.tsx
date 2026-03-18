@@ -27,7 +27,7 @@ import { Text } from "../components/primitives/Text";
 export default function SubscriptionManagementScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { horizontalPadding } = useResponsive();
+  const { horizontalPadding, fs } = useResponsive();
   const { isPremium, willRenew, expirationDate } = useIsPremium();
 
   const [loading, setLoading] = useState(true);
@@ -383,7 +383,7 @@ export default function SubscriptionManagementScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
         </TouchableOpacity>
-        <Text variant="primary" style={styles.headerTitle}>
+        <Text variant="primary" style={[styles.headerTitle, { fontSize: fs(18) }]}>
           Subscription
         </Text>
         <View style={styles.backButton} />
@@ -408,7 +408,7 @@ export default function SubscriptionManagementScreen() {
               size={32}
               color={Colors.interaction.primary}
             />
-            <Text variant="primary" style={styles.lifetimeTitle}>
+            <Text variant="primary" style={[styles.lifetimeTitle, { fontSize: fs(20) }]}>
               You already have lifetime access to this app
             </Text>
             <Text variant="secondary" style={styles.lifetimeDescription}>
@@ -431,7 +431,7 @@ export default function SubscriptionManagementScreen() {
               </Text>
             </View>
             {currentPackageId && (
-              <Text variant="primary" style={styles.currentPlanName}>
+              <Text variant="primary" style={[styles.currentPlanName, { fontSize: fs(20) }]}>
                 {currentPackage ? getPackageLabel(currentPackage) : "Premium"}
               </Text>
             )}
@@ -499,7 +499,7 @@ export default function SubscriptionManagementScreen() {
         {/* Available Plans (only show if not lifetime and there are other plans) */}
         {!hasLifetime && availablePackages.length > 0 && (
           <View style={styles.section}>
-            <Text variant="primary" style={styles.sectionTitle}>
+            <Text variant="primary" style={[styles.sectionTitle, { fontSize: fs(20) }]}>
               {isPremium ? "Change Plan" : "Choose a Plan"}
             </Text>
 
@@ -521,7 +521,7 @@ export default function SubscriptionManagementScreen() {
                 >
                   <View style={styles.packageHeader}>
                     <View style={styles.packageInfo}>
-                      <Text variant="primary" style={styles.packageLabel}>
+                      <Text variant="primary" style={[styles.packageLabel, { fontSize: fs(18) }]}>
                         {label}
                       </Text>
                       {isAnnual && savings && (
@@ -535,7 +535,7 @@ export default function SubscriptionManagementScreen() {
                         </View>
                       )}
                     </View>
-                    <Text variant="primary" style={styles.packagePrice}>
+                    <Text variant="primary" style={[styles.packagePrice, { fontSize: fs(20) }]}>
                       {formatPrice(pkg)}
                     </Text>
                   </View>
@@ -554,7 +554,7 @@ export default function SubscriptionManagementScreen() {
                     />
                   ) : (
                     <View style={styles.packageButton}>
-                      <Text variant="primary" style={styles.packageButtonText}>
+                      <Text variant="primary" style={[styles.packageButtonText, { fontSize: fs(16) }]}>
                         {isPremium ? "Switch to this plan" : "Subscribe"}
                       </Text>
                     </View>
@@ -635,7 +635,7 @@ export default function SubscriptionManagementScreen() {
                     : Colors.interaction.primary
                 }
               />
-              <Text variant="primary" style={styles.modalTitle}>
+              <Text variant="primary" style={[styles.modalTitle, { fontSize: fs(22) }]}>
                 {planChangeInfo?.isUpgrade
                   ? "Plan Upgraded Successfully!"
                   : "Plan Change Saved"}

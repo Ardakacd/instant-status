@@ -23,7 +23,7 @@ import { InlineAction } from "../components/actions/InlineAction";
 
 export default function FriendsScreen() {
   const navigation = useNavigation();
-  const { horizontalPadding } = useResponsive();
+  const { horizontalPadding, fs } = useResponsive();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [manageMenuVisible, setManageMenuVisible] = useState(false);
@@ -184,7 +184,7 @@ export default function FriendsScreen() {
         {/* Friends Section */}
         <View style={styles.friendsSection}>
           <View style={styles.sectionHeader}>
-            <Text variant="primary" style={styles.sectionTitle}>
+            <Text variant="primary" style={[styles.sectionTitle, { fontSize: fs(20) }]}>
               My Friends
             </Text>
             <View style={styles.headerRight}>
@@ -222,9 +222,9 @@ export default function FriendsScreen() {
           ) : connections.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIconContainer}>
-                <Text style={styles.emptyIcon}>👥</Text>
+                <Text style={[styles.emptyIcon, { fontSize: fs(52), lineHeight: fs(64) }]}>👥</Text>
               </View>
-              <Text variant="primary" style={styles.emptyTitle}>
+              <Text variant="primary" style={[styles.emptyTitle, { fontSize: fs(18) }]}>
                 No friends yet
               </Text>
               <Text variant="secondary" style={styles.emptyText}>
@@ -256,13 +256,13 @@ export default function FriendsScreen() {
                     activeOpacity={0.7}
                   >
                     <View style={styles.friendCard}>
-                      <View style={styles.avatar}>
+                      <View style={[styles.avatar, { width: fs(56), height: fs(56), borderRadius: fs(28) }]}>
                         {conn.friend_avatar_url ? (
-                          <Text variant="primary" style={styles.avatarText}>
+                          <Text variant="primary" style={[styles.avatarText, { fontSize: fs(20) }]}>
                             IMG
                           </Text>
                         ) : (
-                          <Text variant="primary" style={styles.avatarText}>
+                          <Text variant="primary" style={[styles.avatarText, { fontSize: fs(20) }]}>
                             {initials}
                           </Text>
                         )}
@@ -270,7 +270,7 @@ export default function FriendsScreen() {
                       <View style={styles.friendInfo}>
                         <Text
                           variant="primary"
-                          style={styles.friendName}
+                          style={[styles.friendName, { fontSize: fs(16) }]}
                           numberOfLines={1}
                         >
                           {displayName}
@@ -335,7 +335,7 @@ export default function FriendsScreen() {
             {selectedConnection && (
               <>
                 <View style={styles.manageMenuHeader}>
-                  <Text variant="primary" style={styles.manageMenuTitle}>
+                  <Text variant="primary" style={[styles.manageMenuTitle, { fontSize: fs(18) }]}>
                     {getDisplayName(
                       selectedConnection.friend_first_name,
                       selectedConnection.friend_last_name,
@@ -359,7 +359,7 @@ export default function FriendsScreen() {
                     color={Colors.text.primary}
                   />
                   <View style={styles.manageMenuItemContent}>
-                    <Text variant="primary" style={styles.manageMenuItemText}>
+                    <Text variant="primary" style={[styles.manageMenuItemText, { fontSize: fs(16) }]}>
                       {selectedConnection.user_shows_status
                         ? "Hide my status"
                         : "Show my status"}
@@ -390,7 +390,7 @@ export default function FriendsScreen() {
                   <View style={styles.manageMenuItemContent}>
                     <Text
                       variant="primary"
-                      style={styles.manageMenuItemTextDanger}
+                      style={[styles.manageMenuItemTextDanger, { fontSize: fs(16) }]}
                     >
                       Remove friend
                     </Text>

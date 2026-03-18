@@ -23,7 +23,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "ResetPassword">;
 
 export default function ResetPasswordScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { horizontalPadding, isSmallScreen } = useResponsive();
+  const { horizontalPadding, fs } = useResponsive();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -160,7 +160,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
               <View style={styles.iconContainer}>
                 <Ionicons name="lock-closed-outline" size={64} color={Colors.interaction.accent} />
               </View>
-              <Text variant="primary" style={[styles.title, isSmallScreen && { fontSize: 24, lineHeight: 30 }]}>Invalid Reset Link</Text>
+              <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>Invalid Reset Link</Text>
               <Text variant="secondary" style={styles.subtitle}>
                 {subtitle}
               </Text>
@@ -202,7 +202,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
             <View style={styles.iconContainer}>
               <Ionicons name="lock-closed-outline" size={64} color={Colors.interaction.primary} />
             </View>
-            <Text variant="primary" style={[styles.title, isSmallScreen && { fontSize: 24, lineHeight: 30 }]}>Reset Your Password</Text>
+            <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>Reset Your Password</Text>
             <Text variant="secondary" style={styles.subtitle}>
               Enter your new password below. Make sure it's at least 8 characters long.
             </Text>

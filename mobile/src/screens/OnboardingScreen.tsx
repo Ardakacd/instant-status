@@ -16,7 +16,7 @@ import { Section } from "../components/containers/Section";
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
-  const { horizontalPadding, isSmallScreen } = useResponsive();
+  const { horizontalPadding, fs } = useResponsive();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [firstNameError, setFirstNameError] = useState("");
@@ -94,7 +94,7 @@ export default function OnboardingScreen() {
       >
         <Section spacing="md" style={styles.content}>
           <View style={styles.header}>
-            <Text variant="primary" style={[styles.title, isSmallScreen && { fontSize: 24, lineHeight: 30 }]}>Welcome!</Text>
+            <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>Welcome!</Text>
             <Text variant="secondary" style={styles.subtitle}>
               Let's get started by telling us your name
             </Text>

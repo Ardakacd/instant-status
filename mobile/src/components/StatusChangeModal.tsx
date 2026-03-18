@@ -19,6 +19,7 @@ import {
   Typography,
   getContrastingTextColor,
   SAFE_AREA_BOTTOM,
+  useResponsive,
 } from "../design";
 import { Text } from "./primitives/Text";
 import { TextInput } from "./inputs/TextInput";
@@ -50,6 +51,7 @@ export default function StatusChangeModal({
     "date",
   );
   const insets = useSafeAreaInsets();
+  const { fs } = useResponsive();
 
   // Note: All statuses can have expiration times
 
@@ -199,13 +201,13 @@ export default function StatusChangeModal({
                     <View
                       style={[
                         styles.statusIndicator,
-                        { backgroundColor: statusColor + "20" }, // 20% opacity background
+                        { backgroundColor: statusColor + "20", width: fs(48), height: fs(48), borderRadius: fs(24) },
                       ]}
                     >
-                      <Text style={styles.statusIcon}>{statusIcon}</Text>
+                      <Text style={[styles.statusIcon, { fontSize: fs(22), lineHeight: fs(26) }]}>{statusIcon}</Text>
                     </View>
                     <View style={styles.headerText}>
-                      <Text variant="primary" style={styles.headerTitle}>
+                      <Text variant="primary" style={[styles.headerTitle, { fontSize: fs(20) }]}>
                         Set Status
                       </Text>
                       <Text variant="secondary" style={styles.headerSubtitle}>
@@ -234,7 +236,7 @@ export default function StatusChangeModal({
                   <Section spacing="lg">
                     {/* Note Input */}
                     <View>
-                      <Text variant="primary" style={styles.sectionLabel}>
+                      <Text variant="primary" style={[styles.sectionLabel, { fontSize: fs(16) }]}>
                         Note (Optional)
                       </Text>
                       <TextInput
@@ -256,7 +258,7 @@ export default function StatusChangeModal({
 
                     {/* Until When Section - All statuses can have expiration times */}
                     <View>
-                      <Text variant="primary" style={styles.sectionLabel}>
+                      <Text variant="primary" style={[styles.sectionLabel, { fontSize: fs(16) }]}>
                         Until When (Optional)
                       </Text>
                       <Text variant="hint" style={styles.sectionHint}>
@@ -512,7 +514,7 @@ export default function StatusChangeModal({
                         variant="primary"
                         style={[
                           styles.confirmButtonText,
-                          { color: getContrastingTextColor(statusColor) },
+                          { color: getContrastingTextColor(statusColor), fontSize: fs(16) },
                         ]}
                       >
                         Setting...
@@ -522,7 +524,7 @@ export default function StatusChangeModal({
                         variant="primary"
                         style={[
                           styles.confirmButtonText,
-                          { color: getContrastingTextColor(statusColor) },
+                          { color: getContrastingTextColor(statusColor), fontSize: fs(16) },
                         ]}
                       >
                         Set Status

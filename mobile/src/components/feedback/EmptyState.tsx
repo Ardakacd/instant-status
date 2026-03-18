@@ -17,7 +17,7 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Colors, Spacing, Typography } from '../../design';
+import { Colors, Spacing, Typography, useResponsive } from '../../design';
 import { Text } from '../primitives/Text';
 import { Section } from '../containers/Section';
 
@@ -34,17 +34,18 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   message,
   action,
 }) => {
+  const { fs } = useResponsive();
   return (
     <Section 
       spacing="lg" 
       style={styles.container}
     >
-      <Text style={styles.emoji}>{emoji}</Text>
+      <Text style={[styles.emoji, { fontSize: fs(64) }]}>{emoji}</Text>
       <View style={styles.textContainer}>
-        <Text variant="primary" style={styles.title}>
+        <Text variant="primary" style={[styles.title, { fontSize: fs(20) }]}>
           {title}
         </Text>
-        <Text variant="secondary" style={styles.message}>
+        <Text variant="secondary" style={[styles.message, { fontSize: fs(16) }]}>
           {message}
         </Text>
       </View>

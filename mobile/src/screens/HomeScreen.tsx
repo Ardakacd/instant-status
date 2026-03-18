@@ -28,7 +28,7 @@ import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
 export default function HomeScreen() {
-  const { horizontalPadding } = useResponsive();
+  const { horizontalPadding, fs } = useResponsive();
   const navigation = useNavigation();
   const route = useRoute();
   const { isPremium, loading: premiumLoading } = useIsPremium();
@@ -409,6 +409,7 @@ export default function HomeScreen() {
                   key={option.id}
                   style={[
                     styles.statusButton,
+                    { height: fs(100) },
                     isActive && styles.statusButtonActive,
                     isActive && { backgroundColor: option.color },
                   ]}
@@ -416,10 +417,11 @@ export default function HomeScreen() {
                   disabled={loading}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.statusIcon}>{option.emoji}</Text>
+                  <Text style={[styles.statusIcon, { fontSize: fs(22), lineHeight: fs(26) }]}>{option.emoji}</Text>
                   <Text
                     style={[
                       styles.statusButtonText,
+                      { fontSize: fs(14) },
                       isActive && styles.statusButtonTextActive,
                     ]}
                   >
@@ -440,7 +442,7 @@ export default function HomeScreen() {
         {/* Friends Section */}
         <View style={styles.friendsSection}>
           <View style={styles.sectionHeader}>
-            <Text variant="primary" style={styles.sectionTitle}>
+            <Text variant="primary" style={[styles.sectionTitle, { fontSize: fs(20) }]}>
               Friends
             </Text>
             <View style={styles.headerRight}>
@@ -602,17 +604,20 @@ export default function HomeScreen() {
                         {
                           backgroundColor:
                             (status.option?.color || Colors.interaction.primary) + "20",
+                          width: fs(56),
+                          height: fs(56),
+                          borderRadius: fs(28),
                         },
                       ]}
                     >
-                      <Text variant="primary" style={styles.avatarText}>
+                      <Text variant="primary" style={[styles.avatarText, { fontSize: fs(20) }]}>
                         {status.avatar_url ? "IMG" : initials}
                       </Text>
                     </View>
                     <View style={styles.friendInfo}>
                       <Text
                         variant="primary"
-                        style={styles.friendName}
+                        style={[styles.friendName, { fontSize: fs(16) }]}
                         numberOfLines={1}
                       >
                         {displayName}

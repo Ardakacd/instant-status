@@ -33,7 +33,7 @@ const MAX_CUSTOM_OPTIONS = 4;
 export default function ManageStatusScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { horizontalPadding } = useResponsive();
+  const { horizontalPadding, fs } = useResponsive();
   const { isPremium } = useIsPremium();
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -323,13 +323,13 @@ export default function ManageStatusScreen() {
 
         {/* Default Statuses */}
         <View style={styles.section}>
-          <Text variant="primary" style={styles.sectionTitle}>
+          <Text variant="primary" style={[styles.sectionTitle, { fontSize: fs(18) }]}>
             Default Statuses
           </Text>
           <View style={styles.optionsGrid}>
             {systemOptions.map((option) => (
               <View key={option.id} style={styles.optionCard}>
-                <Text style={styles.optionEmoji}>{option.emoji}</Text>
+                <Text style={[styles.optionEmoji, { fontSize: fs(26), lineHeight: fs(30) }]}>{option.emoji}</Text>
                 <Text variant="primary" style={styles.optionLabel}>
                   {option.label}
                 </Text>
@@ -343,7 +343,7 @@ export default function ManageStatusScreen() {
           <View style={styles.sectionHeader}>
             <Text
               variant="primary"
-              style={[styles.sectionTitle, styles.sectionTitleInline]}
+              style={[styles.sectionTitle, styles.sectionTitleInline, { fontSize: fs(18) }]}
             >
               Your Custom Statuses
             </Text>
@@ -376,7 +376,7 @@ export default function ManageStatusScreen() {
                   onPress={() => handleEdit(option)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.optionEmoji}>{option.emoji}</Text>
+                  <Text style={[styles.optionEmoji, { fontSize: fs(26), lineHeight: fs(30) }]}>{option.emoji}</Text>
                   <Text variant="primary" style={styles.optionLabel}>
                     {option.label}
                   </Text>

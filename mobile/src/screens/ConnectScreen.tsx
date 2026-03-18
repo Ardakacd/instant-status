@@ -26,7 +26,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "Connect">;
 export default function ConnectScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const { horizontalPadding } = useResponsive();
+  const { horizontalPadding, fs } = useResponsive();
   const [inviteCode, setInviteCode] = useState("");
   const [myInviteCode, setMyInviteCode] = useState("");
   const [shareableLink, setShareableLink] = useState("");
@@ -226,7 +226,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
           >
             <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
-          <Text variant="primary" style={styles.headerTitle}>
+          <Text variant="primary" style={[styles.headerTitle, { fontSize: fs(18) }]}>
             Connect Friends
           </Text>
           <View style={styles.backButton} />
@@ -243,7 +243,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
               />
             </View>
             <View style={styles.cardHeaderText}>
-              <Text variant="primary" style={styles.cardTitle}>
+              <Text variant="primary" style={[styles.cardTitle, { fontSize: fs(16) }]}>
                 Add Friends With Invite Code
               </Text>
               <Text variant="secondary" style={styles.cardDescription}>
@@ -264,7 +264,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
                   </Text>
                 </TouchableOpacity>
               ) : (
-                <Text variant="primary" style={styles.codeText}>
+                <Text variant="primary" style={[styles.codeText, { fontSize: fs(16) }]}>
                   {myInviteCode || "Loading..."}
                 </Text>
               )}
@@ -332,7 +332,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
               />
             </View>
             <View style={styles.cardHeaderText}>
-              <Text variant="primary" style={styles.cardTitle}>
+              <Text variant="primary" style={[styles.cardTitle, { fontSize: fs(16) }]}>
                 Add Friends By Shareable Link
               </Text>
               <Text variant="secondary" style={styles.cardDescription}>

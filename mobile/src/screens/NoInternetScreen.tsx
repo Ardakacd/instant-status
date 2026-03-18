@@ -3,12 +3,13 @@ import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
-import { Colors, Spacing, SAFE_AREA_BOTTOM } from "../design";
+import { Colors, Spacing, SAFE_AREA_BOTTOM, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
 export default function NoInternetScreen() {
   const insets = useSafeAreaInsets();
+  const { fs } = useResponsive();
   const { refreshUser } = useAuth();
   const [retrying, setRetrying] = useState(false);
 
@@ -31,10 +32,10 @@ export default function NoInternetScreen() {
             color={Colors.text.secondary}
           />
         </View>
-        <Text variant="primary" style={styles.title}>
+        <Text variant="primary" style={[styles.title, { fontSize: fs(22) }]}>
           No Internet Connection
         </Text>
-        <Text variant="secondary" style={styles.message}>
+        <Text variant="secondary" style={[styles.message, { fontSize: fs(16) }]}>
           Please check your connection and try again.
         </Text>
         <Button

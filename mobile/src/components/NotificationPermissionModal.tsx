@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM } from "../design";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
 import { Text } from "./primitives/Text";
 import { Button } from "./actions/Button";
 
@@ -24,6 +24,7 @@ export function NotificationPermissionModal({
   onNotNow,
 }: NotificationPermissionModalProps) {
   const insets = useSafeAreaInsets();
+  const { fs } = useResponsive();
   const [loading, setLoading] = useState(false);
 
   const handleEnable = async () => {
@@ -52,11 +53,11 @@ export function NotificationPermissionModal({
             />
           </View>
 
-          <Text variant="primary" style={styles.title}>
+          <Text variant="primary" style={[styles.title, { fontSize: fs(20) }]}>
             Keep Your Status Widget Updated
           </Text>
 
-          <Text variant="secondary" style={styles.body}>
+          <Text variant="secondary" style={[styles.body, { fontSize: fs(15), lineHeight: fs(22) }]}>
             Instant Status uses notifications to refresh your home screen widget
             in real-time. Without them, your widget may not update properly.
           </Text>
@@ -69,7 +70,7 @@ export function NotificationPermissionModal({
                 color={Colors.interaction.primary}
                 style={styles.bulletIcon}
               />
-              <Text variant="secondary" style={styles.bulletText}>
+              <Text variant="secondary" style={[styles.bulletText, { fontSize: fs(15) }]}>
                 Real-time widget updates
               </Text>
             </View>
@@ -80,7 +81,7 @@ export function NotificationPermissionModal({
                 color={Colors.interaction.primary}
                 style={styles.bulletIcon}
               />
-              <Text variant="secondary" style={styles.bulletText}>
+              <Text variant="secondary" style={[styles.bulletText, { fontSize: fs(15) }]}>
                 Live status sync
               </Text>
             </View>
@@ -91,7 +92,7 @@ export function NotificationPermissionModal({
                 color={Colors.interaction.primary}
                 style={styles.bulletIcon}
               />
-              <Text variant="secondary" style={styles.bulletText}>
+              <Text variant="secondary" style={[styles.bulletText, { fontSize: fs(15) }]}>
                 Faster refresh
               </Text>
             </View>
@@ -114,7 +115,7 @@ export function NotificationPermissionModal({
             style={styles.notNowButton}
             activeOpacity={0.7}
           >
-            <Text variant="secondary" style={styles.notNowText}>
+            <Text variant="secondary" style={[styles.notNowText, { fontSize: fs(16) }]}>
               Not Now
             </Text>
           </TouchableOpacity>

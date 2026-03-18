@@ -23,7 +23,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "EmailVerification">;
 
 export default function EmailVerificationScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
-  const { horizontalPadding, isSmallScreen } = useResponsive();
+  const { horizontalPadding, fs } = useResponsive();
   const { checkEmailVerification, logout, authError } = useAuth();
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -170,10 +170,10 @@ export default function EmailVerificationScreen({ route }: Props) {
         ]}
       >
         <View style={styles.iconContainer}>
-          <Ionicons name="mail-outline" size={isSmallScreen ? 64 : 80} color={Colors.interaction.primary} />
+          <Ionicons name="mail-outline" size={fs(80)} color={Colors.interaction.primary} />
         </View>
 
-        <Text variant="primary" style={[styles.title, isSmallScreen && { fontSize: 24, lineHeight: 30 }]}>
+        <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
           Verify Your Email
         </Text>
         {authError && (

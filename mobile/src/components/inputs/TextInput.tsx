@@ -16,7 +16,7 @@
 
 import React, { useState } from 'react';
 import { TextInput as RNTextInput, TextInputProps as RNTextInputProps, StyleSheet } from 'react-native';
-import { Colors, Borders, Spacing, Typography } from '../../design';
+import { Colors, Borders, Spacing, Typography, useResponsive } from '../../design';
 
 export interface TextInputProps extends RNTextInputProps {
   error?: boolean;
@@ -29,11 +29,13 @@ export const TextInput: React.FC<TextInputProps> = ({
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false);
+  const { fs } = useResponsive();
 
   return (
     <RNTextInput
       style={[
         styles.input,
+        { fontSize: fs(16) },
         isFocused && styles.inputFocused, // Add focus state
         error && styles.inputError,
         !editable && styles.inputDisabled,
