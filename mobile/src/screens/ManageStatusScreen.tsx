@@ -22,7 +22,7 @@ import { EmojiPicker } from "../components/EmojiPicker";
 import { ColorPicker } from "../components/ColorPicker";
 import StatusPreviewCard from "../components/StatusPreviewCard";
 import { useIsPremium } from "../hooks/useIsPremium";
-import { PurchasesService } from "../services/purchases.service";
+import { presentPaywall } from "../services/purchases.service";
 import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
@@ -89,7 +89,7 @@ export default function ManageStatusScreen() {
   const handleEdit = async (option: StatusOption) => {
     // If it's a custom status (user_id !== null) and user is not premium, show paywall
     if (option.user_id !== null && !isPremium) {
-      const purchased = await PurchasesService.presentPaywall();
+      const purchased = await presentPaywall();
       if (!purchased) {
         return;
       }
