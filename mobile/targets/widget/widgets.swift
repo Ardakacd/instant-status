@@ -423,7 +423,6 @@ struct HomeScreenWidgetView: View {
     @ViewBuilder private func smallDetailedRow(_ friend: FriendStatusWidgetItem, primaryColor: Color, secondaryColor: Color) -> some View {
         let isExpired = friend.isExpired
         let optionLabel = friend.effectiveOptionLabel
-        let optionEmoji = friend.effectiveOptionEmoji
         let optionColor = friend.effectiveOptionColor
         let expiryText: String? = {
             guard !isExpired, let expiry = friend.expiresAt, expiry > Date() else { return nil }
@@ -470,7 +469,6 @@ struct HomeScreenWidgetView: View {
     @ViewBuilder private func mediumDetailedRow(_ friend: FriendStatusWidgetItem, primaryColor: Color, secondaryColor: Color) -> some View {
         let isExpired = friend.isExpired
         let optionLabel = friend.effectiveOptionLabel
-        let optionEmoji = friend.effectiveOptionEmoji
         let optionColor = friend.effectiveOptionColor
         let expiryText: String? = {
             guard !isExpired, let expiry = friend.expiresAt, expiry > Date() else { return nil }
