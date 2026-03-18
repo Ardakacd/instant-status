@@ -107,16 +107,30 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   switch (props.widgetAction) {
     case "WIDGET_ADDED":
       {
-        const { friends, hasAnyFriends } = await loadWidgetData(
-          widgetInfo.widgetId
-        );
-        props.renderWidget(
-          <Widget
-            friends={friends}
-            hasAnyFriends={hasAnyFriends}
-            layoutSize={layoutSize}
-          />
-        );
+        const { friends, hasAnyFriends, isPremium, backgroundStyle } =
+          await loadWidgetData(widgetInfo.widgetId);
+        props.renderWidget({
+          light: (
+            <Widget
+              friends={friends}
+              hasAnyFriends={hasAnyFriends}
+              layoutSize={layoutSize}
+              isPremium={isPremium}
+              backgroundStyle={backgroundStyle}
+              isDarkMode={false}
+            />
+          ),
+          dark: (
+            <Widget
+              friends={friends}
+              hasAnyFriends={hasAnyFriends}
+              layoutSize={layoutSize}
+              isPremium={isPremium}
+              backgroundStyle={backgroundStyle}
+              isDarkMode={true}
+            />
+          ),
+        });
       }
       break;
 

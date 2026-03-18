@@ -340,7 +340,7 @@ export function InstantStatusWidget({
   isPremium = false,
   isDarkMode = false,
 }: InstantStatusWidgetProps) {
-  const maxFriends = MAX_FRIENDS_BY_LAYOUT[layoutSize];
+  const maxFriends = layoutSize === "large" ? (isPremium ? 16 : 8) : MAX_FRIENDS_BY_LAYOUT[layoutSize];
   const displayFriends = friends.slice(0, maxFriends);
 
   const effectiveStyle: WidgetBackgroundStyle =
