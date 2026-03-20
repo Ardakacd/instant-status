@@ -106,11 +106,6 @@ export class StatusService {
         }
       }
 
-      // Validate note length
-      if (note && note.length > 200) {
-        throw new BadRequestException("Note cannot exceed 200 characters");
-      }
-
       // Validate expiresAt is in the future
       if (expiresAt && expiresAt.getTime() <= Date.now()) {
         throw new BadRequestException("Expiration time must be in the future");

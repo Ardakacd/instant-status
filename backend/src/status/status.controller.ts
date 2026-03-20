@@ -79,6 +79,7 @@ export class StatusController {
   }
 
   @Get("me")
+  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 reads/min
   async getMyStatus(@Request() req) {
     const status = await this.statusService.getUserStatus(req.user.id);
 
@@ -120,6 +121,7 @@ export class StatusController {
   }
 
   @Get("friends")
+  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 reads/min
   async getFriendsStatus(@Request() req) {
     return this.statusService.getFriendsStatus(req.user.id);
   }

@@ -47,6 +47,7 @@ export default function HomeScreen() {
   const [friendLayoutMode, setFriendLayoutMode] = useState<"large" | "compact">("large");
   const slideAnim = React.useRef(new Animated.Value(-100)).current;
   const pendingFriendIdRef = React.useRef<string | null>(null);
+  const refreshHintTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const FRIEND_LAYOUT_STORAGE_KEY = "home_friend_layout_mode";
 
@@ -74,6 +75,12 @@ export default function HomeScreen() {
       });
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (refreshHintTimerRef.current) clearTimeout(refreshHintTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     loadStatusOptions();
@@ -155,7 +162,7 @@ export default function HomeScreen() {
       const hasSeenHint = await AsyncStorage.getItem("hasSeenRefreshHint");
       if (!hasSeenHint) {
         // Show hint after a short delay for better UX
-        setTimeout(() => {
+        refreshHintTimerRef.current = setTimeout(() => {
           setShowRefreshHint(true);
           Animated.spring(slideAnim, {
             toValue: 0,
@@ -560,7 +567,7 @@ export default function HomeScreen() {
                       ]}
                     >
                       <Text variant="primary" style={styles.avatarTextCompact}>
-                        {status.avatar_url ? "IMG" : initials}
+                        {initials}
                       </Text>
                     </View>
                     <Text
@@ -611,7 +618,7 @@ export default function HomeScreen() {
                       ]}
                     >
                       <Text variant="primary" style={[styles.avatarText, { fontSize: fs(20) }]}>
-                        {status.avatar_url ? "IMG" : initials}
+                        {initials}
                       </Text>
                     </View>
                     <View style={styles.friendInfo}>
