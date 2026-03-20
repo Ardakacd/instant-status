@@ -59,14 +59,14 @@ export class StatusService {
         });
         
         if (user) {
-          // Check if premium is expired (beyond grace period for custom status - 24 hours)
+          // Check if premium is expired (beyond 3-day grace period, same as status-option and connections)
           if (user.premium_until) {
             const now = new Date();
             const expirationDate = new Date(user.premium_until);
-            const customStatusGracePeriodMs = 24 * 60 * 60 * 1000; // 24 hours
-            
-            // If more than 24 hours past expiration, reset to default
-            if (now >= new Date(expirationDate.getTime() + customStatusGracePeriodMs)) {
+            const gracePeriodMs = 3 * 24 * 60 * 60 * 1000; // 3 days
+
+            // If more than 3 days past expiration, reset to default
+            if (now >= new Date(expirationDate.getTime() + gracePeriodMs)) {
               // Reset to default "Available" status
               const defaultOption = await this.statusOptionService.getDefaultStatusOption();
               if (!defaultOption) {
