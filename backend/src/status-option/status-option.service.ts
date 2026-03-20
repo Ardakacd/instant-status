@@ -306,14 +306,14 @@ export class StatusOptionService {
         throw new NotFoundException("Status option not found");
       }
 
-      // User can only delete their own custom statuses
-      if (option.user_id !== userId) {
-        throw new NotFoundException("Status option not found");
-      }
-
       // System statuses cannot be deleted
       if (option.user_id === null) {
         throw new BadRequestException("Cannot delete system status option");
+      }
+
+      // User can only delete their own custom statuses
+      if (option.user_id !== userId) {
+        throw new NotFoundException("Status option not found");
       }
 
       // Use a transaction to ensure atomicity
