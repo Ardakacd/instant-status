@@ -3,9 +3,8 @@ import {
   Get,
   Delete,
   Patch,
-  Post,
-  Body,
   Param,
+  Body,
   UseGuards,
   Request,
 } from "@nestjs/common";
@@ -16,12 +15,6 @@ import { UserService } from "../user/user.service";
 import { z } from "zod";
 
 const FriendIdParamSchema = z.string().uuid();
-
-const FromInviteDtoSchema = z
-  .object({
-    friend_id: z.string().uuid(),
-  })
-  .strict(); // Reject unknown fields
 
 @Controller("connections")
 @UseGuards(AuthGuard)
@@ -98,21 +91,4 @@ export class ConnectionsController {
     return { message: "Visibility updated" };
   }
 
-  @Post("from-invite")
-  async createFromInvite(@Request() req, @Body() body: unknown) {
-    const { friend_id } = FromInviteDtoSchema.parse(body);
-    const connection = await this.connectionsService.createFromInvite(
-      req.user.id,
-      friend_id
-    );
-    return {
-      id: connection.id,
-      friend_id: connection.friend_id,
-      friend_display_name:
-        connection.friend.first_name && connection.friend.last_name
-          ? `${connection.friend.first_name} ${connection.friend.last_name}`
-          : connection.friend.first_name || connection.friend.last_name || null,
-      visibility: connection.a_shows_status && connection.b_shows_status,
-    };
-  }
 }
