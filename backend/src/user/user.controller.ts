@@ -8,6 +8,7 @@ import {
   Request,
   NotFoundException,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { UserService } from "./user.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { isUserPremium } from "../utils/premium";
@@ -15,7 +16,6 @@ import { z } from "zod";
 
 const UpdateUserDtoSchema = z
   .object({
-    email: z.string().email().optional(),
     // min(1) after trim() rejects empty strings and whitespace-only values
     first_name: z.string().trim().min(1).max(50).optional(),
     last_name: z.string().trim().min(1).max(50).optional(),
@@ -28,6 +28,7 @@ export class UserController {
 
   @Get("me")
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 reads/min
   async getMe(@Request() req) {
     // User comes from AuthGuard, so it's guaranteed to exist
     const user = await this.userService.findById(req.user.id);
@@ -72,6 +73,7 @@ export class UserController {
 
   @Patch("me")
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 updates/min
   async updateMe(@Request() req, @Body() body: unknown) {
     const data = UpdateUserDtoSchema.parse(body);
     const user = await this.userService.update(req.user.id, data);
@@ -87,6 +89,7 @@ export class UserController {
 
   @Delete("me")
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 deletes/min
   async deleteMe(@Request() req) {
     await this.userService.delete(req.user.id);
     return { message: "Account deleted successfully" };
