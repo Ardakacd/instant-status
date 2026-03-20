@@ -67,12 +67,12 @@ export default function EmailVerificationScreen({ route }: Props) {
     try {
       await authService.verifyEmail(oobCode);
       await checkEmailVerification();
-      setVerifying(false);
     } catch (error: any) {
       Toast.show({
         type: "error",
         text1: error.message || "Failed to verify email. Please try again.",
       });
+    } finally {
       setVerifying(false);
     }
   };

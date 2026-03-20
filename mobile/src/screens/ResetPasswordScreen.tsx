@@ -115,13 +115,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
         navigation.navigate("SignIn");
       }, 1500);
     } catch (error: any) {
-      if (error.code === "auth/expired-action-code") {
-        setGlobalError("This password reset link has expired. Please request a new one.");
-      } else if (error.code === "auth/invalid-action-code") {
-        setGlobalError("This password reset link is invalid. Please request a new one.");
-      } else {
-        setGlobalError(error.message || "Failed to reset password. Please try again.");
-      }
+      setGlobalError(error.message || "Failed to reset password. Please try again.");
     } finally {
       setResetting(false);
     }

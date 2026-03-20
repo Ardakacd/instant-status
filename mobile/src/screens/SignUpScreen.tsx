@@ -149,12 +149,10 @@ export default function SignUpScreen({ navigation }: Props) {
     try {
       await signInWithApple();
     } catch (error: any) {
-      if (!error.message?.includes("cancelled")) {
-        Toast.show({
-          type: "error",
-          text1: error.message || "Failed to sign in with Apple. Please try again.",
-        });
-      }
+      Toast.show({
+        type: "error",
+        text1: error.message || "Failed to sign in with Apple. Please try again.",
+      });
     } finally {
       setAppleLoading(false);
     }

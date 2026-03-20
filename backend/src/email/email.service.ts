@@ -259,7 +259,8 @@ Didn't create an account? If you didn't sign up for Instant Status, you can safe
    * Plain text template for welcome email
    */
   private getWelcomeEmailTextTemplate(firstName?: string | null): string {
-    const greeting = firstName ? `Hello ${escapeHtml(firstName)},` : "Hello,";
+    // Plain text part: do not use escapeHtml — entities like &#039; would show literally.
+    const greeting = firstName ? `Hello ${firstName},` : "Hello,";
     
     return `
 ${greeting}
@@ -359,7 +360,8 @@ Didn't create an account? If you didn't sign up for Instant Status, please conta
     deviceInfo: { platform: string; location?: string },
     firstName?: string | null
   ): string {
-    const greeting = firstName ? `Hello ${escapeHtml(firstName)},` : "Hello,";
+    // Plain text part: do not use escapeHtml — entities like &#039; would show literally.
+    const greeting = firstName ? `Hello ${firstName},` : "Hello,";
     const locationText = deviceInfo.location
       ? ` in ${deviceInfo.location}`
       : "";

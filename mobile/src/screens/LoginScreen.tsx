@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as AppleAuthentication from "expo-apple-authentication";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -161,13 +160,10 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       await signInWithApple();
     } catch (error: any) {
-      // Don't show alert for user cancellation
-      if (!error.message?.includes("cancelled")) {
-        Toast.show({
-          type: "error",
-          text1: "Failed to sign in with Apple. Please try again.",
-        });
-      }
+      Toast.show({
+        type: "error",
+        text1: "Failed to sign in with Apple. Please try again.",
+      });
     } finally {
       setAppleLoading(false);
     }
@@ -534,9 +530,6 @@ const styles = StyleSheet.create({
   socialButtonText: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
   },
   signUpContainer: {
     flexDirection: "row",
