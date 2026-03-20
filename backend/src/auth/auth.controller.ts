@@ -49,6 +49,7 @@ export class AuthController {
 
   @Delete("account")
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3/min – destructive operation
   async deleteAccount(@Request() req: any) {
     return this.authService.hardDeleteUser(req.user);
   }

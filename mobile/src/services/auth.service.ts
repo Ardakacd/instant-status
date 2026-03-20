@@ -268,12 +268,12 @@ export class AuthService {
 
       await this.handleAuthSuccess(userCredential);
     } catch (error: any) {
-      // Handle user cancellation
+      // Handle user cancellation silently — same behaviour as Google Sign-In
       if (
         error.code === "ERR_REQUEST_CANCELED" ||
         error.message?.includes("cancel")
       ) {
-        throw new Error("Apple Sign In was cancelled");
+        return;
       }
 
       // Handle other errors

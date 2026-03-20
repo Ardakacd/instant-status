@@ -124,14 +124,6 @@ export class InviteCodeService {
 
   async redeemCode(userId: string, code: string) {
     try {
-      if (!code || typeof code !== "string") {
-        throw new BadRequestException("Invite code is required");
-      }
-
-      if (code.length !== 8) {
-        throw new BadRequestException("Invite code must be 8 characters");
-      }
-
       return await this.dataSource.transaction(async (manager) => {
         try {
           // Use PostgreSQL NOW() to check expiration correctly across timezones
@@ -220,11 +212,6 @@ export class InviteCodeService {
 
   async connectByLink(userId: string, targetUserId: string) {
     try {
-      // Validate targetUserId (comes from user input)
-      if (!targetUserId) {
-        throw new BadRequestException("Target user ID is required");
-      }
-
       if (userId === targetUserId) {
         throw new BadRequestException("Cannot connect to yourself");
       }
