@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Repository, DataSource } from "typeorm";
 import { User } from "../entities/user.entity";
 import { Status } from "../entities/status.entity";
 import { EmailService } from "../email/email.service";
@@ -22,6 +22,7 @@ export class UserService {
     private userRepository: Repository<User>,
     @InjectRepository(Status)
     private statusRepository: Repository<Status>,
+    private dataSource: DataSource,
     private emailService: EmailService,
     private statusOptionService: StatusOptionService,
   ) {}
@@ -71,21 +72,23 @@ export class UserService {
     last_name: string | null;
   }): Promise<User> {
     try {
-      const user = this.userRepository.create(data);
-      const savedUser = await this.userRepository.save(user);
-
-      // Create default status with default "Available" option
       const defaultOption =
         await this.statusOptionService.getDefaultStatusOption();
-      if (defaultOption) {
-        const status = this.statusRepository.create({
-          user_id: savedUser.id,
-          option_id: defaultOption.id,
-        });
-        await this.statusRepository.save(status);
-      }
 
-      return savedUser;
+      return await this.dataSource.transaction(async (manager) => {
+        const user = manager.create(User, data);
+        const savedUser = await manager.save(user);
+
+        if (defaultOption) {
+          const status = manager.create(Status, {
+            user_id: savedUser.id,
+            option_id: defaultOption.id,
+          });
+          await manager.save(status);
+        }
+
+        return savedUser;
+      });
     } catch (error: any) {
       // Handle unique constraint violations
       if (error.code === "23505") {
