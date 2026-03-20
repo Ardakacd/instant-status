@@ -25,6 +25,7 @@ export class ConnectionsController {
   ) {}
 
   @Get()
+  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 reads/min
   async getConnections(@Request() req) {
     const connections = await this.connectionsService.findAll(req.user.id);
 
@@ -50,6 +51,7 @@ export class ConnectionsController {
   }
 
   @Get("friend-count")
+  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 reads/min
   async getFriendCount(@Request() req) {
     const limitCheck = await this.connectionsService.checkFriendLimit(req.user.id);
     

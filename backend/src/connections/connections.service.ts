@@ -328,10 +328,15 @@ export class ConnectionsService {
     // Normalize pair to ensure consistent ordering
     const [a, b] = normalizePair(userId, friendId);
 
-    // Use transaction manager if provided, otherwise use repository
+    // Use transaction manager if provided, otherwise use repository.
+    // All DB operations within this function use these manager-aware repos so that
+    // the friend-limit check and the insert are atomic when called inside a transaction.
     const repo = manager
       ? manager.getRepository(Connection)
       : this.connectionRepository;
+    const userRepo = manager
+      ? manager.getRepository(User)
+      : this.userRepository;
 
     try {
       // Check if connection already exists (using normalized pair)
@@ -343,19 +348,23 @@ export class ConnectionsService {
         return existing;
       }
 
-      // Check friend limits for BOTH users before creating connection
-      // Get both users
+      // Check friend limits for BOTH users before creating connection.
+      // Uses the same repo/userRepo as the insert so the check is inside the transaction.
       const [userA, userB] = await Promise.all([
-        this.userRepository.findOne({ where: { id: userId } }),
-        this.userRepository.findOne({ where: { id: friendId } }),
+        userRepo.findOne({ where: { id: userId } }),
+        userRepo.findOne({ where: { id: friendId } }),
       ]);
 
       if (!userA || !userB) {
         throw new NotFoundException("User not found");
       }
 
-      // Check friend count for user A (initiator)
-      const friendCountA = await this.getFriendCount(userId);
+      // Count friends using the transactional repo to avoid TOCTOU races
+      const [friendCountA, friendCountB] = await Promise.all([
+        repo.count({ where: [{ user_id: userId }, { friend_id: userId }] }),
+        repo.count({ where: [{ user_id: friendId }, { friend_id: friendId }] }),
+      ]);
+
       const limitA = this.getFriendLimit(userA);
       const isPremiumA = this.isUserPremium(userA);
 
@@ -366,8 +375,6 @@ export class ConnectionsService {
         throw new BadRequestException(errorMsg);
       }
 
-      // Check friend count for user B (receiver)
-      const friendCountB = await this.getFriendCount(friendId);
       const limitB = this.getFriendLimit(userB);
       const isPremiumB = this.isUserPremium(userB);
 
