@@ -21,19 +21,14 @@ import {
   type WidgetBackgroundStyle,
   WIDGET_BACKGROUND_OPTIONS,
 } from "./InstantStatusWidget";
+import {
+  WIDGET_DATA_KEY,
+  WIDGET_CONFIG_KEY_PREFIX,
+  WIDGET_CONFIG_BACKGROUND_PREFIX,
+  IS_PREMIUM_KEY,
+  getWidgetLayout,
+} from "./widget-shared";
 import Sentry from "../sentry";
-
-function getWidgetLayout(width: number, height: number): WidgetLayoutSize {
-  const minDim = Math.min(width, height);
-  if (width < 200 || minDim < 140) return "small";
-  if (width < 350 && height < 280) return "medium";
-  return "large";
-}
-
-const WIDGET_DATA_KEY = "widget_status_data";
-const WIDGET_CONFIG_KEY_PREFIX = "widget_config_";
-const WIDGET_CONFIG_BACKGROUND_PREFIX = "widget_config_background_";
-const IS_PREMIUM_KEY = "is_premium";
 
 export function WidgetConfigurationScreen(
   props: WidgetConfigurationScreenProps
@@ -73,9 +68,10 @@ function WidgetConfigurationScreenContent({
   async function loadFriendsAndSelection() {
     try {
       const data = await AsyncStorage.getItem(WIDGET_DATA_KEY);
+      let parsedFriends: FriendStatusWidgetItem[] = [];
       if (data) {
-        const parsedData: FriendStatusWidgetItem[] = JSON.parse(data);
-        setFriends(parsedData);
+        parsedFriends = JSON.parse(data);
+        setFriends(parsedFriends);
       }
 
       const savedSelection = await AsyncStorage.getItem(configKey);
@@ -84,11 +80,7 @@ function WidgetConfigurationScreenContent({
         setSelectedFriendIds(new Set(selectedIds));
       } else {
         // No saved selection: pre-select all friends (same as iOS "no config = all")
-        const data = await AsyncStorage.getItem(WIDGET_DATA_KEY);
-        if (data) {
-          const parsedData: FriendStatusWidgetItem[] = JSON.parse(data);
-          setSelectedFriendIds(new Set(parsedData.map((f) => f.id)));
-        }
+        setSelectedFriendIds(new Set(parsedFriends.map((f) => f.id)));
       }
 
       const isPremiumRaw = await AsyncStorage.getItem(IS_PREMIUM_KEY);
