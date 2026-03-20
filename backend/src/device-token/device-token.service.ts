@@ -1,6 +1,5 @@
 import {
   Injectable,
-  BadRequestException,
   InternalServerErrorException,
   Inject,
   forwardRef,
@@ -26,11 +25,6 @@ export class DeviceTokenService {
 
   async registerToken(userId: string, token: string, platform: Platform) {
     try {
-      // Validate input
-      if (!token || token.trim().length === 0) {
-        throw new BadRequestException("Device token is required");
-      }
-
       // Check if user_id + platform combination already exists
       // Only one row per user_id + platform is allowed
       const existingToken = await this.deviceTokenRepository.findOne({
@@ -89,10 +83,6 @@ export class DeviceTokenService {
 
       return savedToken;
     } catch (error: any) {
-      // Re-throw NestJS exceptions as-is
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
       this.logger.error(
         `Error registering device token: ${error.message}`,
         error.stack

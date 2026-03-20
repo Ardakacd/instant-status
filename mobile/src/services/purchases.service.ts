@@ -27,7 +27,7 @@ export async function presentPaywall(): Promise<boolean> {
     }
   } catch (error) {
     Sentry.captureException(error);
-    throw error;
+    throw new Error("Failed to open subscription options. Please try again.");
   }
 }
 
@@ -42,7 +42,7 @@ export function presentCustomerCenter(): void {
     PurchasesUI.presentCustomerCenter();
   } catch (error) {
     Sentry.captureException(error);
-    throw error;
+    throw new Error("Failed to open subscription settings. Please try again.");
   }
 }
 
@@ -55,12 +55,16 @@ export async function getOfferings() {
   try {
     const offerings = await Purchases.getOfferings();
     if (!offerings.current) {
-      throw new Error("No current offering available");
+      throw new Error("No subscription plans are available right now. Please try again later.");
     }
     return offerings;
-  } catch (error) {
+  } catch (error: any) {
     Sentry.captureException(error);
-    throw error;
+    // Re-throw our own controlled errors as-is
+    if (error.message?.includes("No subscription plans")) {
+      throw error;
+    }
+    throw new Error("Failed to load subscription options. Please try again.");
   }
 }
 
@@ -80,7 +84,7 @@ export async function purchasePackage(pkg: any): Promise<CustomerInfo> {
       throw new Error("Purchase cancelled by user");
     }
     Sentry.captureException(error);
-    throw error;
+    throw new Error("Failed to complete purchase. Please try again.");
   }
 }
 
@@ -96,7 +100,7 @@ export async function restorePurchases(): Promise<CustomerInfo> {
     return customerInfo;
   } catch (error) {
     Sentry.captureException(error);
-    throw error;
+    throw new Error("Failed to restore purchases. Please try again.");
   }
 }
 
@@ -110,6 +114,6 @@ export async function getCustomerInfo(): Promise<CustomerInfo> {
     return await Purchases.getCustomerInfo();
   } catch (error) {
     Sentry.captureException(error);
-    throw error;
+    throw new Error("Failed to load subscription status. Please try again.");
   }
 }

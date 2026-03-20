@@ -261,9 +261,7 @@ export class AuthService {
       try {
         userCredential = await signInWithCredential(auth, credential);
       } catch (firebaseError: any) {
-        throw new Error(
-          firebaseError.message || "Failed to sign in with Apple",
-        );
+        throw new Error("Failed to sign in with Apple");
       }
 
       await this.handleAuthSuccess(userCredential);
@@ -274,11 +272,6 @@ export class AuthService {
         error.message?.includes("cancel")
       ) {
         return;
-      }
-
-      // Handle other errors
-      if (error.message) {
-        throw new Error(error.message);
       }
 
       throw new Error("Failed to sign in with Apple");
@@ -377,10 +370,8 @@ export class AuthService {
         );
       } else if (error.code === "auth/invalid-action-code") {
         throw new Error("Invalid verification link. Please request a new one.");
-      } else if (error.message) {
-        throw new Error(error.message);
       } else {
-        throw new Error("Failed to verify email");
+        throw new Error("Failed to verify email. Please try again.");
       }
     }
   }
@@ -443,10 +434,8 @@ export class AuthService {
         throw new Error(
           "Password is too weak. Please choose a stronger password.",
         );
-      } else if (error.message) {
-        throw new Error(error.message);
       } else {
-        throw new Error("Failed to reset password");
+        throw new Error("Failed to reset password. Please try again.");
       }
     }
   }

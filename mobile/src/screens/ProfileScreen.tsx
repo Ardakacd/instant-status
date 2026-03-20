@@ -44,6 +44,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
+  const notifCheckTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     isPremium,
     loading: premiumLoading,
@@ -75,7 +76,10 @@ export default function ProfileScreen() {
         checkAuthProvider();
       }
     });
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+      if (notifCheckTimerRef.current) clearTimeout(notifCheckTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -192,7 +196,7 @@ export default function ProfileScreen() {
                   text: "Open Settings",
                   onPress: async () => {
                     await openNotificationSettings();
-                    setTimeout(checkNotificationState, 1000);
+                    notifCheckTimerRef.current = setTimeout(checkNotificationState, 1000);
                   },
                 },
               ]
@@ -214,7 +218,7 @@ export default function ProfileScreen() {
               text: "Open Settings",
               onPress: async () => {
                 await openNotificationSettings();
-                setTimeout(checkNotificationState, 1000);
+                notifCheckTimerRef.current = setTimeout(checkNotificationState, 1000);
               },
             },
           ]
@@ -848,9 +852,6 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     maxHeight: 400,
-  },
-  modalBodyContent: {
-    paddingBottom: Spacing.lg,
   },
   modalField: {
     marginBottom: Spacing.md,
