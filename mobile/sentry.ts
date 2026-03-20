@@ -46,7 +46,9 @@ Sentry.init({
   tracesSampleRate: 0.1,
   integrations: [navigationIntegration],
   environment:
-    Constants.expoConfig?.extra?.environment || process.env.NODE_ENV,
+    process.env.EXPO_PUBLIC_APP_ENVIRONMENT ||
+    Constants.expoConfig?.extra?.environment ||
+    (__DEV__ ? "development" : "production"),
   beforeSend(event) {
     // Scrub exception message if it contains token-like patterns (long base64, etc.)
     if (event.exception?.values?.[0]?.value) {

@@ -178,7 +178,8 @@
     "extra": {
       "eas": {
         "projectId": "d4314124-26b3-4693-a96f-35ea529a0ad1"
-      }
+      },
+      "environment": "development"
     },
     "owner": "ardaka"
   }
