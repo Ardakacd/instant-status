@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   TouchableOpacity,
@@ -33,10 +33,18 @@ export default function ConnectScreen({ navigation, route }: Props) {
   const [redeemingCode, setRedeemingCode] = useState(false);
   const [connectingByLink, setConnectingByLink] = useState(false);
   const [inviteCodeError, setInviteCodeError] = useState(false);
+  const navigateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (navigateTimeoutRef.current) clearTimeout(navigateTimeoutRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     loadMyInviteCode();
     generateShareableLink();
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     const userId = route.params?.userId;
@@ -164,7 +172,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
         type: "success",
         text1: `Successfully connected with ${result.owner.first_name} ${result.owner.last_name || ""}!`,
       });
-      setTimeout(() => {
+      navigateTimeoutRef.current = setTimeout(() => {
         navigation.navigate("Main", { screen: "Friends" });
       }, 1500);
     } catch (error: any) {
@@ -324,7 +332,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
         {/* Shareable Link */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <View style={[styles.iconContainer, styles.iconContainerMint]}>
+            <View style={styles.iconContainer}>
               <Ionicons
                 name="link"
                 size={20}
@@ -442,9 +450,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.sm,
-  },
-  iconContainerMint: {
-    backgroundColor: Colors.interaction.primary + "15",
   },
   cardHeaderText: {
     flex: 1,
