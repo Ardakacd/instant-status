@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, Repository, IsNull, MoreThan } from "typeorm";
 import { InviteCode } from "../entities/invite-code.entity";
 import { User } from "../entities/user.entity";
 import { ConnectionsService } from "../connections/connections.service";
@@ -17,6 +17,8 @@ export class InviteCodeService {
   private readonly logger = new StructuredLogger(InviteCodeService.name);
 
   constructor(
+    @InjectRepository(InviteCode)
+    private inviteCodeRepository: Repository<InviteCode>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private connectionsService: ConnectionsService,
@@ -46,6 +48,20 @@ export class InviteCodeService {
       const defaultExpirationHours = 24;
       const expirationHours = expiresInHours ?? defaultExpirationHours;
       const expiresAt = new Date(Date.now() + expirationHours * 60 * 60 * 1000);
+
+      // Reuse the latest unexpired, unused code for this user if one exists.
+      // This prevents accumulating stale codes on every ConnectScreen mount.
+      if (expiresInHours === undefined) {
+        const existing = await this.inviteCodeRepository.findOne({
+          where: {
+            owner_user_id: userId,
+            used_by_user_id: IsNull(),
+            expires_at: MoreThan(new Date()),
+          },
+          order: { created_at: "DESC" },
+        });
+        if (existing) return existing;
+      }
 
       return await this.dataSource.transaction(async (manager) => {
         let code!: string;
