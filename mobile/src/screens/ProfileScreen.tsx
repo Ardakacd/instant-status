@@ -31,7 +31,6 @@ import {
 import { useIsPremium } from "../hooks/useIsPremium";
 import Toast from "react-native-toast-message";
 import Sentry from "../../sentry";
-
 import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
@@ -859,28 +858,5 @@ const styles = StyleSheet.create({
   modalLabel: {
     fontSize: 13,
     marginBottom: Spacing.xs,
-  },
-  deleteWarning: {
-    marginBottom: Spacing.md,
-  },
-  destructiveButton: {
-    backgroundColor: Colors.interaction.error,
-    borderRadius: Borders.radius.medium,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    alignItems: "center",
-    marginTop: Spacing.sm,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  destructiveButtonText: {
-    fontSize: 16,
-    fontFamily: Typography.fontFamily.semiBold,
-    color: "#FFFFFF",
-  },
-  cancelButton: {
-    alignItems: "center",
-    paddingVertical: Spacing.md,
   },
 });
