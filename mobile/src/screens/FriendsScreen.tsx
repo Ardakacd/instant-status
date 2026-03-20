@@ -257,15 +257,9 @@ export default function FriendsScreen() {
                   >
                     <View style={styles.friendCard}>
                       <View style={[styles.avatar, { width: fs(56), height: fs(56), borderRadius: fs(28) }]}>
-                        {conn.friend_avatar_url ? (
-                          <Text variant="primary" style={[styles.avatarText, { fontSize: fs(20) }]}>
-                            IMG
-                          </Text>
-                        ) : (
-                          <Text variant="primary" style={[styles.avatarText, { fontSize: fs(20) }]}>
-                            {initials}
-                          </Text>
-                        )}
+                        <Text variant="primary" style={[styles.avatarText, { fontSize: fs(20) }]}>
+                          {initials}
+                        </Text>
                       </View>
                       <View style={styles.friendInfo}>
                         <Text
@@ -378,7 +372,7 @@ export default function FriendsScreen() {
                 <View style={styles.manageMenuDivider} />
 
                 <TouchableOpacity
-                  style={[styles.manageMenuItem, styles.manageMenuItemDanger]}
+                  style={styles.manageMenuItem}
                   onPress={handleRemoveFriend}
                   activeOpacity={0.7}
                 >
@@ -594,7 +588,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
   },
-  manageMenuItemDanger: {},
   manageMenuItemContent: {
     flex: 1,
   },
