@@ -186,15 +186,10 @@ export class AuthService {
       }
 
       // Track login times
-      const now = new Date();
-      const updateData: Partial<typeof user> = {};
-
-      if (isFirstLogin) {
-        updateData.first_login_at = now;
-      }
-
       if (isNewLogin) {
-        updateData.last_login_at = now;
+        const now = new Date();
+        const updateData: Partial<typeof user> = { last_login_at: now };
+        if (isFirstLogin) updateData.first_login_at = now;
         await this.userService.update(user.id, updateData);
       }
 

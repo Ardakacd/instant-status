@@ -33,29 +33,6 @@ export class AuthController {
     return this.authService.syncAuthState(idToken);
   }
 
-  @Post("refresh-token")
-  @UseGuards(AuthGuard)
-  async refreshToken(@Request() req) {
-    // User comes from AuthGuard, so it's guaranteed to exist
-    // But we still fetch fresh data from database
-    const user = await this.userService.findById(req.user.id);
-
-    if (!user) {
-      throw new NotFoundException("User not found");
-    }
-
-    return {
-      user: {
-        id: user.id,
-        firebase_uid: user.firebase_uid,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-      },
-      onboarding: !user.first_name || !user.last_name,
-    };
-  }
-
   @Post("send-email-verification")
   @UseGuards(AuthGuard)
   @AllowUnverifiedEmail() // Must work before the user has verified their email

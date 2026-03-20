@@ -151,11 +151,6 @@ const styles = StyleSheet.create({
     color: "#000000",
     marginBottom: 2,
   },
-  text2: {
-    fontSize: 13,
-    color: "#374151",
-    lineHeight: 18,
-  },
 });
 
 export type RootStackParamList = {
