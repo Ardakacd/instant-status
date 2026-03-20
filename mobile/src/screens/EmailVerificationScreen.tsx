@@ -66,7 +66,6 @@ export default function EmailVerificationScreen({ route }: Props) {
     setVerifying(true);
     try {
       await authService.verifyEmail(oobCode);
-      await authService.reloadUser();
       await checkEmailVerification();
       setVerifying(false);
     } catch (error: any) {

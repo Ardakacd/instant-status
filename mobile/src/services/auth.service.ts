@@ -361,10 +361,14 @@ export class AuthService {
     try {
       await applyActionCode(auth, oobCode);
 
-      // Reload user to get updated emailVerified status
+      // Reload user to get updated emailVerified status, then force-refresh the
+      // ID token so the email_verified: true claim is reflected in the JWT.
+      // Without forceRefresh the cached token (valid for up to 1 hour) would
+      // still carry email_verified: false and the backend sync would reject the user.
       const currentUser = auth.currentUser;
       if (currentUser) {
         await currentUser.reload();
+        await currentUser.getIdToken(true);
       }
     } catch (error: any) {
       if (error.code === "auth/expired-action-code") {
