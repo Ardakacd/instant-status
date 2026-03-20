@@ -140,6 +140,24 @@ extension Color {
     }
 }
 
+// MARK: - "Until …" subtitle (time follows system 12h/24h — Settings → General → Date & Time)
+private func widgetExpiryText(expiry: Date) -> String {
+    let timeFormatter = DateFormatter()
+    timeFormatter.locale = .current
+    timeFormatter.calendar = Calendar.current
+    timeFormatter.dateStyle = .none
+    timeFormatter.timeStyle = .short
+    let timeStr = timeFormatter.string(from: expiry)
+    if Calendar.current.isDateInToday(expiry) {
+        return "until \(timeStr)"
+    }
+    let dateFormatter = DateFormatter()
+    dateFormatter.locale = .current
+    dateFormatter.calendar = Calendar.current
+    dateFormatter.setLocalizedDateFormatFromTemplate("MMMd")
+    return "until \(dateFormatter.string(from: expiry)), \(timeStr)"
+}
+
 // MARK: - Status Summary (Provider owns; View renders)
 struct StatusSummary {
     let available: Int
@@ -213,7 +231,7 @@ struct Provider: AppIntentTimelineProvider {
         switch family {
         case .systemSmall: maxFriends = 4
         case .systemMedium: maxFriends = 8
-        case .systemLarge: maxFriends = isPremium ? 16 : 8
+        case .systemLarge: maxFriends = isPremium ? 24 : 8
         case .accessoryCircular, .accessoryInline, .accessoryRectangular:
             maxFriends = 16 // Pass enough to compute available/busy summary counts
         default: maxFriends = 16
@@ -334,7 +352,8 @@ struct HomeScreenWidgetView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 0) {
                         if #available(iOS 17.0, *) {
-                            Spacer().frame(height: 28)
+                            // Large 8×3 grid is dense; reserve less space under refresh control.
+                            Spacer().frame(height: family == .systemLarge ? 20 : 28)
                         } else {
                             EmptyView()
                         }
@@ -363,6 +382,18 @@ struct HomeScreenWidgetView: View {
         .redacted(reason: entry.isPlaceholder ? .placeholder : [])
     }
 
+    /// Shows that the friend added a note; open the app to read it (privacy + space).
+    @ViewBuilder
+    private func noteIndicatorIfNeeded(_ friend: FriendStatusWidgetItem, tint: Color, fontSize: CGFloat) -> some View {
+        if friend.hasNonEmptyNote {
+            Image(systemName: "note.text")
+                .font(.system(size: fontSize, weight: .semibold))
+                .foregroundColor(tint.opacity(0.88))
+                .accessibilityLabel("Has a note")
+                .layoutPriority(1)
+        }
+    }
+
     @ViewBuilder private func emptyState(colors: (primary: Color, secondary: Color)) -> some View {
         VStack(spacing: 4) {
             Spacer()
@@ -388,30 +419,15 @@ struct HomeScreenWidgetView: View {
                 }
             }
         case .systemLarge:
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 12) {
-                ForEach(entry.friends.prefix(16)) { friend in
-                    VStack(spacing: 4) {
-                        ZStack(alignment: .bottomTrailing) {
-                            Circle()
-                                .fill(Color(hex: friend.effectiveOptionColor))
-                                .frame(width: 24, height: 24)
-                                .widgetAccentable()
-                            Text(friend.effectiveOptionEmoji)
-                                .font(.system(size: 10))
-                                .offset(x: 4, y: 4)
-                        }
-                        Text(friend.firstName)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(colors.primary)
-                            .lineLimit(1)
-                            .privacySensitive()
-                    }
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), spacing: 2) {
+                ForEach(entry.friends) { friend in
+                    largeGridCell(friend, primaryColor: colors.primary, secondaryColor: colors.secondary)
                 }
             }
-            .padding(.horizontal, 4)
-            .padding(.top, 8)
+            .padding(.horizontal, 3)
+            .padding(.top, 2)
         default:
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 0) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 0) {
                 ForEach(entry.friends.prefix(8)) { friend in
                     mediumDetailedRow(friend, primaryColor: colors.primary, secondaryColor: colors.secondary)
                 }
@@ -420,72 +436,54 @@ struct HomeScreenWidgetView: View {
         }
     }
 
+    @ViewBuilder private func largeGridCell(_ friend: FriendStatusWidgetItem, primaryColor: Color, secondaryColor: Color) -> some View {
+        let isExpired = friend.isExpired
+        let optionLabel = friend.effectiveOptionLabel
+        let optionEmoji = friend.effectiveOptionEmoji
+        let expiryText: String? = {
+            guard !isExpired, let expiry = friend.expiresAt, expiry > Date() else { return nil }
+            return widgetExpiryText(expiry: expiry)
+        }()
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 5) {
+                Text(optionEmoji)
+                    .font(.system(size: 10))
+                    .widgetAccentable()
+                HStack(spacing: 3) {
+                    Text(friend.firstName)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(isExpired ? secondaryColor : primaryColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .privacySensitive()
+                    noteIndicatorIfNeeded(friend, tint: secondaryColor, fontSize: 8)
+                }
+            }
+            Text(isExpired ? "Available" : optionLabel)
+                .font(.system(size: 8))
+                .foregroundColor(secondaryColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .id("status-\(friend.id)-\(isExpired)")
+            if let text = expiryText {
+                Text(text)
+                    .font(.system(size: 7, weight: .medium, design: .rounded))
+                    .foregroundColor(.orange)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     @ViewBuilder private func smallDetailedRow(_ friend: FriendStatusWidgetItem, primaryColor: Color, secondaryColor: Color) -> some View {
         let isExpired = friend.isExpired
         let optionLabel = friend.effectiveOptionLabel
-        let optionColor = friend.effectiveOptionColor
-        let expiryText: String? = {
-            guard !isExpired, let expiry = friend.expiresAt, expiry > Date() else { return nil }
-            let timeFormatter = DateFormatter()
-            timeFormatter.timeStyle = .short
-            if Calendar.current.isDateInToday(expiry) {
-                return "until \(timeFormatter.string(from: expiry))"
-            }
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "MMM d"
-            return "until \(dateFormatter.string(from: expiry)), \(timeFormatter.string(from: expiry))"
-        }()
+        let optionEmoji = friend.effectiveOptionEmoji
         HStack(alignment: .center, spacing: 8) {
-            Circle()
-                .fill(Color(hex: optionColor))
-                .frame(width: 8, height: 8)
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: optionColor)
-                .widgetAccentable()
-            VStack(alignment: .leading, spacing: 0) {
-                Text(friend.firstName)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(isExpired ? secondaryColor : primaryColor)
-                    .lineLimit(1)
-                    .privacySensitive()
-                Text(isExpired ? "Available" : (friend.note ?? optionLabel))
-                    .font(.system(size: 10))
-                    .foregroundColor(secondaryColor)
-                    .lineLimit(1)
-                    .id("note-\(friend.id)-\(isExpired)")
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
-            Spacer()
-            if let text = expiryText {
-                Text(text)
-                    .font(.system(size: 9, weight: .medium, design: .rounded))
-                    .foregroundColor(.orange)
-                    .multilineTextAlignment(.trailing)
-                    .transition(.asymmetric(insertion: .scale, removal: .opacity))
-            }
-        }
-        .animation(.easeInOut, value: isExpired)
-    }
-
-    @ViewBuilder private func mediumDetailedRow(_ friend: FriendStatusWidgetItem, primaryColor: Color, secondaryColor: Color) -> some View {
-        let isExpired = friend.isExpired
-        let optionLabel = friend.effectiveOptionLabel
-        let optionColor = friend.effectiveOptionColor
-        let expiryText: String? = {
-            guard !isExpired, let expiry = friend.expiresAt, expiry > Date() else { return nil }
-            let timeFormatter = DateFormatter()
-            timeFormatter.timeStyle = .short
-            if Calendar.current.isDateInToday(expiry) {
-                return "until \(timeFormatter.string(from: expiry))"
-            }
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "MMM d"
-            return "until \(dateFormatter.string(from: expiry)), \(timeFormatter.string(from: expiry))"
-        }()
-        HStack(alignment: .center, spacing: 8) {
-            Circle()
-                .fill(Color(hex: optionColor))
-                .frame(width: 8, height: 8)
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: optionColor)
+            Text(optionEmoji)
+                .font(.system(size: 12))
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: optionEmoji)
                 .widgetAccentable()
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 4) {
@@ -494,25 +492,65 @@ struct HomeScreenWidgetView: View {
                         .foregroundColor(isExpired ? secondaryColor : primaryColor)
                         .lineLimit(1)
                         .privacySensitive()
-                    if let text = expiryText {
-                        Text(text)
-                            .font(.system(size: 9, weight: .medium, design: .rounded))
-                            .foregroundColor(.orange)
-                            .lineLimit(1)
-                            .transition(.asymmetric(insertion: .scale, removal: .opacity))
-                    }
+                    noteIndicatorIfNeeded(friend, tint: secondaryColor, fontSize: 10)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Text(isExpired ? "Available" : (friend.note ?? optionLabel))
+                Text(isExpired ? "Available" : optionLabel)
                     .font(.system(size: 10))
                     .foregroundColor(secondaryColor)
                     .lineLimit(1)
-                    .id("note-\(friend.id)-\(isExpired)")
+                    .id("status-\(friend.id)-\(isExpired)")
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
+        .animation(.easeInOut, value: isExpired)
+    }
+
+    @ViewBuilder private func mediumDetailedRow(_ friend: FriendStatusWidgetItem, primaryColor: Color, secondaryColor: Color) -> some View {
+        let isExpired = friend.isExpired
+        let optionLabel = friend.effectiveOptionLabel
+        let optionEmoji = friend.effectiveOptionEmoji
+        let expiryText: String? = {
+            guard !isExpired, let expiry = friend.expiresAt, expiry > Date() else { return nil }
+            return widgetExpiryText(expiry: expiry)
+        }()
+        HStack(alignment: .top, spacing: 5) {
+            Text(optionEmoji)
+                .font(.system(size: 12))
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: optionEmoji)
+                .widgetAccentable()
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(friend.firstName)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(isExpired ? secondaryColor : primaryColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .privacySensitive()
+                    noteIndicatorIfNeeded(friend, tint: secondaryColor, fontSize: 9)
+                }
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(isExpired ? "Available" : optionLabel)
+                        .font(.system(size: 9))
+                        .foregroundColor(secondaryColor)
+                        .lineLimit(1)
+                        .id("status-\(friend.id)-\(isExpired)")
+                    if let text = expiryText {
+                        Spacer(minLength: 2)
+                        Text(text)
+                            .font(.system(size: 8, weight: .medium, design: .rounded))
+                            .foregroundColor(.orange)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                            .multilineTextAlignment(.trailing)
+                            .transition(.asymmetric(insertion: .scale, removal: .opacity))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(.vertical, 3)
         .animation(.easeInOut, value: isExpired)
     }
 
@@ -520,7 +558,8 @@ struct HomeScreenWidgetView: View {
         func body(content: Content) -> some View {
             Group {
                 if #available(iOS 17.0, *) {
-                    content.padding(.trailing, 32)
+                    // Reserve space for the refresh control without shrinking both columns as much as 32pt.
+                    content.padding(.trailing, 14)
                 } else {
                     content
                 }
@@ -575,12 +614,19 @@ struct InstantStatusWidget: Widget {
 }
 
 // MARK: - Mock Data
-let mockStatuses: [FriendStatusWidgetItem] = [
-    FriendStatusWidgetItem(id: "1", firstName: "Alex", lastName: nil, optionId: "busy-id", optionLabel: "Busy", optionEmoji: "🟠", optionColor: "#F59E0B", note: "In a meeting", expiresAt: Date().addingTimeInterval(1800), updatedAt: Date().addingTimeInterval(-300)),
-    FriendStatusWidgetItem(id: "2", firstName: "Emma", lastName: nil, optionId: "available-id", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981", note: nil, expiresAt: nil, updatedAt: Date().addingTimeInterval(-1200)),
-    FriendStatusWidgetItem(id: "3", firstName: "John", lastName: nil, optionId: "focus-id", optionLabel: "Focus", optionEmoji: "🟣", optionColor: "#8B5CF6", note: nil, expiresAt: nil, updatedAt: Date().addingTimeInterval(-3600)),
-    FriendStatusWidgetItem(id: "4", firstName: "Alice", lastName: nil, optionId: "dnd-id", optionLabel: "Do Not Disturb", optionEmoji: "🔴", optionColor: "#EF4444", note: "Coding", expiresAt: Date().addingTimeInterval(2400), updatedAt: Date())
-]
+/// ~2 days from now (+ offset) for multi-day "until …" in previews. Plain `TimeInterval` literals keep the type checker fast.
+private let mockExpiresTwoDaysLater: Date = Date().addingTimeInterval(189_000) // 48h + 4h30m
+private let mockExpiresTwoDaysLaterPM: Date = Date().addingTimeInterval(223_200) // 48h + 14h
+
+private func makeMockStatuses() -> [FriendStatusWidgetItem] {
+    let a: FriendStatusWidgetItem = FriendStatusWidgetItem(id: "1", firstName: "Alex", lastName: nil, optionId: "busy-id", optionLabel: "Busy", optionEmoji: "🟠", optionColor: "#F59E0B", note: "In a meeting", expiresAt: Date().addingTimeInterval(1800), updatedAt: Date().addingTimeInterval(-300))
+    let b: FriendStatusWidgetItem = FriendStatusWidgetItem(id: "2", firstName: "Emma", lastName: nil, optionId: "available-id", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981", note: nil, expiresAt: mockExpiresTwoDaysLater, updatedAt: Date().addingTimeInterval(-1200))
+    let c: FriendStatusWidgetItem = FriendStatusWidgetItem(id: "3", firstName: "John", lastName: nil, optionId: "focus-id", optionLabel: "Focus", optionEmoji: "🟣", optionColor: "#8B5CF6", note: nil, expiresAt: mockExpiresTwoDaysLaterPM, updatedAt: Date().addingTimeInterval(-3600))
+    let d: FriendStatusWidgetItem = FriendStatusWidgetItem(id: "4", firstName: "Alice", lastName: nil, optionId: "dnd-id", optionLabel: "Do Not Disturb", optionEmoji: "🔴", optionColor: "#EF4444", note: "Coding", expiresAt: Date().addingTimeInterval(2400), updatedAt: Date())
+    return [a, b, c, d]
+}
+
+let mockStatuses: [FriendStatusWidgetItem] = makeMockStatuses()
 
 // MARK: - Previews
 #Preview("Small Detailed - 4 Friends", as: .systemSmall) {
@@ -621,9 +667,9 @@ let mockStatuses: [FriendStatusWidgetItem] = [
             FriendStatusWidgetItem(id: "2", firstName: "Emma", lastName: nil, optionId: "available-id", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981", note: "Available now", expiresAt: nil, updatedAt: Date()),
             FriendStatusWidgetItem(id: "3", firstName: "John", lastName: nil, optionId: "focus-id", optionLabel: "Focus", optionEmoji: "🟣", optionColor: "#8B5CF6", note: "Deep work", expiresAt: nil, updatedAt: Date()),
             FriendStatusWidgetItem(id: "4", firstName: "James", lastName: nil, optionId: "dnd-id", optionLabel: "Do Not Disturb", optionEmoji: "🔴", optionColor: "#EF4444", note: "Do not disturb", expiresAt: Date().addingTimeInterval(3600), updatedAt: Date()),
-            FriendStatusWidgetItem(id: "5", firstName: "Kevin", lastName: nil, optionId: "available-id", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981", note: nil, expiresAt: nil, updatedAt: Date()),
+            FriendStatusWidgetItem(id: "5", firstName: "Kevin", lastName: nil, optionId: "available-id", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981", note: nil, expiresAt: mockExpiresTwoDaysLater, updatedAt: Date()),
             FriendStatusWidgetItem(id: "6", firstName: "Henry", lastName: nil, optionId: "busy-id", optionLabel: "Busy", optionEmoji: "🟠", optionColor: "#F59E0B", note: "In a call", expiresAt: Date().addingTimeInterval(600), updatedAt: Date()),
-            FriendStatusWidgetItem(id: "7", firstName: "Melissa", lastName: nil, optionId: "social-id", optionLabel: "Social", optionEmoji: "🩷", optionColor: "#EC4899", note: "At a party", expiresAt: nil, updatedAt: Date()),
+            FriendStatusWidgetItem(id: "7", firstName: "Melissa", lastName: nil, optionId: "social-id", optionLabel: "Social", optionEmoji: "🩷", optionColor: "#EC4899", note: "At a party", expiresAt: mockExpiresTwoDaysLaterPM, updatedAt: Date()),
             FriendStatusWidgetItem(id: "8", firstName: "Eve", lastName: nil, optionId: "commute-id", optionLabel: "Commute", optionEmoji: "🔵", optionColor: "#3B82F6", note: "Driving", expiresAt: nil, updatedAt: Date())
         ],
         hasAnyFriends: true,
@@ -632,18 +678,30 @@ let mockStatuses: [FriendStatusWidgetItem] = [
 }
 
 private let mockLargeStatuses: [FriendStatusWidgetItem] = {
-    let names = ["Alex", "Emma", "John", "James", "Kevin", "Henry", "Melissa", "Eve", "Noah", "Olivia", "Liam", "Ava", "Mason", "Sophia", "Ethan", "Isabella"]
+    let names = [
+        "Alex", "Emma", "John", "James", "Kevin", "Henry", "Melissa", "Eve",
+        "Noah", "Olivia", "Liam", "Ava", "Mason", "Sophia", "Ethan", "Isabella",
+        "Mia", "Lucas", "Charlotte", "Benjamin", "Amelia", "Daniel", "Harper", "Matthew",
+    ]
     let options: [(label: String, emoji: String, color: String)] = [
         ("Available", "🟢", "#10B981"), ("Busy", "🟠", "#F59E0B"), ("Focus", "🟣", "#8B5CF6"),
         ("Do Not Disturb", "🔴", "#EF4444"), ("Social", "🩷", "#EC4899"), ("Commute", "🔵", "#3B82F6")
     ]
     return names.enumerated().map { i, name in
         let opt = options[i % options.count]
-        return FriendStatusWidgetItem(id: "\(i+1)", firstName: name, lastName: nil, optionId: "opt-\(i)", optionLabel: opt.label, optionEmoji: opt.emoji, optionColor: opt.color, note: nil, expiresAt: nil, updatedAt: Date())
+        let expiresAt: Date? = {
+            switch i % 5 {
+            case 0: return mockExpiresTwoDaysLater
+            case 1: return mockExpiresTwoDaysLaterPM
+            case 2: return Date().addingTimeInterval(3600)
+            default: return nil
+            }
+        }()
+        return FriendStatusWidgetItem(id: "\(i+1)", firstName: name, lastName: nil, optionId: "opt-\(i)", optionLabel: opt.label, optionEmoji: opt.emoji, optionColor: opt.color, note: nil, expiresAt: expiresAt, updatedAt: Date())
     }
 }()
 
-#Preview("Large Widget - 16 Friends", as: .systemLarge) {
+#Preview("Large Widget - 24 Friends", as: .systemLarge) {
     InstantStatusWidget()
 } timeline: {
     SimpleEntry(

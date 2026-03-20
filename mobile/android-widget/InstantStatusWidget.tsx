@@ -196,6 +196,14 @@ function getEffectiveStatus(friend: FriendStatusWidgetItem): {
   };
 }
 
+/** Short time string respecting device 12h/24h (system locale default). */
+function formatExpiryClock(isoDate: Date): string {
+  return isoDate.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function formatTimeUntil(expiresAt: string): string {
   try {
     const expiryDate = new Date(expiresAt);
@@ -205,40 +213,40 @@ function formatTimeUntil(expiresAt: string): string {
       return "";
     }
 
-    const hours = expiryDate.getHours();
-    const minutes = expiryDate.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const displayHours = hours % 12 || 12;
-    const displayMinutes = minutes.toString().padStart(2, "0");
+    const timeStr = formatExpiryClock(expiryDate);
 
-    // Check if the date is today
     const isToday =
       expiryDate.getDate() === now.getDate() &&
       expiryDate.getMonth() === now.getMonth() &&
       expiryDate.getFullYear() === now.getFullYear();
 
     if (isToday) {
-      // Show only time if today
-      return `until ${displayHours}:${displayMinutes} ${ampm}`;
-    } else {
-      // Show date and time if not today
-      const month = expiryDate.toLocaleDateString(undefined, {
-        month: "short",
-      });
-      const day = expiryDate.getDate();
-      return `until ${month} ${day}, ${displayHours}:${displayMinutes} ${ampm}`;
+      return `until ${timeStr}`;
     }
+    const month = expiryDate.toLocaleDateString(undefined, {
+      month: "short",
+    });
+    const day = expiryDate.getDate();
+    return `until ${month} ${day}, ${timeStr}`;
   } catch {
     return "";
   }
 }
 
+function hasNonEmptyNote(friend: FriendStatusWidgetItem): boolean {
+  const n = friend.note?.trim();
+  return Boolean(n);
+}
+
 function FriendRow({
   friend,
   colors,
+  showExpiry = true,
 }: {
   friend: FriendStatusWidgetItem;
   colors: { primary: string; secondary: string; muted: string };
+  /** Small widget: hide "until …" to save space (matches iOS). */
+  showExpiry?: boolean;
 }) {
   const effectiveStatus = getEffectiveStatus(friend);
   const isExpired =
@@ -246,13 +254,14 @@ function FriendRow({
     new Date(friend.expiresAt) <= new Date() &&
     effectiveStatus.label === "Available";
 
-  const statusColor = effectiveStatus.color;
-  const displayNote = isExpired
+  const displayStatus = isExpired
     ? "Available"
-    : friend.note || effectiveStatus.label;
+    : effectiveStatus.label;
 
   const timeUntil =
-    friend.expiresAt && !isExpired ? formatTimeUntil(friend.expiresAt) : "";
+    showExpiry && friend.expiresAt && !isExpired
+      ? formatTimeUntil(friend.expiresAt)
+      : "";
 
   return (
     <FlexWidget
@@ -263,13 +272,11 @@ function FriendRow({
       }}
       clickAction="OPEN_APP"
     >
-      {/* Status Dot */}
-      <FlexWidget
+      {/* Status Emoji */}
+      <TextWidget
+        text={effectiveStatus.emoji}
         style={{
-          width: 8,
-          height: 8,
-          borderRadius: 4,
-          backgroundColor: statusColor as any,
+          fontSize: 12,
           marginRight: 8,
         }}
       />
@@ -298,6 +305,16 @@ function FriendRow({
             }}
             maxLines={1}
           />
+          {hasNonEmptyNote(friend) ? (
+            <TextWidget
+              text="📝"
+              style={{
+                fontSize: 10,
+                marginLeft: 3,
+                color: colors.muted as `#${string}`,
+              }}
+            />
+          ) : null}
           {timeUntil && <FlexWidget style={{ flex: 1 }} />}
           {timeUntil && (
             <TextWidget
@@ -314,7 +331,7 @@ function FriendRow({
         </FlexWidget>
         {/* Note */}
         <TextWidget
-          text={displayNote}
+          text={displayStatus}
           style={{
             fontSize: 10,
             color: colors.muted as "#8E8E93" | "#6B7280",
@@ -326,10 +343,101 @@ function FriendRow({
   );
 }
 
+function chunkIntoRows<T>(items: T[], rowSize: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += rowSize) {
+    rows.push(items.slice(i, i + rowSize));
+  }
+  return rows;
+}
+
+/** Dense cell for premium large widget: 3 columns × up to 8 rows (24 friends) + expiry. */
+function LargeGridFriendCell({
+  friend,
+  colors,
+}: {
+  friend: FriendStatusWidgetItem;
+  colors: { primary: string; secondary: string; muted: string };
+}) {
+  const effectiveStatus = getEffectiveStatus(friend);
+  const isExpired =
+    friend.expiresAt &&
+    new Date(friend.expiresAt) <= new Date() &&
+    effectiveStatus.label === "Available";
+
+  const displayStatus = isExpired ? "Available" : effectiveStatus.label;
+
+  const timeUntil =
+    friend.expiresAt && !isExpired ? formatTimeUntil(friend.expiresAt) : "";
+
+  return (
+    <FlexWidget
+      style={{
+        flex: 1,
+        flexDirection: "column",
+        marginHorizontal: 2,
+        marginBottom: 2,
+      }}
+      clickAction="OPEN_APP"
+    >
+      <FlexWidget
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 1,
+        }}
+      >
+        <TextWidget
+          text={effectiveStatus.emoji}
+          style={{ fontSize: 10, marginRight: 3 }}
+        />
+        <TextWidget
+          text={friend.firstName}
+          style={{
+            fontSize: 10,
+            fontWeight: "bold",
+            color: (isExpired ? colors.muted : colors.primary) as `#${string}`,
+          }}
+          maxLines={1}
+        />
+        {hasNonEmptyNote(friend) ? (
+          <TextWidget
+            text="📝"
+            style={{
+              fontSize: 8,
+              marginLeft: 2,
+              color: colors.muted as `#${string}`,
+            }}
+          />
+        ) : null}
+      </FlexWidget>
+      <TextWidget
+        text={displayStatus}
+        style={{
+          fontSize: 8,
+          color: colors.muted as `#${string}`,
+        }}
+        maxLines={1}
+      />
+      {timeUntil ? (
+        <TextWidget
+          text={timeUntil}
+          style={{
+            fontSize: 7,
+            fontWeight: "500",
+            color: "#FF9500",
+          }}
+          maxLines={1}
+        />
+      ) : null}
+    </FlexWidget>
+  );
+}
+
 const MAX_FRIENDS_BY_LAYOUT: Record<WidgetLayoutSize, number> = {
   small: 4,
   medium: 8,
-  large: 16,
+  large: 24,
 };
 
 export function InstantStatusWidget({
@@ -340,7 +448,12 @@ export function InstantStatusWidget({
   isPremium = false,
   isDarkMode = false,
 }: InstantStatusWidgetProps) {
-  const maxFriends = layoutSize === "large" ? (isPremium ? 16 : 8) : MAX_FRIENDS_BY_LAYOUT[layoutSize];
+  const maxFriends =
+    layoutSize === "large"
+      ? isPremium
+        ? 24
+        : 8
+      : MAX_FRIENDS_BY_LAYOUT[layoutSize];
   const displayFriends = friends.slice(0, maxFriends);
 
   const effectiveStyle: WidgetBackgroundStyle =
@@ -397,6 +510,9 @@ export function InstantStatusWidget({
     );
   }
 
+  const isLargeGrid = layoutSize === "large";
+  const gridRows = isLargeGrid ? chunkIntoRows(displayFriends, 3) : [];
+
   return (
     <OverlapWidget
       clickAction="OPEN_APP"
@@ -404,7 +520,7 @@ export function InstantStatusWidget({
         height: "match_parent",
         width: "match_parent",
         borderRadius: 16,
-        padding: 16,
+        padding: isLargeGrid ? 8 : 16,
         ...bgStyle,
       }}
     >
@@ -412,13 +528,37 @@ export function InstantStatusWidget({
       <FlexWidget
         style={{
           flexDirection: "column",
-          paddingTop: displayFriends.length > 0 ? 28 : 0,
-          paddingBottom: 8,
+          paddingTop: displayFriends.length > 0 ? (isLargeGrid ? 20 : 28) : 0,
+          paddingBottom: isLargeGrid ? 4 : 8,
         }}
       >
-        {displayFriends.map((friend) => (
-          <FriendRow key={friend.id} friend={friend} colors={colors} />
-        ))}
+        {isLargeGrid
+          ? gridRows.map((row, rowIndex) => (
+              <FlexWidget
+                key={rowIndex}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                }}
+              >
+                {[0, 1, 2].map((col) => {
+                  const f = row[col];
+                  return f ? (
+                    <LargeGridFriendCell key={f.id} friend={f} colors={colors} />
+                  ) : (
+                    <FlexWidget key={`empty-${col}`} style={{ flex: 1 }} />
+                  );
+                })}
+              </FlexWidget>
+            ))
+          : displayFriends.map((friend) => (
+              <FriendRow
+                key={friend.id}
+                friend={friend}
+                colors={colors}
+                showExpiry={layoutSize !== "small"}
+              />
+            ))}
       </FlexWidget>
 
       {/* Refresh Button - Top Right */}

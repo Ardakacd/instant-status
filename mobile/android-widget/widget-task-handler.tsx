@@ -52,7 +52,7 @@ async function loadWidgetData(widgetId: number): Promise<{
       const selectedIds: string[] = JSON.parse(savedSelection);
       filteredFriends = allFriends.filter((f) => selectedIds.includes(f.id));
     } else {
-      // No config: use all friends (same as iOS). Widget caps by layout (4/8/16).
+      // No config: use all friends (same as iOS). Widget caps by layout (4/8/8 or 24 large).
       filteredFriends = [...allFriends];
     }
 

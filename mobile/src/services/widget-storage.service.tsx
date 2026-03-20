@@ -221,7 +221,7 @@ export class WidgetStorageService {
 
   /**
    * DEV ONLY: Seed mock friends for widget layout testing (e.g. 24 friends for premium large widget).
-   * Call from ProfileScreen dev section. Also sets premium status so large widget shows 16 friends.
+   * Call from ProfileScreen dev section. Also sets premium status so large widget shows up to 24 friends.
    */
   async seedMockFriendsForWidgetTesting(count: number): Promise<void> {
     const MOCK_OPTIONS: Array<{
@@ -254,17 +254,31 @@ export class WidgetStorageService {
       "Lunch break with the team, back at desk by 2pm",
       "Driving to the office, can't respond for about 45 minutes",
     ];
+    /** Realistic surnames (not "Friend10") so widget config picker stays readable while testing long display names. */
+    const MOCK_LAST_NAMES = [
+      "Nicholson",
+      "Okonkwo",
+      "Sullivan",
+      "Vijayakumar",
+      "Montgomery",
+    ];
     const now = new Date().toISOString();
     const items: FriendStatusWidgetItem[] = Array.from({ length: count }, (_, i) => {
       const opt = MOCK_OPTIONS[i % MOCK_OPTIONS.length];
       const firstName = MOCK_FIRST_NAMES[i % MOCK_FIRST_NAMES.length];
       const note = MOCK_NOTES[i % MOCK_NOTES.length];
-      const expiresAt = new Date(Date.now() + (i % 3 + 1) * 3600 * 1000).toISOString();
+      // Every mock friend gets a future expiry (staggered: same-day + multi-day for widget "until …").
+      const expiresAt = new Date(
+        Date.now() +
+          (2 + (i % 10)) * 3600 * 1000 + // +2–11 h
+          (i % 3) * 24 * 3600 * 1000 + // +0 / +1 / +2 calendar days
+          i * 30 * 60 * 1000 // +30 min per index
+      ).toISOString();
       const emoji = MOCK_EMOJIS[i % MOCK_EMOJIS.length];
       return {
         id: `mock-${i + 1}`,
         firstName,
-        lastName: i % 5 === 0 ? `Friend${i}` : null,
+        lastName: i % 5 === 0 ? MOCK_LAST_NAMES[(i / 5) % MOCK_LAST_NAMES.length] : null,
         optionId: opt.optionId,
         optionLabel: opt.optionLabel,
         optionEmoji: emoji,

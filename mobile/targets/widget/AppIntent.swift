@@ -54,6 +54,14 @@ struct FriendStatusWidgetItem: Codable, Identifiable {
         }
         return false
     }
+
+    /// Non-empty custom note (widget shows an indicator only — never the note body).
+    var hasNonEmptyNote: Bool {
+        guard let raw = note?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return false
+        }
+        return true
+    }
 }
 
 // MARK: - AppEntity (Widget Friend Picker)
