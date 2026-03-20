@@ -89,11 +89,18 @@ export default function ManageStatusScreen() {
   const handleEdit = async (option: StatusOption) => {
     // If it's a custom status (user_id !== null) and user is not premium, show paywall
     if (option.user_id !== null && !isPremium) {
-      const purchased = await presentPaywall();
-      if (!purchased) {
+      try {
+        const purchased = await presentPaywall();
+        if (!purchased) {
+          return;
+        }
+      } catch (error: any) {
+        Toast.show({
+          type: "error",
+          text1: error.message || "Failed to open subscription options. Please try again.",
+        });
         return;
       }
-      // If purchase successful, continue to edit modal
     }
     setLabel(option.label);
     setEmoji(option.emoji);

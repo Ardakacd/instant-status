@@ -128,25 +128,6 @@ export class StatusOptionService {
         );
       }
 
-      // Validate input
-      if (!label || label.trim().length === 0) {
-        throw new BadRequestException("Label is required");
-      }
-      if (label.length > 25) {
-        throw new BadRequestException("Label cannot exceed 25 characters");
-      }
-      if (!emoji || emoji.trim().length === 0) {
-        throw new BadRequestException("Emoji is required");
-      }
-      if (emoji.length > 10) {
-        throw new BadRequestException("Emoji cannot exceed 10 characters");
-      }
-      if (!color || !/^#([0-9A-Fa-f]{3}){1,2}$/.test(color)) {
-        throw new BadRequestException(
-          "Color must be a valid hex color (e.g., #10B981 or #FFF)"
-        );
-      }
-
       // Check if user has reached the maximum limit of 4 custom status options
       const MAX_CUSTOM_OPTIONS = 4;
       const customOptionsCount = await this.statusOptionRepository.count({
@@ -236,33 +217,15 @@ export class StatusOptionService {
         );
       }
 
-      // Validate updates
       if (updates.label !== undefined) {
-        if (updates.label.trim().length === 0) {
-          throw new BadRequestException("Label cannot be empty");
-        }
-        if (updates.label.length > 25) {
-          throw new BadRequestException("Label cannot exceed 25 characters");
-        }
         option.label = updates.label.trim();
       }
 
       if (updates.emoji !== undefined) {
-        if (updates.emoji.trim().length === 0) {
-          throw new BadRequestException("Emoji cannot be empty");
-        }
-        if (updates.emoji.length > 10) {
-          throw new BadRequestException("Emoji cannot exceed 10 characters");
-        }
         option.emoji = updates.emoji.trim();
       }
 
       if (updates.color !== undefined) {
-        if (!/^#([0-9A-Fa-f]{3}){1,2}$/.test(updates.color)) {
-          throw new BadRequestException(
-            "Color must be a valid hex color (e.g., #10B981 or #FFF)"
-          );
-        }
         option.color = updates.color.toUpperCase();
       }
 

@@ -45,6 +45,7 @@ export class StatusOptionController {
    * Returns both system statuses and user's custom statuses
    */
   @Get()
+  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 reads/min
   async getStatusOptions(@Request() req) {
     return await this.statusOptionService.getUserStatusOptions(req.user.id);
   }
@@ -53,6 +54,7 @@ export class StatusOptionController {
    * Get a specific status option by ID
    */
   @Get(":id")
+  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 reads/min
   async getStatusOption(@Request() req, @Param("id") rawId: string) {
     const id = uuidSchema.parse(rawId);
     return await this.statusOptionService.getStatusOptionById(id, req.user.id);
