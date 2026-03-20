@@ -24,8 +24,6 @@ interface FriendStatusWidgetItem {
 
 export class WidgetStorageService {
   private storage: ExtensionStorage | null = null;
-  private lastReloadTime: number = 0;
-  private readonly RELOAD_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes (bulk sync)
   private reloadTimeout: ReturnType<typeof setTimeout> | null = null;
   private readonly DEBOUNCE_MS = 1500; // Debounce per-friend updates
 
@@ -48,7 +46,6 @@ export class WidgetStorageService {
         ExtensionStorage.reloadWidget("InstantStatusWidget");
       }
       this.reloadTimeout = null;
-      this.lastReloadTime = Date.now();
     }, this.DEBOUNCE_MS);
   }
 
@@ -73,7 +70,6 @@ export class WidgetStorageService {
       await requestWidgetUpdate({
         widgetName: "InstantStatusWidget",
       } as any);
-      this.lastReloadTime = Date.now();
     } catch (error) {
       Sentry.captureException(error);
     }
@@ -185,12 +181,7 @@ export class WidgetStorageService {
 
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
-        
-        const now = Date.now();
-        if (now - this.lastReloadTime >= this.RELOAD_COOLDOWN_MS) {
-          ExtensionStorage.reloadWidget("InstantStatusWidget");
-          this.lastReloadTime = now;
-        }
+        ExtensionStorage.reloadWidget("InstantStatusWidget");
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
         await this.triggerAndroidUpdate();
