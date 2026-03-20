@@ -3,11 +3,14 @@ import { Repository, In } from "typeorm";
 import { DeviceToken } from "../entities/device-token.entity";
 import { StructuredLogger } from "../common/logger/structured-logger";
 
+// Codes that indicate the device token itself is stale/invalid and should be deleted.
+// Do NOT include messaging/third-party-auth-error here — that error means the APNs
+// server credentials are misconfigured, not that the token is bad. Deleting the token
+// for that error would silently prevent future notifications after credentials are fixed.
 const INVALID_TOKEN_CODES = [
   "messaging/invalid-registration-token",
   "messaging/registration-token-not-registered",
   "messaging/invalid-argument",
-  "messaging/third-party-auth-error",
 ];
 
 /**
@@ -36,9 +39,17 @@ export async function sendEachAndCleanup(
       const errorCode = result.error.code;
       const deviceTokenId = tokenToIdMap.get(messages[index].token);
 
-      logger.warn(
-        `Failed to send notification: ${errorCode} - ${result.error.message} (deviceTokenId: ${deviceTokenId ?? "unknown"})`,
-      );
+      if (errorCode === "messaging/third-party-auth-error") {
+        // APNs credentials are invalid/expired — this is a server config problem,
+        // not a stale token. Log critically so it gets attention immediately.
+        logger.error(
+          `FCM third-party-auth-error: APNs credentials may be invalid or expired. Check Firebase project settings. (deviceTokenId: ${deviceTokenId ?? "unknown"})`,
+        );
+      } else {
+        logger.warn(
+          `Failed to send notification: ${errorCode} - ${result.error.message} (deviceTokenId: ${deviceTokenId ?? "unknown"})`,
+        );
+      }
 
       if (INVALID_TOKEN_CODES.includes(errorCode) && deviceTokenId) {
         invalidTokenIds.push(deviceTokenId);

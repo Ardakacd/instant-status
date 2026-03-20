@@ -1,4 +1,5 @@
 import { Controller, Post, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { DeviceTokenService } from './device-token.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { Platform } from '../entities/device-token.entity';
@@ -17,6 +18,7 @@ export class DeviceTokenController {
   constructor(private deviceTokenService: DeviceTokenService) {}
 
   @Post()
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 registrations/min
   async registerToken(@Request() req, @Body() body: unknown) {
     const { token, platform } = RegisterTokenDtoSchema.parse(body);
     const deviceToken = await this.deviceTokenService.registerToken(
@@ -32,6 +34,7 @@ export class DeviceTokenController {
   }
 
   @Delete(':id')
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 deletions/min
   async deleteToken(@Request() req, @Param('id') rawId: string) {
     const id = z.string().uuid().parse(rawId);
     await this.deviceTokenService.deleteToken(id, req.user.id);
