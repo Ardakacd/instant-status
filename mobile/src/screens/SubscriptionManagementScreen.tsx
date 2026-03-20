@@ -618,7 +618,7 @@ export default function SubscriptionManagementScreen() {
                 color={
                   planChangeInfo?.isUpgrade
                     ? Colors.interaction.primary
-                    : Colors.interaction.primary
+                    : Colors.interaction.accent
                 }
               />
               <Text variant="primary" style={[styles.modalTitle, { fontSize: fs(22) }]}>
@@ -913,10 +913,6 @@ const styles = StyleSheet.create({
     borderWidth: Borders.width,
     borderColor: Colors.text.secondary + "30",
   },
-  packageCardCurrent: {
-    borderColor: Colors.interaction.accent + "40",
-    backgroundColor: Colors.interaction.accent + "15",
-  },
   packageCardPurchasing: {
     opacity: 0.6,
   },
@@ -936,17 +932,6 @@ const styles = StyleSheet.create({
   packageLabel: {
     fontSize: 18,
     fontFamily: Typography.fontFamily.semiBold,
-  },
-  currentBadge: {
-    backgroundColor: Colors.interaction.primary,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Borders.radius.small,
-  },
-  currentBadgeText: {
-    fontSize: 12,
-    fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.canvas.background,
   },
   savingsBadge: {
     backgroundColor: Colors.interaction.error,
@@ -976,18 +961,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.interaction.primary,
     alignItems: "center",
   },
-  packageButtonCurrent: {
-    backgroundColor: Colors.interaction.disabled,
-  },
   packageButtonText: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
     color: Colors.canvas.background,
-  },
-  packageButtonTextCurrent: {
-    fontSize: 16,
-    fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.text.secondary,
   },
   actionsSection: {
     marginTop: Spacing.lg,

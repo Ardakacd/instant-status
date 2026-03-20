@@ -25,12 +25,12 @@ export function useIsPremium() {
           ? new Date(entitlement.expirationDate)
           : null
       );
+      setManagementURL(info.managementURL || null);
     } else {
       setWillRenew(null);
       setExpirationDate(null);
+      setManagementURL(null);
     }
-
-    setManagementURL(info.managementURL || null);
   };
 
   useEffect(() => {
