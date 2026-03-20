@@ -516,6 +516,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: Spacing.md,
+    backgroundColor: "#F9FAFB",
+    borderRadius: Borders.radius.medium,
   },
   avatar: {
     width: 56,

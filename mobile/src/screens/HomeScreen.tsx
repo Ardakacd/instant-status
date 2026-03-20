@@ -797,7 +797,6 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   statusCard: {
-    marginHorizontal: Spacing.lg,
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
     backgroundColor: "#F9FAFB",

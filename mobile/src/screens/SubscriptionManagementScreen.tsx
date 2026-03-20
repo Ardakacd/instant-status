@@ -23,6 +23,7 @@ import {
 import { useIsPremium } from "../hooks/useIsPremium";
 import { Colors, Borders, Spacing, Typography, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
+import { InfoBox } from "../components/feedback/InfoBox";
 
 export default function SubscriptionManagementScreen() {
   const navigation = useNavigation();
@@ -642,46 +643,50 @@ export default function SubscriptionManagementScreen() {
                     plan.
                   </Text>
 
-                  <View style={styles.infoBox}>
-                    <Ionicons
-                      name="time-outline"
-                      size={20}
-                      color={Colors.text.secondary}
-                    />
-                    <View style={styles.infoBoxContent}>
-                      <Text variant="primary" style={styles.infoBoxTitle}>
-                        Prorated Billing
-                      </Text>
-                      <Text variant="secondary" style={styles.infoBoxText}>
-                        Your remaining time from the previous plan has been
-                        applied to your new plan.
-                      </Text>
-                    </View>
-                  </View>
-
-                  {planChangeInfo.newExpirationDate && (
-                    <View style={styles.infoBox}>
+                  <InfoBox
+                    icon={
                       <Ionicons
-                        name="calendar-outline"
+                        name="time-outline"
                         size={20}
                         color={Colors.text.secondary}
                       />
-                      <View style={styles.infoBoxContent}>
-                        <Text variant="primary" style={styles.infoBoxTitle}>
-                          Next Billing Date
-                        </Text>
-                        <Text variant="secondary" style={styles.infoBoxText}>
-                          {planChangeInfo.newExpirationDate.toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            },
-                          )}
-                        </Text>
-                      </View>
-                    </View>
+                    }
+                    style={styles.infoBoxSpacing}
+                  >
+                    <Text variant="primary" style={styles.infoBoxTitle}>
+                      Prorated Billing
+                    </Text>
+                    <Text variant="secondary" style={styles.infoBoxText}>
+                      Your remaining time from the previous plan has been
+                      applied to your new plan.
+                    </Text>
+                  </InfoBox>
+
+                  {planChangeInfo.newExpirationDate && (
+                    <InfoBox
+                      icon={
+                        <Ionicons
+                          name="calendar-outline"
+                          size={20}
+                          color={Colors.text.secondary}
+                        />
+                      }
+                      style={styles.infoBoxSpacing}
+                    >
+                      <Text variant="primary" style={styles.infoBoxTitle}>
+                        Next Billing Date
+                      </Text>
+                      <Text variant="secondary" style={styles.infoBoxText}>
+                        {planChangeInfo.newExpirationDate.toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          },
+                        )}
+                      </Text>
+                    </InfoBox>
                   )}
                 </>
               ) : (
@@ -698,41 +703,45 @@ export default function SubscriptionManagementScreen() {
                     has been saved.
                   </Text>
 
-                  <View style={styles.infoBox}>
-                    <Ionicons
-                      name="information-circle-outline"
-                      size={20}
-                      color={Colors.interaction.accent}
-                    />
-                    <View style={styles.infoBoxContent}>
-                      <Text variant="primary" style={styles.infoBoxTitle}>
-                        Transition Process
-                      </Text>
-                      <Text variant="secondary" style={styles.infoBoxText}>
-                        {planChangeInfo?.newExpirationDate
-                          ? `Your current ${planChangeInfo.fromPlan} benefits will continue until ${planChangeInfo.newExpirationDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}. After that date, your ${planChangeInfo.toPlan} subscription will begin.`
-                          : `Your current plan benefits will continue until the end of your billing period. After that, your new ${planChangeInfo?.toPlan} subscription will begin.`}
-                      </Text>
-                    </View>
-                  </View>
+                  <InfoBox
+                    icon={
+                      <Ionicons
+                        name="information-circle-outline"
+                        size={20}
+                        color={Colors.interaction.accent}
+                      />
+                    }
+                    style={styles.infoBoxSpacing}
+                  >
+                    <Text variant="primary" style={styles.infoBoxTitle}>
+                      Transition Process
+                    </Text>
+                    <Text variant="secondary" style={styles.infoBoxText}>
+                      {planChangeInfo?.newExpirationDate
+                        ? `Your current ${planChangeInfo.fromPlan} benefits will continue until ${planChangeInfo.newExpirationDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}. After that date, your ${planChangeInfo.toPlan} subscription will begin.`
+                        : `Your current plan benefits will continue until the end of your billing period. After that, your new ${planChangeInfo?.toPlan} subscription will begin.`}
+                    </Text>
+                  </InfoBox>
 
-                  <View style={styles.infoBox}>
-                    <Ionicons
-                      name="checkmark-circle-outline"
-                      size={20}
-                      color={Colors.interaction.primary}
-                    />
-                    <View style={styles.infoBoxContent}>
-                      <Text variant="primary" style={styles.infoBoxTitle}>
-                        Not a Cancellation
-                      </Text>
-                      <Text variant="secondary" style={styles.infoBoxText}>
-                        Your subscription is not being cancelled. Only your
-                        billing period is changing. You'll continue to have
-                        access to all premium features.
-                      </Text>
-                    </View>
-                  </View>
+                  <InfoBox
+                    icon={
+                      <Ionicons
+                        name="checkmark-circle-outline"
+                        size={20}
+                        color={Colors.interaction.primary}
+                      />
+                    }
+                    style={styles.infoBoxSpacing}
+                  >
+                    <Text variant="primary" style={styles.infoBoxTitle}>
+                      Not a Cancellation
+                    </Text>
+                    <Text variant="secondary" style={styles.infoBoxText}>
+                      Your subscription is not being cancelled. Only your
+                      billing period is changing. You'll continue to have
+                      access to all premium features.
+                    </Text>
+                  </InfoBox>
                 </>
               )}
             </ScrollView>
@@ -758,7 +767,7 @@ export default function SubscriptionManagementScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: Colors.canvas.background,
   },
   header: {
     flexDirection: "row",
@@ -934,7 +943,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.semiBold,
   },
   savingsBadge: {
-    backgroundColor: Colors.interaction.error,
+    backgroundColor: Colors.interaction.accent,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Borders.radius.small,
@@ -1035,16 +1044,8 @@ const styles = StyleSheet.create({
   boldText: {
     fontFamily: Typography.fontFamily.semiBold,
   },
-  infoBox: {
-    flexDirection: "row",
-    backgroundColor: "#F9FAFB",
-    borderRadius: Borders.radius.medium,
-    padding: Spacing.md,
+  infoBoxSpacing: {
     marginBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  infoBoxContent: {
-    flex: 1,
   },
   infoBoxTitle: {
     fontSize: 14,

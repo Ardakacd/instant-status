@@ -1,27 +1,22 @@
 /**
  * Button Component
  *
- * Neobrutalist-style button with shadow layer and spring press animation.
- * Based on AnimatedButton structure; no icon support.
- *
  * Variants:
- * - Primary: Mint bg, charcoal shadow, spring press
- * - Secondary: White + border, no shadow
- * - Disabled: Grey, no animation
+ * - Primary: Mint bg, opacity feedback on press
+ * - Secondary: White + border, opacity feedback on press
+ * - Disabled: Grey, no interaction
  */
 
-import React, { useCallback, useRef, forwardRef } from "react";
+import React, { useCallback, forwardRef } from "react";
 import {
   StyleSheet,
   View,
-  Text,
   Platform,
-  Animated,
   Pressable,
   ActivityIndicator,
   type ViewStyle,
 } from "react-native";
-import { Colors, Borders, Spacing, PhysicalShift, Typography, useResponsive } from "../../design";
+import { Colors, Borders, Spacing, Typography, useResponsive } from "../../design";
 import { Text as DesignText } from "../primitives/Text";
 import { hapticAction } from "../../utils/haptics";
 
@@ -54,51 +49,10 @@ export const Button = forwardRef<View, ButtonProps>(
   ) => {
     const { fs } = useResponsive();
     const isDisabled = disabled || loading || variant === "disabled";
-    const pressX = useRef(new Animated.Value(0)).current;
-    const pressY = useRef(new Animated.Value(0)).current;
 
     const handlePressIn = useCallback(() => {
-      if (isDisabled) return;
-      if (variant === "primary") {
+      if (!isDisabled && variant === "primary") {
         hapticAction();
-        Animated.parallel([
-          Animated.spring(pressX, {
-            toValue: PhysicalShift.offset.x,
-            stiffness: 300,
-            damping: 20,
-            mass: 0.4,
-            useNativeDriver: true,
-          }),
-          Animated.spring(pressY, {
-            toValue: PhysicalShift.offset.y,
-            stiffness: 300,
-            damping: 20,
-            mass: 0.4,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      }
-    }, [isDisabled, variant]);
-
-    const handlePressOut = useCallback(() => {
-      if (isDisabled) return;
-      if (variant === "primary") {
-        Animated.parallel([
-          Animated.spring(pressX, {
-            toValue: 0,
-            stiffness: 300,
-            damping: 20,
-            mass: 0.4,
-            useNativeDriver: true,
-          }),
-          Animated.spring(pressY, {
-            toValue: 0,
-            stiffness: 300,
-            damping: 20,
-            mass: 0.4,
-            useNativeDriver: true,
-          }),
-        ]).start();
       }
     }, [isDisabled, variant]);
 
@@ -106,8 +60,6 @@ export const Button = forwardRef<View, ButtonProps>(
       if (isDisabled || !onPress) return;
       onPress();
     }, [isDisabled, onPress]);
-
-    const isPrimaryWithShadow = variant === "primary" && !isDisabled;
 
     const backgroundColor =
       variant === "primary"
@@ -130,72 +82,16 @@ export const Button = forwardRef<View, ButtonProps>(
           ? Colors.text.primary
           : Colors.text.secondary;
 
-    const spinnerColor = textColor;
-
-    if (isPrimaryWithShadow) {
-      return (
-        <View
-          ref={ref}
-          style={[
-            styles.container,
-            fullWidth && styles.fullWidth,
-            style,
-          ]}
-        >
-          <Pressable
-            onPress={handlePress}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            disabled={isDisabled}
-            style={styles.pressable}
-          >
-            <Animated.View
-              style={[
-                styles.button,
-                isIOS && styles.iosBorderCurve,
-                {
-                  minHeight: 48,
-                  paddingVertical: Spacing.md,
-                  paddingHorizontal: Spacing.lg,
-                  borderRadius: Borders.radius.medium,
-                  backgroundColor,
-                  ...(hasBorder && {
-                    borderWidth: Borders.width,
-                    borderColor,
-                  }),
-                  transform: [
-                    { translateX: pressX },
-                    { translateY: pressY },
-                  ],
-                },
-              ]}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color={spinnerColor} />
-              ) : (
-                <DesignText
-                  variant="primary"
-                  style={[styles.buttonText, { color: textColor, fontSize: fs(16) }]}
-                >
-                  {children}
-                </DesignText>
-              )}
-            </Animated.View>
-          </Pressable>
-        </View>
-      );
-    }
-
     return (
       <Pressable
         ref={ref as any}
         onPress={handlePress}
+        onPressIn={handlePressIn}
         disabled={isDisabled}
-        style={[
-          styles.container,
-          fullWidth && styles.fullWidth,
+        style={({ pressed }) => [
           styles.button,
           isIOS && styles.iosBorderCurve,
+          fullWidth && styles.fullWidth,
           {
             minHeight: 48,
             paddingVertical: Spacing.md,
@@ -206,17 +102,17 @@ export const Button = forwardRef<View, ButtonProps>(
               borderWidth: Borders.width,
               borderColor,
             }),
+            opacity: isDisabled ? 0.6 : pressed ? 0.75 : 1,
           },
-          (disabled || loading) && styles.disabledOpacity,
           style,
         ]}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={spinnerColor} />
+          <ActivityIndicator size="small" color={textColor} />
         ) : (
           <DesignText
             variant={variant === "primary" ? "primary" : "secondary"}
-            style={[styles.buttonText, { color: textColor }]}
+            style={[styles.buttonText, { color: textColor, fontSize: fs(16) }]}
           >
             {children}
           </DesignText>
@@ -229,19 +125,10 @@ export const Button = forwardRef<View, ButtonProps>(
 Button.displayName = "Button";
 
 const styles = StyleSheet.create({
-  container: {
-    position: "relative",
-  },
   fullWidth: {
     width: "100%",
   },
-  pressable: {
-    width: "100%",
-    position: "relative",
-    zIndex: 3,
-  },
   button: {
-    width: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -251,8 +138,5 @@ const styles = StyleSheet.create({
   buttonText: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: 16,
-  },
-  disabledOpacity: {
-    opacity: 0.6,
   },
 });

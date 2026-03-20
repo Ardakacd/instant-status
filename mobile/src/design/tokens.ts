@@ -19,7 +19,6 @@ export const Colors = {
   // 1.1 Canvas
   canvas: {
     background: '#FFFFFF', // App background: White
-    // No tinted backgrounds
     // No dark mode (for now)
   },
 

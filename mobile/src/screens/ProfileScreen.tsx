@@ -548,7 +548,7 @@ export default function ProfileScreen() {
                   false: Colors.interaction.disabled,
                   true: Colors.interaction.primary,
                 }}
-                thumbColor="#FFFFFF"
+                thumbColor={Colors.canvas.background}
               />
             </View>
           </View>

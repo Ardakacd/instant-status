@@ -13,7 +13,7 @@ import {
   type WidgetConfigurationScreenProps,
   requestWidgetUpdate,
 } from "react-native-android-widget";
-import { SAFE_AREA_BOTTOM } from "../src/design";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM } from "../src/design";
 import {
   InstantStatusWidget,
   type FriendStatusWidgetItem,
@@ -157,7 +157,7 @@ function WidgetConfigurationScreenContent({
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={Colors.interaction.primary} />
           <Text style={styles.loadingText}>Loading friends...</Text>
         </View>
       </View>
@@ -288,7 +288,7 @@ function WidgetConfigurationScreenContent({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Colors.canvas.background,
   },
   loadingContainer: {
     flex: 1,
@@ -296,37 +296,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: Spacing.md,
     fontSize: 16,
-    color: "#8E8E93",
+    color: Colors.text.secondary,
   },
   header: {
-    padding: 20,
-    paddingBottom: 12,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5EA",
+    borderBottomColor: Colors.text.secondary + "40",
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#000000",
-    marginBottom: 4,
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: 14,
-    color: "#8E8E93",
+    color: Colors.text.secondary,
   },
   backgroundSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5EA",
+    borderBottomColor: Colors.text.secondary + "40",
   },
   sectionLabel: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#000000",
-    marginBottom: 8,
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
   },
   backgroundOptions: {
     flexDirection: "row",
@@ -340,25 +340,25 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   backgroundChipSelected: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.interaction.primary,
   },
   backgroundChipText: {
     fontSize: 13,
-    color: "#374151",
+    color: Colors.text.secondary,
   },
   backgroundChipTextSelected: {
-    color: "#FFFFFF",
+    color: Colors.canvas.background,
   },
   scrollView: {
     flex: 1,
   },
   friendItem: {
-    padding: 16,
+    padding: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
   friendItemSelected: {
-    backgroundColor: "#F0F9FF",
+    backgroundColor: Colors.interaction.primary + "20",
   },
   friendContent: {
     flexDirection: "row",
@@ -369,58 +369,58 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: "#D1D5DB",
-    marginRight: 12,
+    borderColor: Colors.interaction.disabled,
+    marginRight: Spacing.md,
     justifyContent: "center",
     alignItems: "center",
   },
   checkboxSelected: {
-    borderColor: "#007AFF",
-    backgroundColor: "#007AFF",
+    borderColor: Colors.interaction.primary,
+    backgroundColor: Colors.interaction.primary,
   },
   checkboxInner: {
     width: 8,
     height: 8,
     borderRadius: 2,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Colors.canvas.background,
   },
   friendName: {
     fontSize: 16,
-    color: "#000000",
+    color: Colors.text.primary,
   },
   footer: {
     flexDirection: "row",
-    padding: 16,
+    padding: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "#E5E5EA",
-    gap: 12,
+    borderTopColor: Colors.text.secondary + "40",
+    gap: Spacing.md,
   },
   cancelButton: {
     flex: 1,
     padding: 14,
-    borderRadius: 10,
+    borderRadius: Borders.radius.small,
     backgroundColor: "#F3F4F6",
     alignItems: "center",
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#000000",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.text.primary,
   },
   saveButton: {
     flex: 1,
     padding: 14,
-    borderRadius: 10,
-    backgroundColor: "#007AFF",
+    borderRadius: Borders.radius.small,
+    backgroundColor: Colors.interaction.primary,
     alignItems: "center",
   },
   saveButtonDisabled: {
-    backgroundColor: "#D1D5DB",
+    backgroundColor: Colors.interaction.disabled,
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.canvas.background,
   },
   emptyContainer: {
     flex: 1,
@@ -430,14 +430,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: "600",
-    color: "#000000",
-    marginBottom: 8,
+    fontFamily: Typography.fontFamily.semiBold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
   },
   emptySubtitle: {
     fontSize: 16,
-    color: "#8E8E93",
+    color: Colors.text.secondary,
     textAlign: "center",
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
 });

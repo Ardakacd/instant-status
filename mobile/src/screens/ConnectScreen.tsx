@@ -417,7 +417,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.sm,
   },
   backButton: {
@@ -431,7 +430,6 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.semiBold,
   },
   card: {
-    marginHorizontal: Spacing.lg,
     marginTop: Spacing.md,
     padding: Spacing.md,
     backgroundColor: "#F9FAFB",
