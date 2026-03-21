@@ -27,8 +27,7 @@ import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive }
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 import { TextInput } from "../components/inputs/TextInput";
-
-const MAX_CUSTOM_OPTIONS = 4;
+import { MAX_CUSTOM_STATUS_OPTIONS } from "../constants/statusOptions";
 
 export default function ManageStatusScreen() {
   const navigation = useNavigation();
@@ -192,10 +191,10 @@ export default function ManageStatusScreen() {
     const customOptionsCount = statusOptions.filter(
       (opt) => opt.user_id !== null,
     ).length;
-    if (customOptionsCount >= MAX_CUSTOM_OPTIONS) {
+    if (customOptionsCount >= MAX_CUSTOM_STATUS_OPTIONS) {
       Toast.show({
         type: "info",
-        text1: `You can only create up to ${MAX_CUSTOM_OPTIONS} custom status options. Please delete one first.`,
+        text1: `You can only create up to ${MAX_CUSTOM_STATUS_OPTIONS} custom status options. Please delete one first.`,
       });
       return;
     }
@@ -330,49 +329,41 @@ export default function ManageStatusScreen() {
         {/* Custom Status Options */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text
-              variant="primary"
-              style={[styles.sectionTitle, styles.sectionTitleInline, { fontSize: fs(18) }]}
-            >
-              Your Custom Statuses
+            <Text variant="primary" style={[styles.sectionTitle, { fontSize: fs(18) }]}>
+              Custom Statuses
             </Text>
-            {customOptions.length < MAX_CUSTOM_OPTIONS && (
-              <TouchableOpacity style={styles.addButton} onPress={handleCreate}>
-                <Ionicons
-                  name="add"
-                  size={20}
-                  color={Colors.interaction.primary}
-                />
-                <Text style={styles.addButtonText}>Add</Text>
+            <Text variant="secondary" style={styles.usageText}>
+              {customOptions.length} / {MAX_CUSTOM_STATUS_OPTIONS}
+            </Text>
+          </View>
+          <View style={styles.optionsGrid}>
+            {customOptions.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={styles.optionCard}
+                onPress={() => handleEdit(option)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.optionColorBar, { backgroundColor: option.color }]} />
+                <Text style={[styles.optionEmoji, { fontSize: fs(28), lineHeight: fs(34) }]}>
+                  {option.emoji}
+                </Text>
+                <Text variant="primary" style={styles.optionLabel} numberOfLines={2}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            {customOptions.length < MAX_CUSTOM_STATUS_OPTIONS && (
+              <TouchableOpacity
+                style={styles.addCard}
+                onPress={handleCreate}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="add-circle-outline" size={28} color={Colors.text.secondary} />
+                <Text variant="secondary" style={styles.addCardText}>Add new</Text>
               </TouchableOpacity>
             )}
           </View>
-          {customOptions.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text variant="secondary" style={styles.emptyStateText}>
-                No custom status options yet
-              </Text>
-              <Button variant="primary" onPress={handleCreate}>
-                Create Your First
-              </Button>
-            </View>
-          ) : (
-            <View style={styles.optionsGrid}>
-              {customOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.id}
-                  style={styles.optionCard}
-                  onPress={() => handleEdit(option)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.optionEmoji, { fontSize: fs(26), lineHeight: fs(30) }]}>{option.emoji}</Text>
-                  <Text variant="primary" style={styles.optionLabel}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
         </View>
       </ScrollView>
 
@@ -691,24 +682,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontFamily: Typography.fontFamily.semiBold,
-    marginBottom: Spacing.md,
   },
-  sectionTitleInline: {
-    marginBottom: 0,
-  },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.interaction.primary + "15",
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Borders.radius.medium,
-    gap: Spacing.xs,
-  },
-  addButtonText: {
-    fontSize: 14,
-    fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.interaction.primary,
+  usageText: {
+    fontSize: 13,
+    fontFamily: Typography.fontFamily.medium,
   },
   optionsGrid: {
     flexDirection: "row",
@@ -721,30 +698,41 @@ const styles = StyleSheet.create({
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
     alignItems: "center",
-    flexGrow: 1,
-    minWidth: "30%",
+    width: "48%",
+    overflow: "hidden",
   },
-  optionEmoji: {
-    fontSize: 26,
-    lineHeight: 30,
-    includeFontPadding: false,
+  optionColorBar: {
+    width: 32,
+    height: 4,
+    borderRadius: 2,
     marginBottom: Spacing.sm,
   },
+  optionEmoji: {
+    fontSize: 28,
+    lineHeight: 34,
+    includeFontPadding: false,
+    marginBottom: Spacing.xs,
+  },
   optionLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
   },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: "#F9FAFB",
+  addCard: {
+    width: "48%",
     borderRadius: Borders.radius.medium,
+    padding: Spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: Colors.text.secondary + "30",
+    borderStyle: "dashed",
+    minHeight: 110,
   },
-  emptyStateText: {
-    fontSize: 16,
-    marginBottom: Spacing.md,
+  addCardText: {
+    fontSize: 13,
+    fontFamily: Typography.fontFamily.medium,
+    marginTop: Spacing.xs,
   },
   modalOverlay: {
     flex: 1,

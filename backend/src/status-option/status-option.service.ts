@@ -12,6 +12,7 @@ import { Repository, DataSource, IsNull } from "typeorm";
 import { StatusOption } from "../entities/status-option.entity";
 import { Status } from "../entities/status.entity";
 import { UserService } from "../user/user.service";
+import { MAX_CUSTOM_STATUS_OPTIONS } from "./status-option.constants";
 
 @Injectable()
 export class StatusOptionService {
@@ -109,7 +110,7 @@ export class StatusOptionService {
 
   /**
    * Create a custom status option for a user
-   * Maximum of 4 custom status options allowed per user
+   * Maximum custom status options per user (see MAX_CUSTOM_STATUS_OPTIONS)
    * Requires premium access (or grace period)
    */
   async createCustomStatusOption(
@@ -128,15 +129,14 @@ export class StatusOptionService {
         );
       }
 
-      // Check if user has reached the maximum limit of 4 custom status options
-      const MAX_CUSTOM_OPTIONS = 4;
+      // Check if user has reached the maximum limit of custom status options
       const customOptionsCount = await this.statusOptionRepository.count({
         where: { user_id: userId },
       });
 
-      if (customOptionsCount >= MAX_CUSTOM_OPTIONS) {
+      if (customOptionsCount >= MAX_CUSTOM_STATUS_OPTIONS) {
         throw new BadRequestException(
-          `Maximum limit of ${MAX_CUSTOM_OPTIONS} custom status options reached. Please delete an existing custom status option before creating a new one.`
+          `Maximum limit of ${MAX_CUSTOM_STATUS_OPTIONS} custom status options reached. Please delete an existing custom status option before creating a new one.`
         );
       }
 
