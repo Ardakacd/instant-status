@@ -9,14 +9,16 @@ import {
   Modal,
   TouchableWithoutFeedback,
   Animated,
+  Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Status, StatusOption } from "../types";
+import { Status, StatusOption, Connection } from "../types";
 import { statusService } from "../services/status.service";
 import { statusOptionService } from "../services/status-option.service";
 import { widgetStorageService } from "../services/widget-storage.service";
+import { connectionsService } from "../services/connections.service";
 import StatusChangeModal from "../components/StatusChangeModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
@@ -45,6 +47,8 @@ export default function HomeScreen() {
   const [selectedFriend, setSelectedFriend] = useState<Status | null>(null);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
   const [friendLayoutMode, setFriendLayoutMode] = useState<"large" | "compact">("large");
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(-100)).current;
   const pendingFriendIdRef = React.useRef<string | null>(null);
   const refreshHintTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -92,6 +96,7 @@ export default function HomeScreen() {
     });
     loadCurrentStatus().catch(() => {});
     checkRefreshHint();
+    loadConnections();
   }, []);
 
   useEffect(() => {
@@ -198,12 +203,16 @@ export default function HomeScreen() {
     setSelectedFriend(null);
   }, []);
 
+  const getConnectionForFriend = (userId: string): Connection | null =>
+    connections.find((c) => c.friend_id === userId) ?? null;
+
   const handleRefresh = async () => {
     setRefreshing(true);
     const results = await Promise.allSettled([
       loadStatusOptions(),
       loadFriendsStatus(),
       loadCurrentStatus(),
+      loadConnections(),
     ]);
     setRefreshing(false);
     if (results.some((r) => r.status === "rejected")) {
@@ -217,6 +226,63 @@ export default function HomeScreen() {
   const loadCurrentStatus = async () => {
     const status = await statusService.getMyStatus();
     setMyStatus(status);
+  };
+
+  const loadConnections = async () => {
+    try {
+      const conns = await connectionsService.getConnections();
+      setConnections(conns);
+    } catch (error) {
+      Sentry.captureException(error);
+    }
+  };
+
+  const handleToggleVisibility = async () => {
+    if (!selectedFriend || togglingVisibility) return;
+    const connection = getConnectionForFriend(selectedFriend.user_id);
+    if (!connection) return;
+    const newShowsStatus = !connection.user_shows_status;
+    setTogglingVisibility(true);
+    try {
+      await connectionsService.updateVisibility(selectedFriend.user_id, newShowsStatus);
+      Toast.show({
+        type: "success",
+        text1: newShowsStatus
+          ? "You've enabled status sharing with them."
+          : "You've hidden your status from them.",
+      });
+      await loadConnections();
+    } catch (error: any) {
+      Toast.show({ type: "error", text1: "Failed to update. Try again." });
+    } finally {
+      setTogglingVisibility(false);
+    }
+  };
+
+  const handleRemoveFriend = () => {
+    if (!selectedFriend) return;
+    const name = getDisplayName(selectedFriend.first_name, selectedFriend.last_name);
+    Alert.alert(
+      "Remove Friend",
+      `Are you sure you want to remove ${name}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await connectionsService.deleteConnection(selectedFriend.user_id);
+              closeFriendModal();
+              await Promise.all([loadFriendsStatus(), loadConnections()]);
+              Toast.show({ type: "success", text1: `${name} removed.` });
+            } catch (error: any) {
+              Toast.show({ type: "error", text1: "Failed to remove. Try again." });
+            }
+          },
+        },
+      ]
+    );
   };
 
   const loadFriendsStatus = async () => {
@@ -557,28 +623,20 @@ export default function HomeScreen() {
                       setFriendModalVisible(true);
                     }}
                   >
-                    <View
-                      style={[
-                        styles.avatarCompact,
-                        {
-                          backgroundColor:
-                            (status.option?.color || Colors.interaction.primary) + "20",
-                        },
-                      ]}
-                    >
-                      <Text variant="primary" style={styles.avatarTextCompact}>
-                        {initials}
+                    <View style={styles.friendNameRowCompact}>
+                      <Text
+                        variant="primary"
+                        style={styles.friendNameCompact}
+                        numberOfLines={1}
+                      >
+                        {displayName}
                       </Text>
+                      {getConnectionForFriend(status.user_id)?.user_shows_status === false && (
+                        <Ionicons name="eye-off-outline" size={11} color={Colors.text.secondary} />
+                      )}
                     </View>
-                    <Text
-                      variant="primary"
-                      style={styles.friendNameCompact}
-                      numberOfLines={1}
-                    >
-                      {displayName}
-                    </Text>
-                    <Text variant="secondary" style={styles.friendEmojiCompact}>
-                      {status.option?.emoji || "🟢"}
+                    <Text variant="secondary" style={styles.friendStatusCompact} numberOfLines={1}>
+                      {status.option?.emoji || "🟢"} {status.option?.label || "Available"}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -622,13 +680,18 @@ export default function HomeScreen() {
                       </Text>
                     </View>
                     <View style={styles.friendInfo}>
-                      <Text
-                        variant="primary"
-                        style={[styles.friendName, { fontSize: fs(16) }]}
-                        numberOfLines={1}
-                      >
-                        {displayName}
-                      </Text>
+                      <View style={styles.friendNameRow}>
+                        <Text
+                          variant="primary"
+                          style={[styles.friendName, { fontSize: fs(16) }]}
+                          numberOfLines={1}
+                        >
+                          {displayName}
+                        </Text>
+                        {getConnectionForFriend(status.user_id)?.user_shows_status === false && (
+                          <Ionicons name="eye-off-outline" size={13} color={Colors.text.secondary} />
+                        )}
+                      </View>
                       <View style={styles.friendStatusRow}>
                         <View style={styles.friendStatusContent}>
                           <Text variant="secondary" numberOfLines={1}>
@@ -713,7 +776,7 @@ export default function HomeScreen() {
                         <Text style={styles.friendModalStatusEmoji}>
                           {selectedFriend.option?.emoji || "🟢"}
                         </Text>
-                        <Text variant="primary" style={styles.friendModalStatusText}>
+                        <Text variant="primary" style={styles.friendModalStatusText} numberOfLines={2}>
                           {selectedFriend.option?.label || "Available"}
                         </Text>
                       </View>
@@ -725,7 +788,7 @@ export default function HomeScreen() {
                         <Text variant="secondary" style={styles.friendModalLabel}>
                           Note
                         </Text>
-                        <Text variant="primary" style={styles.friendModalNote}>
+                        <Text variant="primary" style={styles.friendModalNote} numberOfLines={4}>
                           {selectedFriend.note}
                         </Text>
                       </View>
@@ -743,10 +806,40 @@ export default function HomeScreen() {
                       </View>
                     )}
 
-                    {/* Close Button */}
-                    <Button variant="primary" onPress={closeFriendModal}>
-                      Close
-                    </Button>
+                    {/* Manage Actions */}
+                    {getConnectionForFriend(selectedFriend.user_id) && (
+                      <>
+                        <View style={styles.friendModalDivider} />
+                        {!getConnectionForFriend(selectedFriend.user_id)?.user_shows_status && (
+                          <Text variant="secondary" style={styles.friendModalHiddenNote}>
+                            You've hidden your status from them, so they can't see your status either.
+                          </Text>
+                        )}
+                        <TouchableOpacity
+                          style={styles.friendModalActionButton}
+                          onPress={handleToggleVisibility}
+                          disabled={togglingVisibility}
+                          activeOpacity={0.7}
+                        >
+                          {togglingVisibility ? (
+                            <ActivityIndicator size="small" color={Colors.text.secondary} />
+                          ) : (
+                            <Text variant="secondary" style={styles.friendModalActionText}>
+                              {getConnectionForFriend(selectedFriend.user_id)?.user_shows_status
+                                ? "Hide my status"
+                                : "Show my status"}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.friendModalRemoveButton}
+                          onPress={handleRemoveFriend}
+                          activeOpacity={0.7}
+                        >
+                          <Text variant="primary" style={styles.friendModalRemoveText}>Remove friend</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
                   </>
                 )}
               </View>
@@ -1003,9 +1096,7 @@ const styles = StyleSheet.create({
     borderRadius: Borders.radius.medium,
     padding: Spacing.sm,
     alignItems: "center",
-    flexGrow: 1,
-    minWidth: "30%",
-    overflow: "visible",
+    width: "48%",
   },
   avatarCompact: {
     width: 44,
@@ -1020,17 +1111,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
   },
+  friendNameRowCompact: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+    marginBottom: 2,
+  },
   friendNameCompact: {
     fontSize: 13,
     fontFamily: Typography.fontFamily.semiBold,
-    marginBottom: 2,
     textAlign: "center",
+    flexShrink: 1,
   },
-  friendEmojiCompact: {
-    fontSize: 18,
-    lineHeight: 26,
-    includeFontPadding: false,
-    paddingTop: 2,
+  friendStatusCompact: {
+    fontSize: 12,
+    textAlign: "center",
   },
   friendCard: {
     flexDirection: "row",
@@ -1056,10 +1152,16 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  friendNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
   friendName: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
-    marginBottom: Spacing.xs,
+    flexShrink: 1,
   },
   friendStatusRow: {
     flexDirection: "row",
@@ -1092,6 +1194,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 400,
     minWidth: 280,
+    maxHeight: "85%",
   },
   friendModalHeader: {
     flexDirection: "row",
@@ -1126,8 +1229,38 @@ const styles = StyleSheet.create({
   friendModalStatusText: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
+    flex: 1,
   },
   friendModalNote: {
     lineHeight: 22,
+  },
+  friendModalDivider: {
+    height: 1,
+    backgroundColor: Colors.text.secondary,
+    opacity: 0.15,
+    marginVertical: Spacing.md,
+  },
+  friendModalHiddenNote: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: Spacing.sm,
+  },
+  friendModalActionButton: {
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+  },
+  friendModalActionText: {
+    fontSize: 14,
+    fontFamily: Typography.fontFamily.medium,
+  },
+  friendModalRemoveButton: {
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  friendModalRemoveText: {
+    fontSize: 14,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.interaction.error,
   },
 });

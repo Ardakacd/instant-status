@@ -42,7 +42,6 @@ import OnboardingScreen from "./src/screens/OnboardingScreen";
 import EmailVerificationScreen from "./src/screens/EmailVerificationScreen";
 import ResetPasswordScreen from "./src/screens/ResetPasswordScreen";
 import HomeScreen from "./src/screens/HomeScreen";
-import FriendsScreen from "./src/screens/FriendsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import ConnectScreen from "./src/screens/ConnectScreen";
 import ManageStatusScreen from "./src/screens/ManageStatusScreen";
@@ -195,15 +194,6 @@ function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Friends"
-        component={FriendsScreen}
-        options={{
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="people" size={24} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
@@ -295,7 +285,7 @@ function AppNavigator() {
         params: { friendId: user_id },
       });
     } else if (type === "friend_added") {
-      navigationRef.current.navigate("Main", { screen: "Friends" });
+      navigationRef.current.navigate("Main", { screen: "Home" });
     }
   };
 
