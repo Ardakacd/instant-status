@@ -449,28 +449,17 @@ export default function HomeScreen() {
               Your Status
             </Text>
             <TouchableOpacity
-              style={[
-                styles.manageButton,
-                !isPremium && styles.manageButtonLocked,
-                premiumLoading && styles.manageButtonLoading,
-              ]}
+              style={styles.manageButton}
               onPress={handleManageStatusPress}
               disabled={premiumLoading}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               {premiumLoading ? (
                 <ActivityIndicator size="small" color={Colors.interaction.primary} />
+              ) : isPremium ? (
+                <Ionicons name="settings-outline" size={20} color={Colors.text.secondary} />
               ) : (
-                <>
-                  {!isPremium && (
-                    <Ionicons
-                      name="lock-closed"
-                      size={14}
-                      color={Colors.interaction.primary}
-                      style={styles.lockIcon}
-                    />
-                  )}
-                  <Text style={styles.manageButtonText}>Manage Status</Text>
-                </>
+                <Ionicons name="lock-closed-outline" size={20} color={Colors.text.secondary} />
               )}
             </TouchableOpacity>
           </View>
@@ -910,27 +899,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   manageButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Borders.radius.medium,
-    backgroundColor: Colors.interaction.primary + "15",
-    flexShrink: 0,
-  },
-  manageButtonLocked: {
-    opacity: 0.6,
-  },
-  manageButtonLoading: {
-    opacity: 0.7,
-  },
-  lockIcon: {
-    marginRight: Spacing.xs,
-  },
-  manageButtonText: {
-    fontSize: 14,
-    fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.interaction.primary,
+    padding: Spacing.xs,
   },
   statusButtonsContainer: {
     flexDirection: "row",

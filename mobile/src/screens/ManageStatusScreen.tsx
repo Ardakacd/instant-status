@@ -270,7 +270,6 @@ export default function ManageStatusScreen() {
     }
   };
 
-  const systemOptions = statusOptions.filter((opt) => opt.user_id === null);
   const customOptions = statusOptions.filter((opt) => opt.user_id !== null);
 
   if (loading) {
@@ -327,23 +326,6 @@ export default function ManageStatusScreen() {
             onDismiss={() => setGlobalError("")}
           />
         ) : null}
-
-        {/* Default Statuses */}
-        <View style={styles.section}>
-          <Text variant="primary" style={[styles.sectionTitle, { fontSize: fs(18) }]}>
-            Default Statuses
-          </Text>
-          <View style={styles.optionsGrid}>
-            {systemOptions.map((option) => (
-              <View key={option.id} style={styles.optionCard}>
-                <Text style={[styles.optionEmoji, { fontSize: fs(26), lineHeight: fs(30) }]}>{option.emoji}</Text>
-                <Text variant="primary" style={styles.optionLabel}>
-                  {option.label}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
 
         {/* Custom Status Options */}
         <View style={styles.section}>
