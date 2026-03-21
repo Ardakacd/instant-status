@@ -236,9 +236,7 @@ export default function StatusChangeModal({
                   <Section spacing="lg">
                     {/* Note Input */}
                     <View>
-                      <Text variant="primary" style={[styles.sectionLabel, { fontSize: fs(16) }]}>
-                        Note (Optional)
-                      </Text>
+                      <Text style={styles.sectionLabel}>NOTE</Text>
                       <TextInput
                         style={styles.noteInput}
                         placeholder="Add a note..."
@@ -258,9 +256,7 @@ export default function StatusChangeModal({
 
                     {/* Until When Section - All statuses can have expiration times */}
                     <View>
-                      <Text variant="primary" style={[styles.sectionLabel, { fontSize: fs(16) }]}>
-                        Until When (Optional)
-                      </Text>
+                      <Text style={styles.sectionLabel}>UNTIL WHEN</Text>
                       <Text variant="hint" style={styles.sectionHint}>
                         After this time your status will be changed to available
                       </Text>
@@ -407,11 +403,8 @@ export default function StatusChangeModal({
                         <View style={styles.selectedDateTimeContainer}>
                           <View style={styles.selectedDateTimeContent}>
                             <View style={styles.selectedDateTimeTextContainer}>
-                              <Text
-                                variant="hint"
-                                style={styles.selectedDateTimeLabel}
-                              >
-                                Selected:
+                              <Text style={styles.selectedDateTimeLabel}>
+                                SELECTED:
                               </Text>
                               <Text
                                 variant="primary"
@@ -544,7 +537,7 @@ export default function StatusChangeModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.8)", // Darker backdrop for focus
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
   modalContainer: {
@@ -553,12 +546,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: Borders.radius.large,
     maxHeight: "90%",
     paddingBottom: 40,
-    // Physical shadow for Neobrutalist depth
-    shadowColor: Colors.text.primary,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 10, // Necessary for Samsung A15
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 10,
   },
   modalContainerExpanded: {
     maxHeight: "95%",
@@ -609,8 +601,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   sectionLabel: {
-    fontSize: 16,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: 11,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.secondary,
+    letterSpacing: 0.8,
     marginBottom: Spacing.xs,
   },
   sectionHint: {
@@ -623,8 +617,8 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     fontSize: 16,
     minHeight: 100,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.primary,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.text.secondary + "40",
   },
   charCount: {
     fontSize: 12,
@@ -641,22 +635,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Borders.radius.medium,
-    backgroundColor: Colors.canvas.background,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.secondary,
+    backgroundColor: "#F9FAFB",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.text.secondary + "40",
   },
   presetButtonActive: {
-    backgroundColor: Colors.interaction.primary, // Mint background
-    borderColor: Colors.text.primary,
-    // Subtle physical shift when active
-    transform: [{ translateY: 2 }],
+    backgroundColor: Colors.interaction.primary,
+    borderColor: "transparent",
   },
   presetButtonText: {
     fontSize: 14,
     fontFamily: Typography.fontFamily.semiBold,
   },
   presetButtonTextActive: {
-    color: Colors.text.primary, // Charcoal text on Mint
+    color: "#FFFFFF",
   },
   customPickerButton: {
     flexDirection: "row",
@@ -687,8 +679,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   selectedDateTimeLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.secondary,
+    letterSpacing: 0.8,
     marginBottom: Spacing.xs,
   },
   selectedDateTimeText: {

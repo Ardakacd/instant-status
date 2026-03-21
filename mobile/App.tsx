@@ -25,6 +25,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors, Typography } from "./src/design";
 import Toast from "react-native-toast-message";
 import * as Linking from "expo-linking";
 
@@ -177,10 +178,16 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#007AFF",
+        tabBarActiveTintColor: Colors.interaction.primary,
+        tabBarInactiveTintColor: Colors.text.secondary,
+        tabBarLabelStyle: {
+          fontFamily: Typography.fontFamily.medium,
+          fontSize: 11,
+        },
         tabBarStyle: {
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
+          borderTopColor: Colors.text.secondary + "20",
         },
       }}
     >

@@ -20,9 +20,7 @@ export default function StatusPreviewCard({
   
   return (
     <View style={styles.container}>
-      <Text variant="secondary" style={styles.previewLabel}>
-        Preview
-      </Text>
+      <Text style={styles.previewLabel}>PREVIEW</Text>
       
       {/* We use variant="elevated" so the preview looks like 
           a real physical object the user is "building" 
@@ -47,11 +45,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   previewLabel: {
-    fontFamily: Typography.fontFamily.semiBold,
-    fontSize: 12,
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 11,
     color: Colors.text.secondary,
+    letterSpacing: 0.8,
     marginBottom: Spacing.xs,
-    textTransform: 'uppercase',
   },
   previewContent: {
     flexDirection: "row",
@@ -63,11 +61,13 @@ const styles = StyleSheet.create({
   },
   previewEmoji: {
     fontSize: 26,
-    lineHeight: 30,
+    lineHeight: 32,
     includeFontPadding: false,
   },
   previewText: {
     fontFamily: Typography.fontFamily.semiBold,
     fontSize: 18,
+    lineHeight: 32,
+    includeFontPadding: false,
   },
 });

@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     borderRadius: Borders.radius.small,
   },
   pageBtnActive: {
-    backgroundColor: Colors.text.primary,
+    backgroundColor: Colors.interaction.primary,
   },
   pageNum: {
     fontFamily: Typography.fontFamily.medium,
@@ -148,17 +148,17 @@ const styles = StyleSheet.create({
   tile: {
     width: TILE_SIZE,
     height: TILE_SIZE,
-    backgroundColor: Colors.canvas.background,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.secondary,
+    backgroundColor: "#F9FAFB",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.text.secondary + "40",
     borderRadius: Borders.radius.medium,
     alignItems: "center",
     justifyContent: "center",
   },
   tileSelected: {
-    borderColor: Colors.text.primary,
-    backgroundColor: Colors.interaction.disabled,
-    transform: [{ translateY: 2 }], // The physical "pressed" feel
+    borderWidth: 2,
+    borderColor: Colors.interaction.primary,
+    backgroundColor: "#ECFDF5",
   },
   emojiText: {
     fontSize: 22,

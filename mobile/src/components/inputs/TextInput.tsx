@@ -67,10 +67,10 @@ const styles = StyleSheet.create({
     // Flat, border only, no shadows
   },
   inputFocused: {
-    borderColor: Colors.text.primary, // Becomes punchy Charcoal when typing
+    borderColor: Colors.interaction.primary,
   },
   inputError: {
-    borderColor: Colors.interaction.accent, // Yellow/Orange is a better "Caution" signal than Mint
+    borderColor: Colors.interaction.error,
   },
   inputDisabled: {
     borderColor: Colors.interaction.disabled,

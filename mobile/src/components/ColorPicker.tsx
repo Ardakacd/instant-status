@@ -1,16 +1,7 @@
-/**
- * Color Picker Component (Full Palette)
- *
- * Rules:
- * - 4-column grid for thumb reachability
- * - Selected state uses thick charcoal border
- * - Charcoal checkmark for maximum contrast
- */
-
 import React from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Borders, Spacing } from "../design";
+import { Spacing } from "../design";
 
 interface ColorPickerProps {
   selectedColor: string;
@@ -55,11 +46,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
               activeOpacity={1}
             >
               {isSelected && (
-                <Ionicons
-                  name="checkmark"
-                  size={24}
-                  color={Colors.text.primary} // High-contrast charcoal
-                />
+                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
               )}
             </TouchableOpacity>
           );
@@ -91,7 +78,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(0,0,0,0.05)",
   },
   colorButtonSelected: {
-    borderWidth: Borders.width, // Thick 2px Neobrutalist border
-    borderColor: Colors.text.primary,
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
   },
 });
