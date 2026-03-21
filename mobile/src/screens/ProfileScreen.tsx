@@ -335,6 +335,12 @@ export default function ProfileScreen() {
   const displayName =
     [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "Profile";
 
+  const initials = [user?.first_name, user?.last_name]
+    .filter(Boolean)
+    .map((n) => n![0].toUpperCase())
+    .join("")
+    .slice(0, 2) || "?";
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -351,6 +357,9 @@ export default function ProfileScreen() {
       >
         {/* Profile Header */}
         <View style={styles.header}>
+          <View style={styles.avatarCircle}>
+            <Text style={[styles.avatarText, { fontSize: fs(22) }]}>{initials}</Text>
+          </View>
           <Text variant="primary" style={[styles.displayName, { fontSize: fs(20) }]}>
             {displayName}
           </Text>
@@ -361,16 +370,12 @@ export default function ProfileScreen() {
 
         {/* Profile Info */}
         <View style={styles.section}>
-          <Text variant="primary" style={styles.sectionTitle}>
-            Profile
-          </Text>
+          <Text style={styles.sectionTitle}>PROFILE</Text>
           <View style={styles.card}>
             {/* First Name */}
-            <View style={styles.row}>
-              <Text variant="secondary" style={styles.rowLabel}>
-                First name
-              </Text>
-              {editingFirstName ? (
+            {editingFirstName ? (
+              <View style={styles.editingRow}>
+                <Text variant="secondary" style={styles.inlineLabel}>First name</Text>
                 <View style={styles.editRow}>
                   <DesignTextInput
                     value={firstName}
@@ -379,44 +384,32 @@ export default function ProfileScreen() {
                     editable={!saving}
                     style={styles.input}
                   />
-                  <TouchableOpacity
-                    onPress={handleSaveFirstName}
-                    disabled={saving}
-                    style={styles.iconBtn}
-                  >
+                  <TouchableOpacity onPress={handleSaveFirstName} disabled={saving} style={styles.iconBtn}>
                     {saving ? (
                       <ActivityIndicator size="small" color={Colors.interaction.primary} />
                     ) : (
                       <Ionicons name="checkmark" size={22} color={Colors.interaction.primary} />
                     )}
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setFirstName(user?.first_name || "");
-                      setEditingFirstName(false);
-                    }}
-                    style={styles.iconBtn}
-                  >
+                  <TouchableOpacity onPress={() => { setFirstName(user?.first_name || ""); setEditingFirstName(false); }} style={styles.iconBtn}>
                     <Ionicons name="close" size={22} color={Colors.text.secondary} />
                   </TouchableOpacity>
                 </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.valueRow}
-                  onPress={() => setEditingFirstName(true)}
-                >
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.inlineRow} onPress={() => setEditingFirstName(true)}>
+                <Text variant="secondary" style={styles.inlineLabel}>First name</Text>
+                <View style={styles.inlineValueRow}>
                   <Text variant="primary">{user?.first_name || "Add"}</Text>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
-                </TouchableOpacity>
-              )}
-            </View>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
+                </View>
+              </TouchableOpacity>
+            )}
             <View style={styles.divider} />
             {/* Last Name */}
-            <View style={styles.row}>
-              <Text variant="secondary" style={styles.rowLabel}>
-                Last name
-              </Text>
-              {editingLastName ? (
+            {editingLastName ? (
+              <View style={styles.editingRow}>
+                <Text variant="secondary" style={styles.inlineLabel}>Last name</Text>
                 <View style={styles.editRow}>
                   <DesignTextInput
                     value={lastName}
@@ -425,68 +418,51 @@ export default function ProfileScreen() {
                     editable={!saving}
                     style={styles.input}
                   />
-                  <TouchableOpacity
-                    onPress={handleSaveLastName}
-                    disabled={saving}
-                    style={styles.iconBtn}
-                  >
+                  <TouchableOpacity onPress={handleSaveLastName} disabled={saving} style={styles.iconBtn}>
                     {saving ? (
                       <ActivityIndicator size="small" color={Colors.interaction.primary} />
                     ) : (
                       <Ionicons name="checkmark" size={22} color={Colors.interaction.primary} />
                     )}
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setLastName(user?.last_name || "");
-                      setEditingLastName(false);
-                    }}
-                    style={styles.iconBtn}
-                  >
+                  <TouchableOpacity onPress={() => { setLastName(user?.last_name || ""); setEditingLastName(false); }} style={styles.iconBtn}>
                     <Ionicons name="close" size={22} color={Colors.text.secondary} />
                   </TouchableOpacity>
                 </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.valueRow}
-                  onPress={() => setEditingLastName(true)}
-                >
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.inlineRow} onPress={() => setEditingLastName(true)}>
+                <Text variant="secondary" style={styles.inlineLabel}>Last name</Text>
+                <View style={styles.inlineValueRow}>
                   <Text variant="primary">{user?.last_name || "Add"}</Text>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
-                </TouchableOpacity>
-              )}
-            </View>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
+                </View>
+              </TouchableOpacity>
+            )}
             <View style={styles.divider} />
             {/* Password / Auth */}
-            <View style={styles.row}>
-              <Text variant="secondary" style={styles.rowLabel}>
-                Password
-              </Text>
-              {authProvider === "password" ? (
-                <TouchableOpacity style={styles.valueRow} onPress={handleChangePassword}>
+            {authProvider === "password" ? (
+              <TouchableOpacity style={styles.inlineRow} onPress={handleChangePassword}>
+                <Text variant="secondary" style={styles.inlineLabel}>Password</Text>
+                <View style={styles.inlineValueRow}>
                   <Text variant="primary">Change password</Text>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.valueRow}>
-                  <Text variant="secondary">
-                    {authProvider === "google.com"
-                      ? "Signed in with Google"
-                      : authProvider === "apple.com"
-                        ? "Signed in with Apple"
-                        : "—"}
-                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
                 </View>
-              )}
-            </View>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.inlineRow}>
+                <Text variant="secondary" style={styles.inlineLabel}>Signed in with</Text>
+                <Text variant="primary">
+                  {authProvider === "google.com" ? "Google" : authProvider === "apple.com" ? "Apple" : "—"}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
         {/* Subscription */}
         <View style={styles.section}>
-          <Text variant="primary" style={styles.sectionTitle}>
-            Subscription
-          </Text>
+          <Text style={styles.sectionTitle}>SUBSCRIPTION</Text>
           <View style={styles.card}>
             {premiumLoading ? (
               <View style={styles.loadingRow}>
@@ -495,42 +471,50 @@ export default function ProfileScreen() {
               </View>
             ) : isPremium ? (
               <>
-                <View style={styles.premiumBadge}>
-                  <Ionicons name="star" size={18} color={Colors.interaction.accent} />
-                  <Text style={[styles.premiumBadgeText, { fontSize: fs(16) }]}>Premium</Text>
+                <View style={styles.premiumRow}>
+                  <View style={styles.premiumBadge}>
+                    <Ionicons name="star" size={14} color="#FFFFFF" />
+                    <Text style={[styles.premiumBadgeText, { fontSize: fs(13) }]}>Premium</Text>
+                  </View>
+                  {willRenew === false && expirationDate ? (
+                    <Text variant="secondary" style={styles.expiryText}>
+                      Expires {expirationDate.toLocaleDateString()}
+                    </Text>
+                  ) : (
+                    <Text variant="secondary" style={styles.expiryText}>Active</Text>
+                  )}
                 </View>
-                {willRenew === false && expirationDate && (
-                  <Text variant="secondary" style={styles.expiryText}>
-                    Expires {expirationDate.toLocaleDateString()}
-                  </Text>
-                )}
+                <View style={styles.divider} />
                 <TouchableOpacity
-                  style={styles.linkRow}
+                  style={styles.inlineRow}
                   onPress={() => navigation.navigate("SubscriptionManagement" as never)}
                 >
                   <Text variant="primary">Manage subscription</Text>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+                  <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
                 </TouchableOpacity>
               </>
             ) : (
-              <Button
-                variant="primary"
-                onPress={handleUpgradeToPremium}
-                loading={openingPaywall}
-                disabled={openingPaywall}
-                fullWidth={true}
-              >
-                Upgrade to Premium
-              </Button>
+              <>
+                <Text variant="secondary" style={styles.upgradeHint}>
+                  Unlock custom widget themes, more status options, and more.
+                </Text>
+                <Button
+                  variant="primary"
+                  onPress={handleUpgradeToPremium}
+                  loading={openingPaywall}
+                  disabled={openingPaywall}
+                  fullWidth={true}
+                >
+                  Upgrade to Premium
+                </Button>
+              </>
             )}
           </View>
         </View>
 
         {/* Settings */}
         <View style={styles.section}>
-          <Text variant="primary" style={styles.sectionTitle}>
-            Settings
-          </Text>
+          <Text style={styles.sectionTitle}>SETTINGS</Text>
           <View style={styles.card}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
@@ -554,8 +538,9 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Actions */}
+        {/* Account Actions */}
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ACCOUNT</Text>
           <View style={styles.card}>
             <TouchableOpacity style={styles.actionRow} onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={20} color={Colors.text.primary} />
@@ -575,31 +560,30 @@ export default function ProfileScreen() {
 
         {/* App Info */}
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ABOUT</Text>
           <View style={styles.card}>
-            <View style={styles.infoRow}>
-              <Text variant="secondary">Version</Text>
+            <View style={styles.inlineRow}>
+              <Text variant="secondary" style={styles.inlineLabel}>Version</Text>
               <Text variant="secondary">
                 {Constants.expoConfig?.version || "1.0.0"}
               </Text>
             </View>
             <View style={styles.divider} />
-            <TouchableOpacity style={styles.infoRow} onPress={openPrivacyPolicy}>
+            <TouchableOpacity style={styles.inlineRow} onPress={openPrivacyPolicy}>
               <Text variant="primary">Privacy Policy</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+              <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
             </TouchableOpacity>
             <View style={styles.divider} />
-            <TouchableOpacity style={styles.infoRow} onPress={openTermsOfUse}>
+            <TouchableOpacity style={styles.inlineRow} onPress={openTermsOfUse}>
               <Text variant="primary">Terms of Use</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+              <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
             </TouchableOpacity>
           </View>
         </View>
 
         {__DEV__ && (
           <View style={styles.section}>
-            <Text variant="primary" style={styles.sectionTitle}>
-              Developer
-            </Text>
+            <Text style={styles.sectionTitle}>DEVELOPER</Text>
             <View style={styles.card}>
               <TouchableOpacity
                 style={styles.actionRow}
@@ -720,7 +704,23 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    paddingVertical: Spacing.xl,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
+  },
+  avatarCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.interaction.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  avatarText: {
+    fontFamily: Typography.fontFamily.semiBold,
+    color: "#FFFFFF",
+    textAlign: "center",
+    includeFontPadding: false,
   },
   displayName: {
     fontSize: 20,
@@ -734,31 +734,42 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.secondary,
+    letterSpacing: 0.8,
     marginBottom: Spacing.sm,
   },
   card: {
     backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
   },
-  row: {
-    marginBottom: Spacing.sm,
-  },
-  rowLabel: {
-    fontSize: 13,
-    marginBottom: Spacing.xs,
-  },
-  valueRow: {
+  inlineRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    minHeight: 48,
+    paddingVertical: Spacing.xs,
+  },
+  inlineLabel: {
+    fontSize: 15,
+    flex: 1,
+  },
+  inlineValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  editingRow: {
+    paddingVertical: Spacing.sm,
   },
   editRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   input: {
     flex: 1,
@@ -769,14 +780,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.text.secondary + "40",
-    marginVertical: Spacing.sm,
-  },
-  linkRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: Spacing.xs,
+    backgroundColor: Colors.text.secondary + "30",
   },
   loadingRow: {
     flexDirection: "row",
@@ -784,49 +788,59 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingVertical: Spacing.sm,
   },
+  premiumRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.sm,
+  },
   premiumBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
+    gap: 5,
+    backgroundColor: Colors.interaction.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
   premiumBadgeText: {
-    fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.text.primary,
+    color: "#FFFFFF",
   },
   expiryText: {
     fontSize: 13,
+  },
+  upgradeHint: {
+    fontSize: 13,
     marginBottom: Spacing.sm,
+    paddingTop: Spacing.xs,
   },
   settingRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    minHeight: 48,
+    paddingVertical: Spacing.xs,
   },
   settingInfo: {
     flex: 1,
+    paddingRight: Spacing.sm,
   },
   settingHint: {
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 2,
   },
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
+    minHeight: 48,
     paddingVertical: Spacing.xs,
   },
   dangerText: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.medium,
     color: Colors.interaction.error,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: Spacing.xs,
   },
   modalOverlay: {
     flex: 1,
