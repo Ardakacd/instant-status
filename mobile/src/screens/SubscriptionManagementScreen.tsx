@@ -380,9 +380,7 @@ export default function SubscriptionManagementScreen() {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          {
-            paddingHorizontal: horizontalPadding,
-          },
+          { paddingHorizontal: horizontalPadding, paddingTop: Spacing.md },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="always"
@@ -390,16 +388,12 @@ export default function SubscriptionManagementScreen() {
         {/* Lifetime Access Message */}
         {hasLifetime && (
           <View style={styles.lifetimeCard}>
-            <Ionicons
-              name="infinite"
-              size={32}
-              color={Colors.interaction.primary}
-            />
+            <Ionicons name="infinite" size={36} color={Colors.interaction.primary} />
             <Text variant="primary" style={[styles.lifetimeTitle, { fontSize: fs(20) }]}>
-              You already have lifetime access to this app
+              Lifetime Access
             </Text>
             <Text variant="secondary" style={styles.lifetimeDescription}>
-              Enjoy all premium features forever, no subscription needed.
+              All premium features, forever. No subscription needed.
             </Text>
           </View>
         )}
@@ -407,87 +401,56 @@ export default function SubscriptionManagementScreen() {
         {/* Current Plan Status (only for non-lifetime subscriptions) */}
         {isPremium && !hasLifetime && (
           <View style={styles.currentPlanCard}>
-            <View style={styles.currentPlanHeader}>
-              <Ionicons
-                name="star"
-                size={24}
-                color={Colors.interaction.accent}
-              />
-              <Text variant="primary" style={styles.currentPlanTitle}>
-                Current Plan
-              </Text>
+            <View style={styles.currentPlanTopRow}>
+              <View style={styles.premiumPill}>
+                <Ionicons name="star" size={12} color="#FFFFFF" />
+                <Text style={styles.premiumPillText}>Premium</Text>
+              </View>
+              {willRenew === false && (
+                <View style={styles.cancelledPill}>
+                  <Text style={styles.cancelledPillText}>Cancels</Text>
+                </View>
+              )}
             </View>
-            {currentPackageId && (
-              <Text variant="primary" style={[styles.currentPlanName, { fontSize: fs(20) }]}>
-                {currentPackage ? getPackageLabel(currentPackage) : "Premium"}
-              </Text>
-            )}
+            <Text variant="primary" style={[styles.currentPlanName, { fontSize: fs(24) }]}>
+              {currentPackage ? getPackageLabel(currentPackage) : "Premium"}
+            </Text>
             {expirationDate && (
               <Text variant="secondary" style={styles.expirationText}>
-                Expires: {expirationDate.toLocaleDateString()}
+                {willRenew === false ? "Access until" : "Renews"}{" "}
+                {expirationDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
               </Text>
-            )}
-            {willRenew === false && (
-              <View style={styles.cancellationWarning}>
-                <Ionicons
-                  name="information-circle"
-                  size={16}
-                  color={Colors.interaction.accent}
-                />
-                <Text variant="primary" style={styles.cancellationWarningText}>
-                  Your subscription will not renew
-                </Text>
-              </View>
             )}
 
             {/* Plan Switch Information */}
-            {availablePackages.length > 0 &&
-              currentPackage &&
-              expirationDate && (
-                <View style={styles.switchInfoBox}>
-                  <Ionicons
-                    name="swap-horizontal-outline"
-                    size={20}
-                    color={Colors.interaction.primary}
-                  />
-                  <View style={styles.switchInfoContent}>
-                    <Text variant="primary" style={styles.switchInfoTitle}>
-                      Switching Plans
-                    </Text>
-                    <Text variant="secondary" style={styles.switchInfoText}>
-                      {(() => {
-                        const currentLabel = getPackageLabel(currentPackage);
-                        const isYearly = currentLabel
-                          .toLowerCase()
-                          .includes("yearly");
-                        const monthlyPkg = availablePackages.find((p: any) => {
-                          const label = getPackageLabel(p);
-                          return label.toLowerCase().includes("monthly");
-                        });
-                        const yearlyPkg = availablePackages.find((p: any) => {
-                          const label = getPackageLabel(p);
-                          return label.toLowerCase().includes("yearly");
-                        });
-
-                        if (isYearly && monthlyPkg) {
-                          return `If you switch to Monthly, your Yearly benefits will continue until ${expirationDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}. After that, your Monthly subscription will begin.`;
-                        } else if (!isYearly && yearlyPkg) {
-                          return `If you switch to Yearly, your remaining time will be prorated and applied to your new plan. Your next billing date will be in 1 year.`;
-                        }
-                        return `You can switch to a different plan anytime. Your current benefits will continue until ${expirationDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`;
-                      })()}
-                    </Text>
-                  </View>
-                </View>
-              )}
+            {availablePackages.length > 0 && currentPackage && expirationDate && (
+              <View style={styles.switchInfoBox}>
+                <Ionicons name="swap-horizontal-outline" size={16} color={Colors.interaction.primary} />
+                <Text variant="secondary" style={styles.switchInfoText}>
+                  {(() => {
+                    const currentLabel = getPackageLabel(currentPackage);
+                    const isYearly = currentLabel.toLowerCase().includes("yearly");
+                    const yearlyPkg = availablePackages.find((p: any) =>
+                      getPackageLabel(p).toLowerCase().includes("yearly")
+                    );
+                    if (isYearly) {
+                      return `Switching to Monthly takes effect after ${expirationDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.`;
+                    } else if (yearlyPkg) {
+                      return `Switching to Yearly prorates your remaining time to the new plan.`;
+                    }
+                    return `Benefits continue until ${expirationDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.`;
+                  })()}
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
         {/* Available Plans (only show if not lifetime and there are other plans) */}
         {!hasLifetime && availablePackages.length > 0 && (
           <View style={styles.section}>
-            <Text variant="primary" style={[styles.sectionTitle, { fontSize: fs(20) }]}>
-              {isPremium ? "Change Plan" : "Choose a Plan"}
+            <Text style={styles.sectionTitle}>
+              {isPremium ? "CHANGE PLAN" : "CHOOSE A PLAN"}
             </Text>
 
             {availablePackages.map((pkg: any) => {
@@ -499,53 +462,51 @@ export default function SubscriptionManagementScreen() {
               return (
                 <TouchableOpacity
                   key={pkg.identifier}
-                  style={[
-                    styles.packageCard,
-                    isPurchasing && styles.packageCardPurchasing,
-                  ]}
+                  style={[styles.packageCard, isPurchasing && styles.packageCardPurchasing]}
                   onPress={() => handlePurchasePackage(pkg)}
                   disabled={isPurchasing}
+                  activeOpacity={0.75}
                 >
                   <View style={styles.packageHeader}>
                     <View style={styles.packageInfo}>
-                      <Text variant="primary" style={[styles.packageLabel, { fontSize: fs(18) }]}>
+                      <Text variant="primary" style={[styles.packageLabel, { fontSize: fs(17) }]}>
                         {label}
                       </Text>
                       {isAnnual && savings && (
                         <View style={styles.savingsBadge}>
-                          <Text
-                            variant="primary"
-                            style={styles.savingsBadgeText}
-                          >
+                          <Text style={styles.savingsBadgeText}>
                             Save {savings.percentage}%
                           </Text>
                         </View>
                       )}
                     </View>
-                    <Text variant="primary" style={[styles.packagePrice, { fontSize: fs(20) }]}>
-                      {formatPrice(pkg)}
-                    </Text>
+                    <View style={styles.packagePriceCol}>
+                      <Text variant="primary" style={[styles.packagePrice, { fontSize: fs(18) }]}>
+                        {formatPrice(pkg)}
+                      </Text>
+                      {isAnnual && (
+                        <Text variant="secondary" style={styles.packagePriceSub}>
+                          per year
+                        </Text>
+                      )}
+                    </View>
                   </View>
 
                   {isAnnual && savings && (
-                    <Text variant="secondary" style={styles.savingsText}>
-                      {savings.percentage}% off compared to monthly billing
+                    <Text style={styles.savingsText}>
+                      {savings.percentage}% cheaper than monthly
                     </Text>
                   )}
 
-                  {isPurchasing ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={Colors.interaction.primary}
-                      style={styles.packageButton}
-                    />
-                  ) : (
-                    <View style={styles.packageButton}>
-                      <Text variant="primary" style={[styles.packageButtonText, { fontSize: fs(16) }]}>
-                        {isPremium ? "Switch to this plan" : "Subscribe"}
+                  <View style={styles.packageCta}>
+                    {isPurchasing ? (
+                      <ActivityIndicator size="small" color={Colors.interaction.primary} />
+                    ) : (
+                      <Text style={[styles.packageCtaText, { fontSize: fs(14) }]}>
+                        {isPremium ? "Switch to this plan" : "Subscribe"} →
                       </Text>
-                    </View>
-                  )}
+                    )}
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -554,48 +515,31 @@ export default function SubscriptionManagementScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionsSection}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleRestorePurchases}
-            disabled={restoring}
-          >
-            {restoring ? (
-              <ActivityIndicator
-                size="small"
-                color={Colors.interaction.primary}
-              />
-            ) : (
+          <Text style={styles.sectionTitle}>OTHER</Text>
+          <View style={styles.actionsCard}>
+            <TouchableOpacity
+              style={styles.actionRow}
+              onPress={handleRestorePurchases}
+              disabled={restoring}
+            >
+              {restoring ? (
+                <ActivityIndicator size="small" color={Colors.interaction.primary} />
+              ) : (
+                <Ionicons name="refresh-outline" size={18} color={Colors.interaction.primary} />
+              )}
+              <Text style={styles.actionRowText}>Restore Purchases</Text>
+            </TouchableOpacity>
+
+            {isPremium && !hasLifetime && (
               <>
-                <Ionicons
-                  name="refresh-outline"
-                  size={20}
-                  color={Colors.interaction.primary}
-                />
-                <Text variant="primary" style={styles.actionButtonText}>
-                  Restore Purchases
-                </Text>
+                <View style={styles.actionDivider} />
+                <TouchableOpacity style={styles.actionRow} onPress={handleCancelMembership}>
+                  <Ionicons name="close-circle-outline" size={18} color={Colors.interaction.error} />
+                  <Text style={[styles.actionRowText, styles.cancelText]}>Cancel Membership</Text>
+                </TouchableOpacity>
               </>
             )}
-          </TouchableOpacity>
-
-          {isPremium && !hasLifetime && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
-              onPress={handleCancelMembership}
-            >
-              <Ionicons
-                name="close-circle-outline"
-                size={20}
-                color={Colors.interaction.error}
-              />
-              <Text
-                variant="primary"
-                style={[styles.actionButtonText, styles.cancelButtonText]}
-              >
-                Cancel Membership
-              </Text>
-            </TouchableOpacity>
-          )}
+          </View>
         </View>
       </ScrollView>
 
@@ -776,8 +720,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     backgroundColor: Colors.canvas.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.text.secondary + "40",
   },
   backButton: {
     width: 40,
@@ -817,119 +759,112 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.medium,
     color: Colors.canvas.background,
   },
-  currentPlanCard: {
-    backgroundColor: Colors.canvas.background,
-    marginTop: Spacing.lg,
+  sectionTitle: {
+    fontSize: 11,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.secondary,
+    letterSpacing: 0.8,
     marginBottom: Spacing.sm,
-    padding: Spacing.lg,
-    borderRadius: Borders.radius.medium,
-    borderWidth: Borders.width,
-    borderColor: Colors.interaction.accent + "40",
   },
-  currentPlanHeader: {
+  // Current plan card
+  currentPlanCard: {
+    backgroundColor: "#F0FDF8",
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.interaction.primary + "30",
+  },
+  currentPlanTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: Spacing.sm,
     gap: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
-  currentPlanTitle: {
-    fontSize: 16,
+  premiumPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.interaction.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  premiumPillText: {
+    fontSize: 12,
     fontFamily: Typography.fontFamily.semiBold,
+    color: "#FFFFFF",
+  },
+  cancelledPill: {
+    backgroundColor: Colors.interaction.error + "20",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  cancelledPillText: {
+    fontSize: 12,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.interaction.error,
   },
   currentPlanName: {
-    fontSize: 20,
     fontFamily: Typography.fontFamily.semiBold,
     marginBottom: Spacing.xs,
   },
   expirationText: {
     fontSize: 14,
-    marginTop: Spacing.xs,
-  },
-  cancellationWarning: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.interaction.accent + "20",
-    borderWidth: 1,
-    borderColor: Colors.interaction.accent + "60",
-    borderRadius: Borders.radius.small,
-    padding: Spacing.sm,
-    marginTop: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  cancellationWarningText: {
-    flex: 1,
-    fontSize: 14,
-    color: Colors.interaction.accent,
   },
   switchInfoBox: {
     flexDirection: "row",
-    backgroundColor: Colors.interaction.primary + "15",
-    borderWidth: 1,
-    borderColor: Colors.interaction.primary + "40",
-    borderRadius: Borders.radius.small,
-    padding: Spacing.sm,
+    alignItems: "flex-start",
+    gap: Spacing.xs,
     marginTop: Spacing.md,
-    gap: Spacing.sm,
-  },
-  switchInfoContent: {
-    flex: 1,
-  },
-  switchInfoTitle: {
-    fontSize: 14,
-    fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.interaction.primary,
-    marginBottom: Spacing.xs,
+    paddingTop: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.interaction.primary + "40",
   },
   switchInfoText: {
+    flex: 1,
     fontSize: 13,
     lineHeight: 18,
+    color: Colors.text.secondary,
   },
+  // Lifetime card
   lifetimeCard: {
-    backgroundColor: Colors.canvas.background,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
-    padding: Spacing.lg,
+    backgroundColor: "#F0FDF8",
     borderRadius: Borders.radius.medium,
-    borderWidth: Borders.width,
-    borderColor: Colors.interaction.primary,
+    padding: Spacing.xl,
+    borderWidth: 1,
+    borderColor: Colors.interaction.primary + "40",
     alignItems: "center",
   },
   lifetimeTitle: {
-    fontSize: 20,
     fontFamily: Typography.fontFamily.semiBold,
     marginTop: Spacing.sm,
     textAlign: "center",
   },
   lifetimeDescription: {
     fontSize: 14,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
     textAlign: "center",
     lineHeight: 20,
   },
+  // Plan section
   section: {
     marginTop: Spacing.lg,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: Typography.fontFamily.semiBold,
-    marginBottom: Spacing.md,
-  },
   packageCard: {
-    backgroundColor: Colors.canvas.background,
+    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     padding: Spacing.lg,
     marginBottom: Spacing.sm,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.secondary + "30",
   },
   packageCardPurchasing: {
     opacity: 0.6,
   },
   packageHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   packageInfo: {
     flex: 1,
@@ -939,70 +874,73 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   packageLabel: {
-    fontSize: 18,
     fontFamily: Typography.fontFamily.semiBold,
   },
   savingsBadge: {
-    backgroundColor: Colors.interaction.accent,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Borders.radius.small,
+    backgroundColor: Colors.interaction.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 20,
   },
   savingsBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.canvas.background,
+    color: "#FFFFFF",
+  },
+  packagePriceCol: {
+    alignItems: "flex-end",
   },
   packagePrice: {
-    fontSize: 20,
     fontFamily: Typography.fontFamily.semiBold,
   },
+  packagePriceSub: {
+    fontSize: 11,
+    marginTop: 1,
+  },
   savingsText: {
-    fontSize: 14,
-    fontFamily: Typography.fontFamily.medium,
+    fontSize: 13,
     color: Colors.interaction.primary,
     marginBottom: Spacing.sm,
   },
-  packageButton: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Borders.radius.small,
-    backgroundColor: Colors.interaction.primary,
-    alignItems: "center",
+  packageCta: {
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.text.secondary + "30",
   },
-  packageButtonText: {
-    fontSize: 16,
-    fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.canvas.background,
+  packageCtaText: {
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.interaction.primary,
   },
+  // Actions
   actionsSection: {
     marginTop: Spacing.lg,
     marginBottom: Spacing.xl,
   },
-  actionButton: {
+  actionsCard: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: Borders.radius.medium,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.canvas.background,
-    borderRadius: Borders.radius.medium,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
     gap: Spacing.sm,
-    borderWidth: Borders.width,
-    borderColor: Colors.text.secondary + "30",
+    minHeight: 48,
+    paddingVertical: Spacing.xs,
   },
-  actionButtonText: {
-    fontSize: 16,
+  actionRowText: {
+    fontSize: 15,
     fontFamily: Typography.fontFamily.medium,
     color: Colors.interaction.primary,
   },
-  cancelButton: {
-    borderColor: Colors.interaction.error + "40",
-    backgroundColor: Colors.interaction.error + "15",
-  },
-  cancelButtonText: {
+  cancelText: {
     color: Colors.interaction.error,
+  },
+  actionDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.text.secondary + "30",
   },
   modalOverlay: {
     flex: 1,

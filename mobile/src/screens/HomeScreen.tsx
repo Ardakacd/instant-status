@@ -445,9 +445,7 @@ export default function HomeScreen() {
         {/* My Status Card */}
         <View style={styles.statusCard}>
           <View style={styles.cardTitleContainer}>
-            <Text variant="primary" style={styles.cardTitle}>
-              Your Status
-            </Text>
+            <Text style={styles.cardTitle}>YOUR STATUS</Text>
             <TouchableOpacity
               style={styles.manageButton}
               onPress={handleManageStatusPress}
@@ -494,19 +492,18 @@ export default function HomeScreen() {
               );
             })}
           </View>
-          {myStatus && myStatus.expires_at && (
-            <Text variant="secondary" style={styles.expirationText}>
-              {formatExpirationTime(myStatus.expires_at)}
-            </Text>
+          {myStatus && myStatus.expires_at && formatExpirationTime(myStatus.expires_at) && (
+            <View style={styles.expirationRow}>
+              <Ionicons name="time-outline" size={12} color="#F59E0B" />
+              <Text style={styles.expirationText}>{formatExpirationTime(myStatus.expires_at)}</Text>
+            </View>
           )}
         </View>
 
         {/* Friends Section */}
         <View style={styles.friendsSection}>
           <View style={styles.sectionHeader}>
-            <Text variant="primary" style={[styles.sectionTitle, { fontSize: fs(20) }]}>
-              Friends
-            </Text>
+            <Text style={styles.sectionTitle}>FRIENDS</Text>
             <View style={styles.headerRight}>
               {friendsStatus.length > 0 && (
                 <View style={styles.layoutToggle}>
@@ -572,8 +569,8 @@ export default function HomeScreen() {
             </View>
           ) : friendsStatus.length === 0 ? (
             <View style={styles.emptyState}>
-              <View style={styles.emptyIconContainer}>
-                <Text style={styles.emptyIcon}>👥</Text>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="people-outline" size={fs(32)} color={Colors.text.secondary} />
               </View>
               <Text variant="primary" style={styles.emptyTitle}>
                 No friends yet
@@ -758,9 +755,7 @@ export default function HomeScreen() {
 
                     {/* Status */}
                     <View style={styles.friendModalSection}>
-                      <Text variant="secondary" style={styles.friendModalLabel}>
-                        Status
-                      </Text>
+                      <Text style={styles.friendModalLabel}>STATUS</Text>
                       <View style={styles.friendModalStatusRow}>
                         <Text style={styles.friendModalStatusEmoji}>
                           {selectedFriend.option?.emoji || "🟢"}
@@ -774,9 +769,7 @@ export default function HomeScreen() {
                     {/* Note */}
                     {selectedFriend.note && (
                       <View style={styles.friendModalSection}>
-                        <Text variant="secondary" style={styles.friendModalLabel}>
-                          Note
-                        </Text>
+                        <Text style={styles.friendModalLabel}>NOTE</Text>
                         <Text variant="primary" style={styles.friendModalNote} numberOfLines={4}>
                           {selectedFriend.note}
                         </Text>
@@ -786,9 +779,7 @@ export default function HomeScreen() {
                     {/* Expires At */}
                     {selectedFriend.expires_at && (
                       <View style={styles.friendModalSection}>
-                        <Text variant="secondary" style={styles.friendModalLabel}>
-                          Expires
-                        </Text>
+                        <Text style={styles.friendModalLabel}>EXPIRES</Text>
                         <Text variant="secondary">
                           {formatExpirationTime(selectedFriend.expires_at)}
                         </Text>
@@ -800,9 +791,12 @@ export default function HomeScreen() {
                       <>
                         <View style={styles.friendModalDivider} />
                         {!getConnectionForFriend(selectedFriend.user_id)?.user_shows_status && (
-                          <Text variant="secondary" style={styles.friendModalHiddenNote}>
-                            You've hidden your status from them, so they can't see your status either.
-                          </Text>
+                          <View style={styles.friendModalHiddenNoteBox}>
+                            <Ionicons name="eye-off-outline" size={13} color={Colors.text.secondary} />
+                            <Text variant="secondary" style={styles.friendModalHiddenNote}>
+                              You've hidden your status from them, so they can't see yours either.
+                            </Text>
+                          </View>
                         )}
                         <TouchableOpacity
                           style={styles.friendModalActionButton}
@@ -893,8 +887,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   cardTitle: {
-    fontSize: 18,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: 11,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.secondary,
+    letterSpacing: 0.8,
     flexShrink: 1,
     minWidth: 0,
   },
@@ -958,8 +954,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: 11,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.secondary,
+    letterSpacing: 0.8,
     flexShrink: 1,
     minWidth: 0,
   },
@@ -1010,16 +1008,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxl,
     paddingHorizontal: Spacing.xl,
   },
-  emptyIconContainer: {
-    height: 64,
-    alignItems: "center",
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#F3F4F6",
     justifyContent: "center",
-    marginBottom: Spacing.md,
-  },
-  emptyIcon: {
-    fontSize: 52,
-    lineHeight: 64,
-    includeFontPadding: false,
+    alignItems: "center",
+    marginBottom: Spacing.lg,
   },
   emptyTitle: {
     fontSize: 18,
@@ -1143,11 +1139,19 @@ const styles = StyleSheet.create({
   friendExpirationText: {
     fontSize: 12,
     marginTop: 2,
+    color: "#F59E0B",
+  },
+  expirationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
   },
   expirationText: {
-    marginTop: Spacing.sm,
-    textAlign: "center",
-    fontStyle: "italic",
+    fontSize: 12,
+    fontFamily: Typography.fontFamily.medium,
+    color: "#F59E0B",
   },
   friendModalOverlay: {
     flex: 1,
@@ -1183,8 +1187,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   friendModalLabel: {
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.secondary,
+    letterSpacing: 0.8,
     marginBottom: Spacing.xs,
   },
   friendModalStatusRow: {
@@ -1204,15 +1210,25 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   friendModalDivider: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: Colors.text.secondary,
-    opacity: 0.15,
+    opacity: 0.3,
     marginVertical: Spacing.md,
+  },
+  friendModalHiddenNoteBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.xs,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   friendModalHiddenNote: {
     fontSize: 13,
     lineHeight: 18,
-    marginBottom: Spacing.sm,
+    flex: 1,
   },
   friendModalActionButton: {
     alignItems: "center",

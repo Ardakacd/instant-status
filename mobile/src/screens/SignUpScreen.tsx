@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Platform,
   ScrollView,
@@ -13,8 +13,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { ErrorBanner } from "../components/ErrorBanner";
 import Toast from "react-native-toast-message";
-import { Colors, Borders, Spacing, Typography, PhysicalShift, useResponsive } from "../design";
-import { createPhysicalShiftTransform } from "../design/styles";
+import { Colors, Borders, Spacing, Typography, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
@@ -23,56 +22,24 @@ import { Section } from "../components/containers/Section";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SignUp">;
 
-const GoogleIcon = () => (
-  <Text variant="primary" style={styles.googleIcon}>G</Text>
-);
-
-/**
- * SocialButtonWrapper - Wraps social login buttons with Neobrutalist shadow effect
- * Matches the Button component's primaryWrapper structure for consistent styling
- */
-const SocialButtonWrapper: React.FC<{
-  children: React.ReactNode;
-  onPress: () => void;
-  disabled?: boolean;
-  loading?: boolean;
-}> = ({ children, onPress, disabled, loading }) => {
-  const [isPressed, setIsPressed] = useState(false);
-
-  return (
-    <View style={styles.socialButtonWrapper}>
-      {/* Static shadow block (background layer) - matches Button component */}
-      <View style={styles.socialShadowBlock} />
-      {/* Moving foreground (actual button) */}
-      <TouchableOpacity
-        activeOpacity={1}
-        onPressIn={() => setIsPressed(true)}
-        onPressOut={() => setIsPressed(false)}
-        onPress={onPress}
-        disabled={disabled || loading}
-        style={[
-          styles.socialButton,
-          createPhysicalShiftTransform(isPressed),
-        ]}
-      >
-        {children}
-      </TouchableOpacity>
-    </View>
-  );
-};
-
 export default function SignUpScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [globalError, setGlobalError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [appleLoading, setAppleLoading] = useState(false);
-  const { signUp, signInWithGoogle, signInWithApple, authError, clearAuthError } = useAuth();
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [emailError, setEmailError] = React.useState("");
+  const [passwordError, setPasswordError] = React.useState("");
+  const [globalError, setGlobalError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [googleLoading, setGoogleLoading] = React.useState(false);
+  const [appleLoading, setAppleLoading] = React.useState(false);
+  const {
+    signUp,
+    signInWithGoogle,
+    signInWithApple,
+    authError,
+    clearAuthError,
+  } = useAuth();
 
   const handleEmailChange = (text: string) => {
     setEmail(text);
@@ -136,7 +103,8 @@ export default function SignUpScreen({ navigation }: Props) {
       if (!error.message?.includes("cancelled")) {
         Toast.show({
           type: "error",
-          text1: error.message || "Failed to sign in with Google. Please try again.",
+          text1:
+            error.message || "Failed to sign in with Google. Please try again.",
         });
       }
     } finally {
@@ -151,7 +119,8 @@ export default function SignUpScreen({ navigation }: Props) {
     } catch (error: any) {
       Toast.show({
         type: "error",
-        text1: error.message || "Failed to sign in with Apple. Please try again.",
+        text1:
+          error.message || "Failed to sign in with Apple. Please try again.",
       });
     } finally {
       setAppleLoading(false);
@@ -163,9 +132,7 @@ export default function SignUpScreen({ navigation }: Props) {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          {
-            paddingHorizontal: horizontalPadding,
-          },
+          { paddingHorizontal: horizontalPadding },
         ]}
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
@@ -173,16 +140,25 @@ export default function SignUpScreen({ navigation }: Props) {
       >
         <Section spacing="md" style={styles.content}>
           <View style={styles.header}>
-            <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>Create Account</Text>
-            <Text variant="secondary" style={styles.subtitle}>Sign up to get started</Text>
+            <View style={styles.logoCircle}>
+              <Ionicons name="radio-outline" size={28} color="#FFFFFF" />
+            </View>
+            <Text
+              variant="primary"
+              style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}
+            >
+              Create Account
+            </Text>
+            <Text variant="secondary" style={styles.subtitle}>
+              Sign up to get started
+            </Text>
           </View>
 
-          {/* Auth Error (e.g. email not verified) - Bold Red */}
           {authError && (
-            <Text variant="hint" style={styles.authErrorText}>{authError}</Text>
+            <Text variant="hint" style={styles.authErrorText}>
+              {authError}
+            </Text>
           )}
-
-          {/* Global Error Banner */}
           {globalError && <ErrorBanner message={globalError} />}
 
           <Section spacing="sm">
@@ -196,13 +172,15 @@ export default function SignUpScreen({ navigation }: Props) {
                 error={!!emailError}
               />
               {emailError && (
-                <Text variant="hint" style={styles.errorText}>{emailError}</Text>
+                <Text variant="hint" style={styles.errorText}>
+                  {emailError}
+                </Text>
               )}
             </View>
 
             <View>
               <TextInput
-                placeholder="Password (min 8 characters)"
+                placeholder="Password"
                 value={password}
                 onChangeText={handlePasswordChange}
                 secureTextEntry
@@ -210,7 +188,9 @@ export default function SignUpScreen({ navigation }: Props) {
                 error={!!passwordError}
               />
               {passwordError && (
-                <Text variant="hint" style={styles.errorText}>{passwordError}</Text>
+                <Text variant="hint" style={styles.errorText}>
+                  {passwordError}
+                </Text>
               )}
             </View>
 
@@ -224,48 +204,59 @@ export default function SignUpScreen({ navigation }: Props) {
             </Button>
           </Section>
 
-          {/* If the screen is small, the OR divider and Social Buttons 
-              will simply move below the fold, which is fine! */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text variant="hint" style={styles.dividerText}>OR</Text>
+            <Text style={styles.dividerText}>OR</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          <SocialButtonWrapper
+          {/* Google */}
+          <Pressable
             onPress={handleGoogleSignIn}
             disabled={googleLoading || loading || appleLoading}
-            loading={googleLoading}
+            style={({ pressed }) => [
+              styles.socialButton,
+              pressed && styles.socialButtonPressed,
+            ]}
           >
             {googleLoading ? (
-              <Text variant="primary">Loading...</Text>
+              <Text variant="secondary" style={styles.socialButtonText}>
+                Loading…
+              </Text>
             ) : (
               <>
-                <GoogleIcon />
+                <Text style={styles.googleIcon}>G</Text>
                 <Text variant="primary" style={styles.socialButtonText}>
                   Continue with Google
                 </Text>
               </>
             )}
-          </SocialButtonWrapper>
+          </Pressable>
 
+          {/* Apple (iOS only) */}
           {Platform.OS === "ios" && (
-            <SocialButtonWrapper
+            <Pressable
               onPress={handleAppleSignIn}
               disabled={appleLoading || loading || googleLoading}
-              loading={appleLoading}
+              style={({ pressed }) => [
+                styles.socialButton,
+                styles.socialButtonApple,
+                pressed && styles.socialButtonPressed,
+              ]}
             >
               {appleLoading ? (
-                <Text variant="primary">Loading...</Text>
+                <Text style={[styles.socialButtonText, { color: "#FFFFFF" }]}>
+                  Loading…
+                </Text>
               ) : (
-                <View style={styles.appleButtonContent}>
-                  <Ionicons name="logo-apple" size={20} color={Colors.text.primary} />
-                  <Text variant="primary" style={styles.socialButtonText}>
+                <>
+                  <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
+                  <Text style={[styles.socialButtonText, { color: "#FFFFFF" }]}>
                     Continue with Apple
                   </Text>
-                </View>
+                </>
               )}
-            </SocialButtonWrapper>
+            </Pressable>
           )}
 
           <View style={styles.signInContainer}>
@@ -276,7 +267,6 @@ export default function SignUpScreen({ navigation }: Props) {
               Sign In
             </InlineAction>
           </View>
-
         </Section>
       </ScrollView>
     </View>
@@ -290,26 +280,33 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center", // Center content vertically
+    justifyContent: "center",
     paddingTop: Spacing.xxl,
     paddingBottom: Spacing.xl,
   },
-  content: {
-  },
+  content: {},
   header: {
     alignItems: "center",
     marginBottom: Spacing.lg,
     marginTop: Spacing.md,
   },
+  logoCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.interaction.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
   title: {
-    fontSize: 28,
     fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
-    lineHeight: 34,
   },
   subtitle: {
     fontSize: 16,
     textAlign: "center",
+    marginTop: Spacing.xs,
   },
   errorText: {
     marginTop: Spacing.xs,
@@ -329,56 +326,42 @@ const styles = StyleSheet.create({
   },
   dividerLine: {
     flex: 1,
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: Colors.text.secondary,
-    opacity: 0.3,
+    opacity: 0.4,
   },
   dividerText: {
     marginHorizontal: Spacing.md,
-    fontSize: 14,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: 12,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.secondary,
     textTransform: "uppercase",
-  },
-  // Social Button Wrapper - Matches Button component's primaryWrapper structure
-  socialButtonWrapper: {
-    marginBottom: Spacing.md + PhysicalShift.offset.y,
-    marginRight: PhysicalShift.offset.x,
-  },
-  socialShadowBlock: {
-    // Static shadow block (background layer) - stays in place
-    position: "absolute",
-    top: PhysicalShift.offset.y,
-    left: PhysicalShift.offset.x,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.text.primary, // Charcoal shadow
-    borderRadius: Borders.radius.medium,
+    letterSpacing: 0.8,
   },
   socialButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.canvas.background, // Clean white for social
-    borderWidth: Borders.width,
-    borderColor: Colors.text.primary, // Black border
+    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
-    height: 56, // Standard Neobrutalist height
+    height: 52,
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
-  appleButtonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
+  socialButtonApple: {
+    backgroundColor: "#000000",
+  },
+  socialButtonPressed: {
+    opacity: 0.7,
   },
   googleIcon: {
-    fontSize: 22,
+    fontSize: 20,
     fontFamily: Typography.fontFamily.semiBold,
     color: "#4285F4",
   },
   socialButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Typography.fontFamily.semiBold,
   },
   signInContainer: {

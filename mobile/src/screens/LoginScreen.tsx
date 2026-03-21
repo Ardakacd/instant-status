@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   View,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   Modal,
   Platform,
@@ -16,55 +17,14 @@ import { RootStackParamList } from "../../App";
 import { authService } from "../services/auth.service";
 import { ErrorBanner } from "../components/ErrorBanner";
 import Toast from "react-native-toast-message";
-import { Colors, Borders, Spacing, Typography, PhysicalShift, useResponsive } from "../design";
-import { createPhysicalShiftTransform } from "../design/styles";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
 import { InlineAction } from "../components/actions/InlineAction";
 import { Section } from "../components/containers/Section";
-import { Card } from "../components/containers/Card";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SignIn">;
-
-const GoogleIcon = () => (
-  <Text variant="primary" style={styles.googleIcon}>G</Text>
-);
-
-/**
- * SocialButtonWrapper - Wraps social login buttons with Neobrutalist shadow effect
- * Matches the Button component's primaryWrapper structure for consistent styling
- */
-const SocialButtonWrapper: React.FC<{
-  children: React.ReactNode;
-  onPress: () => void;
-  disabled?: boolean;
-  loading?: boolean;
-}> = ({ children, onPress, disabled, loading }) => {
-  const [isPressed, setIsPressed] = useState(false);
-
-  return (
-    <View style={styles.socialButtonWrapper}>
-      {/* Static shadow block (background layer) - matches Button component */}
-      <View style={styles.socialShadowBlock} />
-      {/* Moving foreground (actual button) */}
-      <TouchableOpacity
-        activeOpacity={1}
-        onPressIn={() => setIsPressed(true)}
-        onPressOut={() => setIsPressed(false)}
-        onPress={onPress}
-        disabled={disabled || loading}
-        style={[
-          styles.socialButton,
-          createPhysicalShiftTransform(isPressed),
-          // Don't apply opacity change - let OS handle visual feedback during popup
-        ]}
-      >
-        {children}
-      </TouchableOpacity>
-    </View>
-  );
-};
 
 export default function LoginScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -213,34 +173,31 @@ export default function LoginScreen({ navigation }: Props) {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          {
-            paddingHorizontal: horizontalPadding,
-          },
+          { paddingHorizontal: horizontalPadding },
         ]}
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
         bounces={true}
       >
         <Section spacing="md" style={styles.content}>
-          {/* Spacer to push content down when keyboard is OFF */}
-          
-
-            <View style={styles.header}>
-              <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>Welcome Back</Text>
-              <Text variant="secondary" style={styles.subtitle}>Sign in to your account</Text>
+          <View style={styles.header}>
+            <View style={styles.logoCircle}>
+              <Ionicons name="radio-outline" size={28} color="#FFFFFF" />
             </View>
+            <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
+              Welcome Back
+            </Text>
+            <Text variant="secondary" style={styles.subtitle}>Sign in to your account</Text>
+          </View>
 
-            {/* Auth Error (e.g. email not verified) - Bold Red */}
-            {authError && (
-              <Text variant="hint" style={styles.authErrorText}>{authError}</Text>
-            )}
+          {authError && (
+            <Text variant="hint" style={styles.authErrorText}>{authError}</Text>
+          )}
+          {globalError && (
+            <ErrorBanner message={globalError} />
+          )}
 
-            {/* Global Error Banner */}
-            {globalError && (
-              <ErrorBanner message={globalError} />
-            )}
-
-            <Section spacing="sm">
+          <Section spacing="sm">
             <View>
               <TextInput
                 placeholder="Email"
@@ -279,69 +236,55 @@ export default function LoginScreen({ navigation }: Props) {
               </InlineAction>
             </View>
 
-            <Button
-              variant="primary"
-              onPress={handleSignIn}
-              loading={loading}
-              disabled={loading}
-            >
+            <Button variant="primary" onPress={handleSignIn} loading={loading} disabled={loading}>
               Sign In
             </Button>
           </Section>
 
-          {/* If the screen is small, the OR divider and Social Buttons 
-              will simply move below the fold, which is fine! */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text variant="hint" style={styles.dividerText}>OR</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          <SocialButtonWrapper
+          {/* Google */}
+          <Pressable
             onPress={handleGoogleSignIn}
             disabled={googleLoading || loading || appleLoading}
-            loading={googleLoading}
+            style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
           >
             {googleLoading ? (
-              <Text variant="primary">Loading...</Text>
+              <Text variant="secondary" style={styles.socialButtonText}>Loading…</Text>
             ) : (
               <>
-                <GoogleIcon />
-                <Text variant="primary" style={styles.socialButtonText}>
-                  Continue with Google
-                </Text>
+                <Text style={styles.googleIcon}>G</Text>
+                <Text variant="primary" style={styles.socialButtonText}>Continue with Google</Text>
               </>
             )}
-          </SocialButtonWrapper>
+          </Pressable>
 
+          {/* Apple (iOS only) */}
           {Platform.OS === "ios" && (
-            <SocialButtonWrapper
+            <Pressable
               onPress={handleAppleSignIn}
               disabled={appleLoading || loading || googleLoading}
-              loading={appleLoading}
+              style={({ pressed }) => [styles.socialButton, styles.socialButtonApple, pressed && styles.socialButtonPressed]}
             >
               {appleLoading ? (
-                <Text variant="primary">Loading...</Text>
+                <Text style={[styles.socialButtonText, { color: "#FFFFFF" }]}>Loading…</Text>
               ) : (
-                <View style={styles.appleButtonContent}>
-                  <Ionicons name="logo-apple" size={20} color={Colors.text.primary} />
-                  <Text variant="primary" style={styles.socialButtonText}>
-                    Continue with Apple
-                  </Text>
-                </View>
+                <>
+                  <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
+                  <Text style={[styles.socialButtonText, { color: "#FFFFFF" }]}>Continue with Apple</Text>
+                </>
               )}
-            </SocialButtonWrapper>
+            </Pressable>
           )}
 
           <View style={styles.signUpContainer}>
-            <Text variant="secondary" style={styles.signUpPrompt}>
-              Don't have an account?{" "}
-            </Text>
-            <InlineAction onPress={() => navigation.navigate("SignUp")}>
-              Sign Up
-            </InlineAction>
+            <Text variant="secondary" style={styles.signUpPrompt}>Don't have an account? </Text>
+            <InlineAction onPress={() => navigation.navigate("SignUp")}>Sign Up</InlineAction>
           </View>
-
         </Section>
       </ScrollView>
 
@@ -360,68 +303,50 @@ export default function LoginScreen({ navigation }: Props) {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
-          {/* Modal Content Wrapper with Physical Shift */}
-          <View style={styles.modalContentWrapper}>
-            {/* Physical Shift Shadow Block */}
-            <View style={styles.modalShadowBlock} />
-            
-            {/* Modal Content */}
-            <Card variant="flat" style={styles.modalContent}>
-              {/* Modal Header */}
-              <View style={styles.modalHeader}>
-                <View style={styles.modalHeaderContent}>
-                  <View style={styles.modalIconContainer}>
-                    <Ionicons name="mail-outline" size={20} color={Colors.interaction.primary} />
-                  </View>
-                  <Text variant="primary" style={styles.modalTitle}>Reset Password</Text>
-                </View>
-                {/* Chunky Close Button */}
-                <TouchableOpacity
-                  onPress={() => {
-                    setForgotPasswordModalVisible(false);
-                    setResetEmail("");
-                    setResetEmailError("");
-                  }}
-                  disabled={sendingReset}
-                  activeOpacity={1}
-                  style={styles.modalCloseButton}
-                >
-                  <Ionicons name="close" size={18} color={Colors.text.primary} />
-                </TouchableOpacity>
+          <View style={[styles.modalContent, { paddingBottom: SAFE_AREA_BOTTOM }]}>
+            <View style={styles.modalHeader}>
+              <Text variant="primary" style={styles.modalTitle}>Reset Password</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setForgotPasswordModalVisible(false);
+                  setResetEmail("");
+                  setResetEmailError("");
+                }}
+                disabled={sendingReset}
+              >
+                <Ionicons name="close" size={24} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <Section spacing="md" style={styles.modalBody}>
+              <Text variant="secondary" style={styles.modalDescription}>
+                Enter your email and we'll send a reset link.
+              </Text>
+
+              <View>
+                <TextInput
+                  placeholder="Email"
+                  value={resetEmail}
+                  onChangeText={handleResetEmailChange}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!sendingReset}
+                  error={!!resetEmailError}
+                />
+                {resetEmailError && (
+                  <Text variant="hint" style={styles.modalErrorText}>{resetEmailError}</Text>
+                )}
               </View>
 
-              <Section spacing="md" style={styles.modalBody}>
-                <Text variant="secondary" style={styles.modalDescription}>
-                  Enter your email address and we'll send you a link to reset your password.
-                </Text>
-
-                <View>
-                  <TextInput
-                    placeholder="Email"
-                    value={resetEmail}
-                    onChangeText={handleResetEmailChange}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    editable={!sendingReset}
-                    error={!!resetEmailError}
-                  />
-                  {resetEmailError && (
-                    <Text variant="hint" style={styles.modalErrorText}>
-                      {resetEmailError}
-                    </Text>
-                  )}
-                </View>
-
-                <Button
-                  variant="primary"
-                  onPress={handleSendPasswordReset}
-                  loading={sendingReset}
-                  disabled={sendingReset}
-                >
-                  Send Reset Email
-                </Button>
-              </Section>
-            </Card>
+              <Button
+                variant="primary"
+                onPress={handleSendPasswordReset}
+                loading={sendingReset}
+                disabled={sendingReset}
+              >
+                Send Reset Email
+              </Button>
+            </Section>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -435,27 +360,34 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.canvas.background,
   },
   scrollContent: {
-    flexGrow: 1, // Crucial: allows the spacers to expand
-    justifyContent: "center", // Center content vertically
+    flexGrow: 1,
+    justifyContent: "center",
     paddingTop: Spacing.xxl,
     paddingBottom: Spacing.xl,
   },
-  content: {
-  },
+  content: {},
   header: {
     alignItems: "center",
     marginBottom: Spacing.lg,
     marginTop: Spacing.md,
   },
+  logoCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.interaction.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
   title: {
-    fontSize: 28, // Slightly smaller to prevent overflow
     fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
-    lineHeight: 34,
   },
   subtitle: {
     fontSize: 16,
     textAlign: "center",
+    marginTop: Spacing.xs,
   },
   errorText: {
     marginTop: Spacing.xs,
@@ -475,60 +407,46 @@ const styles = StyleSheet.create({
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: Spacing.md, // Reduced from lg to md
+    marginVertical: Spacing.md,
   },
   dividerLine: {
     flex: 1,
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: Colors.text.secondary,
-    opacity: 0.3,
+    opacity: 0.4,
   },
   dividerText: {
     marginHorizontal: Spacing.md,
-    fontSize: 14,
-    fontFamily: Typography.fontFamily.semiBold,
+    fontSize: 12,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.secondary,
     textTransform: "uppercase",
-  },
-  // Social Button Wrapper - Matches Button component's primaryWrapper structure
-  socialButtonWrapper: {
-    marginBottom: Spacing.md + PhysicalShift.offset.y,
-    marginRight: PhysicalShift.offset.x,
-  },
-  socialShadowBlock: {
-    // Static shadow block (background layer) - stays in place
-    position: "absolute",
-    top: PhysicalShift.offset.y,
-    left: PhysicalShift.offset.x,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.text.primary, // Charcoal shadow
-    borderRadius: Borders.radius.medium,
+    letterSpacing: 0.8,
   },
   socialButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.canvas.background, // Clean white for social
-    borderWidth: Borders.width,
-    borderColor: Colors.text.primary, // Black border
+    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
-    height: 56, // Standard Neobrutalist height
+    height: 52,
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
-  appleButtonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
+  socialButtonApple: {
+    backgroundColor: "#000000",
+  },
+  socialButtonPressed: {
+    opacity: 0.7,
   },
   googleIcon: {
-    fontSize: 22,
+    fontSize: 20,
     fontFamily: Typography.fontFamily.semiBold,
     color: "#4285F4",
   },
   socialButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Typography.fontFamily.semiBold,
   },
   signUpContainer: {
@@ -542,66 +460,28 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Lighter overlay for high-energy Neobrutalist vibe
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Spacing.lg,
-  },
-  modalContentWrapper: {
-    width: "95%",
-    marginBottom: PhysicalShift.offset.y,
-    marginRight: PhysicalShift.offset.x,
-  },
-  modalShadowBlock: {
-    // Static shadow block (background layer) - Neobrutalist physical shift
-    position: "absolute",
-    top: PhysicalShift.offset.y,
-    left: PhysicalShift.offset.x,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.text.primary, // Charcoal shadow
-    borderRadius: Borders.radius.medium,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    width: "100%",
+    backgroundColor: Colors.canvas.background,
+    borderTopLeftRadius: Borders.radius.large,
+    borderTopRightRadius: Borders.radius.large,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: Spacing.lg,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: Borders.width,
-    borderBottomColor: Colors.text.primary,
-  },
-  modalHeaderContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    flex: 1,
-  },
-  modalIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: Borders.radius.small,
-    backgroundColor: "rgba(16, 185, 129, 0.15)", // Mint with 15% opacity
-    alignItems: "center",
-    justifyContent: "center",
+    marginBottom: Spacing.md,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: Typography.fontFamily.semiBold,
-    flex: 1,
-  },
-  modalCloseButton: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
   },
   modalBody: {
-    padding: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
   },
   modalDescription: {
     fontSize: 14,

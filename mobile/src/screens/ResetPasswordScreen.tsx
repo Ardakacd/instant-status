@@ -16,7 +16,6 @@ import { Colors, Spacing, Typography, useResponsive } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
-import { InlineAction } from "../components/actions/InlineAction";
 import { Section } from "../components/containers/Section";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ResetPassword">;
@@ -143,6 +142,14 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
       : "This password reset link is invalid or has expired. Please request a new one.";
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <TouchableOpacity
+          style={[styles.backButton, { paddingHorizontal: horizontalPadding }]}
+          onPress={() => navigation.navigate("SignIn")}
+        >
+          <Ionicons name="arrow-back" size={22} color={Colors.text.primary} />
+          <Text variant="secondary" style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+
         <ScrollView
           contentContainerStyle={scrollContentStyle}
           keyboardShouldPersistTaps="always"
@@ -151,19 +158,15 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
         >
           <Section spacing="md" style={styles.content}>
             <View style={styles.header}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="lock-closed-outline" size={64} color={Colors.interaction.accent} />
+              <View style={[styles.iconCircle, styles.iconCircleError]}>
+                <Ionicons name="lock-closed-outline" size={fs(32)} color="#FFFFFF" />
               </View>
-              <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>Invalid Reset Link</Text>
-              <Text variant="secondary" style={styles.subtitle}>
-                {subtitle}
+              <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
+                Invalid Link
               </Text>
+              <Text variant="secondary" style={styles.subtitle}>{subtitle}</Text>
             </View>
-
-            <Button
-              variant="primary"
-              onPress={() => navigation.navigate("SignIn")}
-            >
+            <Button variant="primary" onPress={() => navigation.navigate("SignIn")}>
               Go to Sign In
             </Button>
           </Section>
@@ -174,6 +177,14 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <TouchableOpacity
+        style={[styles.backButton, { paddingHorizontal: horizontalPadding }]}
+        onPress={() => navigation.navigate("SignIn")}
+      >
+        <Ionicons name="arrow-back" size={22} color={Colors.text.primary} />
+        <Text variant="secondary" style={styles.backButtonText}>Back to Sign In</Text>
+      </TouchableOpacity>
+
       <ScrollView
         contentContainerStyle={scrollContentStyle}
         keyboardShouldPersistTaps="always"
@@ -181,33 +192,20 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
         bounces={true}
       >
         <Section spacing="md" style={styles.content}>
-          {/* Back Button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.navigate("SignIn")}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="arrow-back" size={20} color={Colors.text.primary} />
-            <InlineAction fontSize={14}>Back to Sign In</InlineAction>
-          </TouchableOpacity>
-
-          {/* Header */}
           <View style={styles.header}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="lock-closed-outline" size={64} color={Colors.interaction.primary} />
+            <View style={styles.iconCircle}>
+              <Ionicons name="lock-open-outline" size={fs(32)} color="#FFFFFF" />
             </View>
-            <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>Reset Your Password</Text>
+            <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
+              New Password
+            </Text>
             <Text variant="secondary" style={styles.subtitle}>
-              Enter your new password below. Make sure it's at least 8 characters long.
+              Choose a strong password at least 8 characters long.
             </Text>
           </View>
 
-          {/* Global Error Banner */}
           {globalError && (
-            <ErrorBanner
-              message={globalError}
-              onDismiss={() => setGlobalError("")}
-            />
+            <ErrorBanner message={globalError} onDismiss={() => setGlobalError("")} />
           )}
 
           <Section spacing="sm">
@@ -251,12 +249,12 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
             </Button>
           </Section>
 
-          <Text variant="hint" style={styles.securityNote}>
-            ⚠️ This link expires in 15 minutes for your security.
-          </Text>
-
-          {/* Bottom spacer for balanced centering */}
-          <View style={{ flex: 1, minHeight: Spacing.xl }} />
+          <View style={styles.tipBox}>
+            <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
+            <Text variant="secondary" style={styles.tipText}>
+              This link expires in 15 minutes for your security.
+            </Text>
+          </View>
         </Section>
       </ScrollView>
     </View>
@@ -268,33 +266,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.canvas.background,
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingTop: Spacing.xxl,
-    paddingBottom: Spacing.xl,
-  },
-  content: {
-  },
   backButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
-    alignSelf: "flex-start",
+    paddingVertical: Spacing.md,
   },
+  backButtonText: {
+    fontSize: 15,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  content: {},
   header: {
     alignItems: "center",
     marginBottom: Spacing.lg,
     marginTop: Spacing.md,
   },
-  iconContainer: {
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.interaction.primary,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: Spacing.lg,
   },
+  iconCircleError: {
+    backgroundColor: Colors.interaction.error,
+  },
   title: {
-    fontSize: 28,
     fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
-    lineHeight: 34,
     marginBottom: Spacing.sm,
   },
   subtitle: {
@@ -306,9 +312,18 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     marginLeft: Spacing.xs,
   },
-  securityNote: {
-    fontSize: 13,
-    textAlign: "center",
+  tipBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     marginTop: Spacing.md,
+  },
+  tipText: {
+    fontSize: 13,
+    flex: 1,
   },
 });

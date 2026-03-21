@@ -113,7 +113,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
     }
     try {
       await Share.share({
-        message: `Join me on Instant Status! Use my invite code: ${myInviteCode}`,
+        message: `Join me on Instant Status!\n\nMy invite code:\n${myInviteCode}`,
       });
     } catch {
     }
@@ -160,8 +160,8 @@ export default function ConnectScreen({ navigation, route }: Props) {
     if (!user) return;
     if (user.id === targetUserId) {
       Toast.show({
-        type: "info",
-        text1: "You cannot connect with yourself. Share this link with a friend instead!",
+        type: "error",
+        text1: "You cannot connect with yourself.",
       });
       return;
     }
@@ -242,160 +242,80 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
         {/* Invite Code */}
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.iconContainer}>
-              <Ionicons
-                name="keypad"
-                size={20}
-                color={Colors.interaction.primary}
-              />
-            </View>
-            <View style={styles.cardHeaderText}>
-              <Text variant="primary" style={[styles.cardTitle, { fontSize: fs(16) }]}>
-                Add Friends With Invite Code
+          <Text style={styles.sectionTitle}>INVITE CODE</Text>
+
+          {/* Your code display */}
+          <View style={styles.codeDisplay}>
+            {inviteCodeError ? (
+              <TouchableOpacity onPress={loadMyInviteCode}>
+                <Text style={styles.retryText}>Tap to retry</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text variant="primary" style={[styles.codeText, { fontSize: fs(26) }]}>
+                {myInviteCode || "———"}
               </Text>
-              <Text variant="secondary" style={styles.cardDescription}>
-                Share your code or enter a friend's code to connect
-              </Text>
-            </View>
+            )}
           </View>
 
-          <View style={styles.section}>
-            <Text variant="secondary" style={styles.sectionLabel}>
-              Your Invite Code
-            </Text>
-            <View style={styles.codeContainer}>
-              {inviteCodeError ? (
-                <TouchableOpacity onPress={loadMyInviteCode}>
-                  <Text variant="secondary" style={styles.retryText}>
-                    Tap to retry
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <Text variant="primary" style={[styles.codeText, { fontSize: fs(16) }]}>
-                  {myInviteCode || "Loading..."}
-                </Text>
-              )}
-              <View style={styles.codeActions}>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={handleCopyCode}
-                >
-                  <Ionicons
-                    name="copy-outline"
-                    size={20}
-                    color={Colors.interaction.primary}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={handleShareCode}
-                >
-                  <Ionicons
-                    name="share-outline"
-                    size={20}
-                    color={Colors.interaction.primary}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.actionPill} onPress={handleCopyCode}>
+              <Ionicons name="copy-outline" size={16} color={Colors.interaction.primary} />
+              <Text style={styles.actionPillText}>Copy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionPill} onPress={handleShareCode}>
+              <Ionicons name="share-outline" size={16} color={Colors.interaction.primary} />
+              <Text style={styles.actionPillText}>Share</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.divider} />
 
-          <View style={styles.section}>
-            <Text variant="secondary" style={styles.sectionLabel}>
-              Enter a Code
-            </Text>
-            <View style={styles.inputContainer}>
-              <TextInput
-                placeholder="Enter invite code"
-                value={inviteCode}
-                onChangeText={setInviteCode}
-                maxLength={8}
-                autoCapitalize="characters"
-                style={styles.input}
-              />
-              <Button
-                variant="primary"
-                onPress={handleRedeemCode}
-                loading={redeemingCode}
-                disabled={redeemingCode || !inviteCode.trim()}
-                fullWidth={true}
-              >
-                Connect
-              </Button>
-            </View>
+          <Text style={styles.sectionTitle}>ENTER A FRIEND'S CODE</Text>
+          <View style={styles.inputContainer}>
+            <TextInput
+              placeholder="8-character code"
+              value={inviteCode}
+              onChangeText={setInviteCode}
+              maxLength={8}
+              autoCapitalize="characters"
+              style={styles.input}
+            />
+            <Button
+              variant="primary"
+              onPress={handleRedeemCode}
+              loading={redeemingCode}
+              disabled={redeemingCode || !inviteCode.trim()}
+              fullWidth
+            >
+              Connect
+            </Button>
           </View>
         </View>
 
         {/* Shareable Link */}
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.iconContainer}>
-              <Ionicons
-                name="link"
-                size={20}
-                color={Colors.interaction.primary}
-              />
-            </View>
-            <View style={styles.cardHeaderText}>
-              <Text variant="primary" style={[styles.cardTitle, { fontSize: fs(16) }]}>
-                Add Friends By Shareable Link
-              </Text>
-              <Text variant="secondary" style={styles.cardDescription}>
-                Share a link that opens the app and confirms connection
-              </Text>
-            </View>
+          <Text style={styles.sectionTitle}>SHAREABLE LINK</Text>
+          <Text variant="secondary" style={styles.linkDescription}>
+            Send a link that instantly connects you when opened.
+          </Text>
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.actionPill} onPress={handleCopyLink}>
+              <Ionicons name="copy-outline" size={16} color={Colors.interaction.primary} />
+              <Text style={styles.actionPillText}>Copy Link</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionPill} onPress={handleShareLink}>
+              <Ionicons name="share-outline" size={16} color={Colors.interaction.primary} />
+              <Text style={styles.actionPillText}>Share Link</Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.section}>
-            <Text variant="secondary" style={styles.sectionLabel}>
-              Your Shareable Link
-            </Text>
-            <View style={styles.linkContainer}>
-              <Text
-                variant="primary"
-                style={styles.linkText}
-                numberOfLines={2}
-              >
-                {shareableLink || "Loading..."}
-              </Text>
-              <View style={styles.linkActions}>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={handleCopyLink}
-                >
-                  <Ionicons
-                    name="copy-outline"
-                    size={20}
-                    color={Colors.interaction.primary}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={handleShareLink}
-                >
-                  <Ionicons
-                    name="share-outline"
-                    size={20}
-                    color={Colors.interaction.primary}
-                  />
-                </TouchableOpacity>
-              </View>
+          {connectingByLink && (
+            <View style={styles.connectingContainer}>
+              <ActivityIndicator size="small" color={Colors.interaction.primary} />
+              <Text variant="secondary" style={styles.connectingText}>Connecting…</Text>
             </View>
-            {connectingByLink && (
-              <View style={styles.connectingContainer}>
-                <ActivityIndicator
-                  size="small"
-                  color={Colors.interaction.primary}
-                />
-                <Text variant="primary" style={styles.connectingText}>
-                  Connecting...
-                </Text>
-              </View>
-            )}
-          </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -411,7 +331,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.xl,
   },
   header: {
     flexDirection: "row",
@@ -435,91 +355,60 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
   },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: Spacing.md,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: Borders.radius.medium,
-    backgroundColor: Colors.interaction.primary + "15",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: Spacing.sm,
-  },
-  cardHeaderText: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontFamily: Typography.fontFamily.semiBold,
-    marginBottom: Spacing.xs,
-  },
-  cardDescription: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  section: {
-    marginBottom: Spacing.md,
-  },
-  sectionLabel: {
-    fontSize: 13,
+  sectionTitle: {
+    fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
-    marginBottom: Spacing.xs,
+    color: Colors.text.secondary,
+    letterSpacing: 0.8,
+    marginBottom: Spacing.md,
   },
-  codeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderRadius: Borders.radius.medium,
-    padding: Spacing.sm,
+  codeDisplay: {
+    paddingVertical: Spacing.lg,
     backgroundColor: Colors.canvas.background,
+    borderRadius: Borders.radius.medium,
+    marginBottom: Spacing.md,
+    overflow: "visible",
   },
   codeText: {
-    fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
-    letterSpacing: 2,
+    letterSpacing: 6,
+    textAlign: "center",
+    width: "100%",
+    includeFontPadding: false,
+    lineHeight: 36,
   },
   retryText: {
     fontSize: 14,
     fontFamily: Typography.fontFamily.medium,
     color: Colors.interaction.primary,
   },
-  codeActions: {
+  actionRow: {
     flexDirection: "row",
     gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  linkContainer: {
+  actionPill: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    borderRadius: Borders.radius.medium,
-    padding: Spacing.sm,
+    justifyContent: "center",
+    gap: Spacing.xs,
     backgroundColor: Colors.canvas.background,
+    borderRadius: Borders.radius.medium,
+    paddingVertical: Spacing.sm,
   },
-  linkText: {
-    flex: 1,
-    minWidth: 0,
+  actionPillText: {
     fontSize: 14,
-    marginRight: Spacing.sm,
-  },
-  linkActions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  iconButton: {
-    padding: Spacing.sm,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.interaction.primary,
   },
   divider: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: Colors.text.secondary,
     opacity: 0.3,
-    marginVertical: Spacing.md,
+    marginBottom: Spacing.md,
   },
   inputContainer: {
-    flexDirection: "column",
     gap: Spacing.sm,
   },
   input: {
@@ -528,15 +417,18 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     fontFamily: Typography.fontFamily.semiBold,
   },
+  linkDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+  },
   connectingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: Spacing.sm,
     gap: Spacing.sm,
+    paddingTop: Spacing.xs,
   },
   connectingText: {
     fontSize: 14,
-    fontFamily: Typography.fontFamily.medium,
-    color: Colors.interaction.primary,
   },
 });

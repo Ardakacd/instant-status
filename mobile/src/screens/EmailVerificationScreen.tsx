@@ -149,59 +149,67 @@ export default function EmailVerificationScreen({ route }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Back button */}
       <TouchableOpacity
-        style={[styles.backButton, { top: insets.top + Spacing.md }]}
+        style={[styles.backButton, { paddingHorizontal: horizontalPadding }]}
         onPress={handleGoBack}
       >
-        <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
-        <Text variant="primary" style={styles.backButtonText}>
-          Go Back
-        </Text>
+        <Ionicons name="arrow-back" size={22} color={Colors.text.primary} />
+        <Text variant="secondary" style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
 
-      <View
-        style={[
-          styles.content,
-          {
-            paddingHorizontal: horizontalPadding,
-          },
-        ]}
-      >
-        <View style={styles.iconContainer}>
-          <Ionicons name="mail-outline" size={fs(80)} color={Colors.interaction.primary} />
+      <View style={[styles.content, { paddingHorizontal: horizontalPadding }]}>
+        {/* Icon */}
+        <View style={styles.iconCircle}>
+          <Ionicons name="mail-outline" size={fs(32)} color="#FFFFFF" />
         </View>
 
         <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
-          Verify Your Email
-        </Text>
-        {authError && (
-          <Text variant="primary" style={styles.authErrorText}>
-            {authError}
-          </Text>
-        )}
-        <Text variant="secondary" style={styles.subtitle}>
-          {verifying
-            ? "Verifying your email..."
-            : "We've sent a verification email. Click the link in the email to automatically verify your account. It may take a minute to arrive, check your spam folder if needed."}
+          Check your inbox
         </Text>
 
-        {verifying && (
+        {authError && (
+          <Text style={styles.authErrorText}>{authError}</Text>
+        )}
+
+        <Text variant="secondary" style={styles.subtitle}>
+          We sent a verification link to your email. Tap it to confirm your account.
+        </Text>
+
+        <View style={styles.tipBox}>
+          <Ionicons name="information-circle-outline" size={16} color={Colors.text.secondary} />
+          <Text variant="secondary" style={styles.tipText}>
+            Can't find it? Check your spam folder.
+          </Text>
+        </View>
+
+        {verifying ? (
           <View style={styles.verifyingContainer}>
-            <ActivityIndicator size="large" color={Colors.interaction.primary} />
+            <ActivityIndicator size="small" color={Colors.interaction.primary} />
+            <Text variant="secondary" style={styles.verifyingText}>Checking verification…</Text>
+          </View>
+        ) : (
+          <View style={styles.actions}>
+            <Button
+              variant="primary"
+              onPress={handleCheckVerificationOnly}
+              fullWidth
+            >
+              I've verified my email
+            </Button>
+
+            <Button
+              variant="secondary"
+              onPress={handleResendVerification}
+              disabled={sending || resendCooldown > 0}
+              loading={sending}
+              fullWidth
+            >
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend email"}
+            </Button>
           </View>
         )}
-
-        <Button
-          variant="primary"
-          onPress={handleResendVerification}
-          disabled={sending || resendCooldown > 0}
-          loading={sending}
-          fullWidth
-          style={styles.button}
-        >
-          {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Verification Email"}
-        </Button>
       </View>
     </View>
   );
@@ -211,34 +219,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.canvas.background,
-    paddingHorizontal: Spacing.lg,
   },
   backButton: {
-    position: "absolute",
-    top: Spacing.lg,
-    left: Spacing.lg,
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.sm,
-    zIndex: 1,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
   },
   backButtonText: {
-    fontSize: 16,
-    fontFamily: Typography.fontFamily.medium,
+    fontSize: 15,
   },
   content: {
     flex: 1,
     justifyContent: "center",
-  },
-  iconContainer: {
     alignItems: "center",
-    marginBottom: Spacing.xl,
+  },
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.interaction.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
   },
   title: {
-    fontSize: 28,
     fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   authErrorText: {
     fontSize: 14,
@@ -250,15 +258,35 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     textAlign: "center",
-    marginBottom: Spacing.xl,
     lineHeight: 24,
+    marginBottom: Spacing.md,
   },
-  button: {
-    marginTop: Spacing.sm,
+  tipBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.xl,
+    alignSelf: "stretch",
+  },
+  tipText: {
+    fontSize: 13,
+    flex: 1,
+  },
+  actions: {
+    alignSelf: "stretch",
+    gap: Spacing.sm,
   },
   verifyingContainer: {
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.lg,
+    flexDirection: "row",
     alignItems: "center",
+    gap: Spacing.sm,
+    marginVertical: Spacing.lg,
+  },
+  verifyingText: {
+    fontSize: 15,
   },
 });

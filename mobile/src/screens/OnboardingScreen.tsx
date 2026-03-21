@@ -5,6 +5,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { userService } from "../services/user.service";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -84,9 +85,7 @@ export default function OnboardingScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          {
-            paddingHorizontal: horizontalPadding,
-          },
+          { paddingHorizontal: horizontalPadding },
         ]}
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
@@ -94,16 +93,18 @@ export default function OnboardingScreen() {
       >
         <Section spacing="md" style={styles.content}>
           <View style={styles.header}>
-            <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>Welcome!</Text>
+            <View style={styles.logoCircle}>
+              <Ionicons name="radio-outline" size={28} color="#FFFFFF" />
+            </View>
+            <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
+              One last step
+            </Text>
             <Text variant="secondary" style={styles.subtitle}>
-              Let's get started by telling us your name
+              What should your friends call you?
             </Text>
           </View>
 
-          {/* Global Error Banner */}
-          {globalError && (
-            <ErrorBanner message={globalError} />
-          )}
+          {globalError && <ErrorBanner message={globalError} />}
 
           <Section spacing="sm">
             <View>
@@ -140,9 +141,25 @@ export default function OnboardingScreen() {
               loading={loading}
               disabled={loading}
             >
-              Continue
+              Get Started
             </Button>
           </Section>
+
+          {/* Feature hints */}
+          <View style={styles.hints}>
+            {[
+              { icon: "radio-outline" as const, text: "Share your status in real-time" },
+              { icon: "people-outline" as const, text: "See what your friends are up to" },
+              { icon: "phone-portrait-outline" as const, text: "Widget on your home screen" },
+            ].map(({ icon, text }) => (
+              <View key={text} style={styles.hintRow}>
+                <View style={styles.hintIcon}>
+                  <Ionicons name={icon} size={16} color={Colors.interaction.primary} />
+                </View>
+                <Text variant="secondary" style={styles.hintText}>{text}</Text>
+              </View>
+            ))}
+          </View>
         </Section>
       </ScrollView>
     </View>
@@ -156,27 +173,56 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center", // Center content vertically
+    justifyContent: "center",
     paddingBottom: Spacing.xl,
   },
-  content: {
-  },
+  content: {},
   header: {
     alignItems: "center",
     marginBottom: Spacing.lg,
+    marginTop: Spacing.md,
+  },
+  logoCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.interaction.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.md,
   },
   title: {
-    fontSize: 28,
     fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
-    lineHeight: 34,
   },
   subtitle: {
     fontSize: 16,
     textAlign: "center",
+    marginTop: Spacing.xs,
   },
   errorText: {
     marginTop: Spacing.xs,
     marginLeft: Spacing.xs,
+  },
+  hints: {
+    marginTop: Spacing.xl,
+    gap: Spacing.md,
+  },
+  hintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  hintIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.interaction.primary + "15",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  hintText: {
+    fontSize: 14,
+    flex: 1,
   },
 });

@@ -494,20 +494,26 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               </>
             ) : (
-              <>
-                <Text variant="secondary" style={styles.upgradeHint}>
-                  Unlock custom widget themes, more status options, and more.
-                </Text>
-                <Button
-                  variant="primary"
-                  onPress={handleUpgradeToPremium}
-                  loading={openingPaywall}
-                  disabled={openingPaywall}
-                  fullWidth={true}
-                >
-                  Upgrade to Premium
-                </Button>
-              </>
+              <TouchableOpacity
+                style={styles.upgradeRow}
+                onPress={handleUpgradeToPremium}
+                disabled={openingPaywall}
+                activeOpacity={0.7}
+              >
+                <View style={styles.upgradePill}>
+                  {openingPaywall ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Ionicons name="star" size={14} color="#FFFFFF" />
+                  )}
+                  <Text style={[styles.upgradePillText, { fontSize: fs(13) }]}>Premium</Text>
+                </View>
+                <View style={styles.upgradeTextCol}>
+                  <Text variant="primary" style={styles.upgradeTitle}>Upgrade to Premium</Text>
+                  <Text variant="secondary" style={styles.upgradeSubtitle} numberOfLines={1}>Themes, statuses & more</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -810,10 +816,36 @@ const styles = StyleSheet.create({
   expiryText: {
     fontSize: 13,
   },
-  upgradeHint: {
-    fontSize: 13,
-    marginBottom: Spacing.sm,
-    paddingTop: Spacing.xs,
+  upgradeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 52,
+    paddingVertical: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  upgradePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.interaction.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  upgradePillText: {
+    fontFamily: Typography.fontFamily.semiBold,
+    color: "#FFFFFF",
+  },
+  upgradeTextCol: {
+    flex: 1,
+  },
+  upgradeTitle: {
+    fontSize: 15,
+    fontFamily: Typography.fontFamily.medium,
+  },
+  upgradeSubtitle: {
+    fontSize: 12,
+    marginTop: 1,
   },
   settingRow: {
     flexDirection: "row",
