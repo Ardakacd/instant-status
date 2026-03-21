@@ -1,14 +1,10 @@
 /**
- * Phase 1 — Design Tokens (LOCKED)
- * 
- * These tokens are the constitution of the app.
- * Everything else must obey them.
- * 
+ * Design Tokens
+ *
  * Usage Hierarchy:
  * 1. Clarity
  * 2. Calm
- * 3. Physical feedback
- * 4. Visual delight (last, optional)
+ * 3. Visual delight (last, optional)
  */
 
 // ============================================================================
@@ -66,33 +62,7 @@ export const Borders = {
 // ❌ No circles with stroke-only borders unless they represent presence
 
 // ============================================================================
-// 3. PHYSICAL SHIFT SYSTEM (Physical Offset Only)
-// ============================================================================
-
-export const PhysicalShift = {
-  offset: {
-    x: 4, // 4px right
-    y: 4, // 4px down
-  },
-  transition: {
-    duration: 120, // ≤ 120ms
-  },
-} as const;
-
-// Physical Shift Rules:
-// - Physical shift is physical, not optical
-// - No blur
-// - No glow
-// - No shadows
-// - Offset: 4px right, 4px down
-// - Pressed State: Foreground moves to cover the offset
-// - Transition ≤ 120ms
-// ❌ No floating elements
-// ❌ No z-axis illusions
-// ❌ Never use React Native's `elevation` prop (Android creates unwanted shadows)
-
-// ============================================================================
-// 4. MOTION TOKENS
+// 3. MOTION TOKENS
 // ============================================================================
 
 export const Motion = {
@@ -120,7 +90,7 @@ export const Motion = {
 // ❌ No looping animations
 
 // ============================================================================
-// 5. HAPTICS RULES
+// 4. HAPTICS RULES
 // ============================================================================
 
 export const Haptics = {
@@ -142,7 +112,7 @@ export const Haptics = {
 // Haptic strength: Light only
 
 // ============================================================================
-// 6. TYPOGRAPHY RULES (No Exceptions)
+// 5. TYPOGRAPHY RULES
 // ============================================================================
 
 export const Typography = {
@@ -169,7 +139,7 @@ export const Typography = {
 // ❌ No ultra-bold weights
 
 // ============================================================================
-// 7. ICONOGRAPHY
+// 6. ICONOGRAPHY
 // ============================================================================
 
 export const Icons = {
@@ -186,7 +156,7 @@ export const Icons = {
 // - No filled icons except lock (small)
 
 // ============================================================================
-// 8. SPACING SYSTEM
+// 7. SPACING SYSTEM
 // ============================================================================
 
 export const Spacing = {
