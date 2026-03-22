@@ -473,6 +473,7 @@ export default function ManageStatusScreen() {
                 onPress={() => {
                   setCreateModalVisible(false);
                   setSaving(false);
+                  setGlobalError("");
                   setLabelError("");
                   setEmojiError("");
                 }}
@@ -610,6 +611,9 @@ export default function ManageStatusScreen() {
                 onPress={() => {
                   setEditModalVisible(false);
                   setSaving(false);
+                  setGlobalError("");
+                  setLabelError("");
+                  setEmojiError("");
                 }}
                 style={styles.modalFooterButton}
               >
