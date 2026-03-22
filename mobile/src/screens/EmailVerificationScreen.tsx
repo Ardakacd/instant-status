@@ -25,11 +25,17 @@ export default function EmailVerificationScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
   const colors = useColors();
-  const { checkEmailVerification, logout, authError } = useAuth();
+  const { checkEmailVerification, logout, clearAuthError } = useAuth();
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [notVerifiedYet, setNotVerifiedYet] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [hasHandledVerification, setHasHandledVerification] = useState(false);
+
+  // Clear the auth error on mount — this screen already explains what to do
+  useEffect(() => {
+    clearAuthError();
+  }, []);
 
   // Handle email verification link (oobCode from universal link via route.params)
   useEffect(() => {
@@ -49,10 +55,13 @@ export default function EmailVerificationScreen({ route }: Props) {
   }, [route.params]);
 
   const handleCheckVerificationOnly = async () => {
+    setNotVerifiedYet(false);
     setVerifying(true);
     try {
       await authService.reloadUser();
       await checkEmailVerification();
+      // If still mounted here, email is not verified (verified → navigator routes away)
+      setNotVerifiedYet(true);
     } catch (error: any) {
       Toast.show({
         type: "error",
@@ -170,10 +179,6 @@ export default function EmailVerificationScreen({ route }: Props) {
           Check your inbox
         </Text>
 
-        {authError && (
-          <Text style={[styles.authErrorText, { color: colors.interaction.error }]}>{authError}</Text>
-        )}
-
         <Text variant="secondary" style={styles.subtitle}>
           We sent a verification link to your email. Tap it to confirm your account.
         </Text>
@@ -209,6 +214,15 @@ export default function EmailVerificationScreen({ route }: Props) {
             >
               {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend email"}
             </Button>
+
+            {notVerifiedYet && (
+              <View style={[styles.notVerifiedBox, { backgroundColor: colors.tint.error }]}>
+                <Ionicons name="mail-outline" size={15} color={colors.interaction.error} />
+                <Text style={[styles.notVerifiedText, { color: colors.interaction.error }]}>
+                  Please verify your email address to continue.
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -247,12 +261,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: Spacing.sm,
   },
-  authErrorText: {
-    fontSize: 14,
-    fontFamily: Typography.fontFamily.semiBold,
-    textAlign: "center",
-    marginBottom: Spacing.md,
-  },
   subtitle: {
     fontSize: 16,
     textAlign: "center",
@@ -276,6 +284,19 @@ const styles = StyleSheet.create({
   actions: {
     alignSelf: "stretch",
     gap: Spacing.sm,
+  },
+  notVerifiedBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    borderRadius: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  notVerifiedText: {
+    fontSize: 13,
+    fontFamily: Typography.fontFamily.medium,
+    flex: 1,
   },
   verifyingContainer: {
     flexDirection: "row",
