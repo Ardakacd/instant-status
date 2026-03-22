@@ -158,18 +158,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function deleteAccount() {
-    setLoading(true);
-    try {
-      await authService.deleteAccount();
-      setUser(null);
-      setOnboarding(false);
-      setEmailVerified(true);
-      setAuthError(null);
-      setNoInternet(false);
-      Sentry.setUser(null);
-    } finally {
-      setLoading(false);
-    }
+    await authService.deleteAccount();
+    setUser(null);
+    setOnboarding(false);
+    setEmailVerified(true);
+    setAuthError(null);
+    setNoInternet(false);
+    Sentry.setUser(null);
   }
 
   function clearAuthError() {
