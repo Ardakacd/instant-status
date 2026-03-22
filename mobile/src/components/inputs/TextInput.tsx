@@ -1,11 +1,11 @@
 /**
  * Text Input Component
- * 
+ *
  * Used for:
  * - Status text
  * - Sign-up/sign-in
  * - Friend identifier
- * 
+ *
  * Rules:
  * - Flat
  * - Border only
@@ -16,7 +16,8 @@
 
 import React, { useState } from 'react';
 import { TextInput as RNTextInput, TextInputProps as RNTextInputProps, StyleSheet } from 'react-native';
-import { Colors, Borders, Spacing, Typography, useResponsive } from '../../design';
+import { Borders, Spacing, Typography } from '../../design/tokens';
+import { useResponsive, useColors } from '../../design';
 
 export interface TextInputProps extends RNTextInputProps {
   error?: boolean;
@@ -30,20 +31,33 @@ export const TextInput: React.FC<TextInputProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const { fs } = useResponsive();
+  const colors = useColors();
+
+  const borderColor = error
+    ? colors.interaction.error
+    : isFocused
+    ? colors.interaction.primary
+    : !editable
+    ? colors.interaction.disabled
+    : colors.text.secondary + '40';
+
+  const textColor = !editable ? colors.interaction.disabled : colors.text.primary;
 
   return (
     <RNTextInput
       style={[
-        styles.input,
+        styles.inputBase,
         { fontSize: fs(16) },
-        isFocused && styles.inputFocused, // Add focus state
-        error && styles.inputError,
-        !editable && styles.inputDisabled,
+        {
+          backgroundColor: colors.canvas.background,
+          borderColor,
+          color: textColor,
+        },
         style,
       ]}
-      placeholderTextColor={Colors.text.secondary}
-      selectionColor={Colors.interaction.primary} // Mint cursor
-      underlineColorAndroid="transparent" // Remove default Android underline
+      placeholderTextColor={colors.text.secondary}
+      selectionColor={colors.interaction.primary}
+      underlineColorAndroid="transparent"
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
       editable={editable}
@@ -53,29 +67,13 @@ export const TextInput: React.FC<TextInputProps> = ({
 };
 
 const styles = StyleSheet.create({
-  input: {
+  inputBase: {
     borderWidth: Borders.width,
-    borderColor: Colors.text.secondary, // Muted charcoal
     borderRadius: Borders.radius.medium,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
     fontFamily: Typography.fontFamily.regular,
     fontSize: 16,
-    color: Colors.text.primary,
-    backgroundColor: Colors.canvas.background,
-    textAlignVertical: 'center', // Better vertical centering on Android
-    // Flat, border only, no shadows
-  },
-  inputFocused: {
-    borderColor: Colors.interaction.primary,
-  },
-  inputError: {
-    borderColor: Colors.interaction.error,
-  },
-  inputDisabled: {
-    borderColor: Colors.interaction.disabled,
-    color: Colors.interaction.disabled,
-    backgroundColor: Colors.canvas.background,
+    textAlignVertical: 'center',
   },
 });
-

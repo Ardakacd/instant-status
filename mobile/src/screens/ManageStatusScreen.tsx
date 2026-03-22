@@ -23,7 +23,7 @@ import { ColorPicker } from "../components/ColorPicker";
 import StatusPreviewCard from "../components/StatusPreviewCard";
 import { useIsPremium } from "../hooks/useIsPremium";
 import { presentPaywall } from "../services/purchases.service";
-import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 import { TextInput } from "../components/inputs/TextInput";
@@ -33,6 +33,7 @@ export default function ManageStatusScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
+  const colors = useColors();
   const { isPremium } = useIsPremium();
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -273,13 +274,13 @@ export default function ManageStatusScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text variant="primary" style={styles.headerTitle}>
             Manage Status
@@ -287,20 +288,20 @@ export default function ManageStatusScreen() {
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.interaction.primary} />
+          <ActivityIndicator size="large" color={colors.interaction.primary} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <Text variant="primary" style={styles.headerTitle}>
           Manage Status
@@ -340,7 +341,7 @@ export default function ManageStatusScreen() {
             {customOptions.map((option) => (
               <TouchableOpacity
                 key={option.id}
-                style={styles.optionCard}
+                style={[styles.optionCard, { backgroundColor: colors.canvas.card }]}
                 onPress={() => handleEdit(option)}
                 activeOpacity={0.7}
               >
@@ -355,11 +356,11 @@ export default function ManageStatusScreen() {
             ))}
             {customOptions.length < MAX_CUSTOM_STATUS_OPTIONS && (
               <TouchableOpacity
-                style={styles.addCard}
+                style={[styles.addCard, { borderColor: colors.text.secondary + "30" }]}
                 onPress={handleCreate}
                 activeOpacity={0.7}
               >
-                <Ionicons name="add-circle-outline" size={28} color={Colors.text.secondary} />
+                <Ionicons name="add-circle-outline" size={28} color={colors.text.secondary} />
                 <Text variant="secondary" style={styles.addCardText}>Add new</Text>
               </TouchableOpacity>
             )}
@@ -384,7 +385,7 @@ export default function ManageStatusScreen() {
           <View
             style={[
               styles.modalContent,
-              { paddingBottom: Spacing.md + insets.bottom },
+              { paddingBottom: Spacing.md + insets.bottom, backgroundColor: colors.canvas.background },
             ]}
           >
             <View style={styles.modalHeader}>
@@ -404,7 +405,7 @@ export default function ManageStatusScreen() {
                 <Ionicons
                   name="close"
                   size={24}
-                  color={Colors.text.secondary}
+                  color={colors.text.secondary}
                 />
               </TouchableOpacity>
             </View>
@@ -437,7 +438,7 @@ export default function ManageStatusScreen() {
                   error={!!labelError}
                 />
                 {labelError ? (
-                  <Text variant="secondary" style={styles.errorText}>
+                  <Text variant="secondary" style={[styles.errorText, { color: colors.interaction.error }]}>
                     {labelError}
                   </Text>
                 ) : null}
@@ -452,7 +453,7 @@ export default function ManageStatusScreen() {
                   onSelect={handleEmojiSelect}
                 />
                 {emojiError ? (
-                  <Text variant="secondary" style={styles.errorText}>
+                  <Text variant="secondary" style={[styles.errorText, { color: colors.interaction.error }]}>
                     {emojiError}
                   </Text>
                 ) : null}
@@ -480,7 +481,7 @@ export default function ManageStatusScreen() {
                 Cancel
               </Button>
               <TouchableOpacity
-                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                style={[styles.saveButton, { backgroundColor: colors.interaction.primary }, saving && styles.saveButtonDisabled]}
                 onPress={handleSaveCreate}
                 disabled={saving}
               >
@@ -512,7 +513,7 @@ export default function ManageStatusScreen() {
           <View
             style={[
               styles.modalContent,
-              { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom },
+              { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom, backgroundColor: colors.canvas.background },
             ]}
           >
             <View style={styles.modalHeader}>
@@ -531,7 +532,7 @@ export default function ManageStatusScreen() {
                 <Ionicons
                   name="close"
                   size={24}
-                  color={Colors.text.secondary}
+                  color={colors.text.secondary}
                 />
               </TouchableOpacity>
             </View>
@@ -564,7 +565,7 @@ export default function ManageStatusScreen() {
                   error={!!labelError}
                 />
                 {labelError ? (
-                  <Text variant="secondary" style={styles.errorText}>
+                  <Text variant="secondary" style={[styles.errorText, { color: colors.interaction.error }]}>
                     {labelError}
                   </Text>
                 ) : null}
@@ -579,7 +580,7 @@ export default function ManageStatusScreen() {
                   onSelect={handleEmojiSelect}
                 />
                 {emojiError ? (
-                  <Text variant="secondary" style={styles.errorText}>
+                  <Text variant="secondary" style={[styles.errorText, { color: colors.interaction.error }]}>
                     {emojiError}
                   </Text>
                 ) : null}
@@ -595,14 +596,14 @@ export default function ManageStatusScreen() {
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.deleteButton}
+                style={[styles.deleteButton, { backgroundColor: colors.interaction.error + "15" }]}
                 onPress={() => {
                   if (selectedOption) {
                     handleDelete(selectedOption);
                   }
                 }}
               >
-                <Text style={styles.deleteButtonText}>Delete</Text>
+                <Text style={[styles.deleteButtonText, { color: colors.interaction.error }]}>Delete</Text>
               </TouchableOpacity>
               <Button
                 variant="secondary"
@@ -615,7 +616,7 @@ export default function ManageStatusScreen() {
                 Cancel
               </Button>
               <TouchableOpacity
-                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                style={[styles.saveButton, { backgroundColor: colors.interaction.primary }, saving && styles.saveButtonDisabled]}
                 onPress={handleSaveEdit}
                 disabled={saving}
               >
@@ -636,7 +637,6 @@ export default function ManageStatusScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas.background,
   },
   header: {
     flexDirection: "row",
@@ -694,7 +694,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   optionCard: {
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
     alignItems: "center",
@@ -725,7 +724,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: Colors.text.secondary + "30",
     borderStyle: "dashed",
     minHeight: 110,
   },
@@ -740,7 +738,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: Colors.canvas.background,
     borderTopLeftRadius: Borders.radius.large,
     borderTopRightRadius: Borders.radius.large,
     maxHeight: "90%",
@@ -773,7 +770,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   errorText: {
-    color: Colors.interaction.error,
     fontSize: 12,
     marginTop: Spacing.xs,
   },
@@ -791,21 +787,18 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
     borderRadius: Borders.radius.medium,
-    backgroundColor: Colors.interaction.error + "15",
     alignItems: "center",
     justifyContent: "center",
   },
   deleteButtonText: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.interaction.error,
   },
   saveButton: {
     flex: 2,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     borderRadius: Borders.radius.medium,
-    backgroundColor: Colors.interaction.primary,
     alignItems: "center",
   },
   saveButtonDisabled: {
@@ -814,6 +807,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.text.primary,
+    color: "#FFFFFF",
   },
 });

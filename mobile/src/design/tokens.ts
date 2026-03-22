@@ -11,30 +11,29 @@
 // 1. COLOR SYSTEM (Strict Roles)
 // ============================================================================
 
-export const Colors = {
-  // 1.1 Canvas
-  canvas: {
-    background: '#FFFFFF', // App background: White
-    // No dark mode (for now)
-  },
+export type ColorPalette = {
+  canvas: { background: string; card: string; subtle: string };
+  text: { primary: string; secondary: string };
+  interaction: { primary: string; accent: string; informational: string; disabled: string; error: string };
+  tint: { mint: string; error: string; premium: string };
+};
 
-  // 1.2 Text
-  text: {
-    primary: '#2C2C2C', // Charcoal - Used for titles, status text, names
-    secondary: '#6B7280', // Muted charcoal - Used for timestamps, hints, labels
-    // ❌ Never use pure black
-    // ❌ Never reduce opacity for primary text
-  },
+export const lightColors: ColorPalette = {
+  canvas: { background: '#FFFFFF', card: '#F9FAFB', subtle: '#F3F4F6' },
+  text: { primary: '#2C2C2C', secondary: '#6B7280' },
+  interaction: { primary: '#10B981', accent: '#F59E0B', informational: '#A78BFA', disabled: '#D1D5DB', error: '#FF5C5C' },
+  tint: { mint: '#ECFDF5', error: '#FEF2F2', premium: '#F0FDF8' },
+};
 
-  // 1.3 Interaction Colors
-  interaction: {
-    primary: '#10B981', // Mint - Set/update status, confirm actions, primary CTA
-    accent: '#F59E0B', // Yellow - Premium highlight, "best value" badge (rare use)
-    informational: '#A78BFA', // Lavender - Info boxes, pending state indicators, non-actionable notices
-    disabled: '#D1D5DB', // Soft grey - Desaturated, no border emphasis, no physical shift
-    error: '#FF5C5C', // Red - Error messages, validation failures
-  },
-} as const;
+export const darkColors: ColorPalette = {
+  canvas: { background: '#111827', card: '#1F2937', subtle: '#374151' },
+  text: { primary: '#F9FAFB', secondary: '#9CA3AF' },
+  interaction: { primary: '#10B981', accent: '#F59E0B', informational: '#A78BFA', disabled: '#4B5563', error: '#FF5C5C' },
+  tint: { mint: '#064E3B', error: '#7F1D1D', premium: '#052E16' },
+};
+
+// Backward compat — static light colors for anything that can't use the hook
+export const Colors = lightColors;
 
 // Color usage rules:
 // - Primary Action Color (Mint): Set/update status, confirm actions, primary CTA
@@ -175,7 +174,7 @@ export const SAFE_AREA_BOTTOM = Spacing.md;
 // TYPE EXPORTS
 // ============================================================================
 
-export type ColorKey = keyof typeof Colors;
+export type ColorKey = keyof ColorPalette;
 export type BorderRadius = keyof typeof Borders.radius;
 export type MotionDuration = keyof typeof Motion.duration;
 export type SpacingKey = keyof typeof Spacing;

@@ -5,7 +5,7 @@
  */
 import React, { useState, useMemo, useEffect } from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
-import { Colors, Spacing, Borders, Typography } from "../design";
+import { Colors, Spacing, Borders, Typography, useColors } from "../design";
 import { Text } from "./primitives/Text";
 import { TextInput } from "./inputs/TextInput";
 import emojiData from "unicode-emoji-json";
@@ -38,6 +38,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
   onSelect,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const colors = useColors();
   const [page, setPage] = useState(0);
 
   const filteredData = useMemo(() => {
@@ -63,7 +64,11 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
     return (
       <TouchableOpacity
         key={item.char}
-        style={[styles.tile, isSelected && styles.tileSelected]}
+        style={[
+          styles.tile,
+          { backgroundColor: colors.canvas.card, borderColor: colors.text.secondary + "40" },
+          isSelected && [styles.tileSelected, { backgroundColor: colors.tint.mint }],
+        ]}
         onPress={() => onSelect(item.char)}
         activeOpacity={1}
       >
@@ -93,7 +98,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
               onPress={() => setPage(i)}
               style={[styles.pageBtn, i === currentPage && styles.pageBtnActive]}
             >
-              <Text style={[styles.pageNum, i === currentPage && styles.pageNumActive]}>
+              <Text style={[styles.pageNum, { color: colors.text.secondary }, i === currentPage && styles.pageNumActive]}>
                 {i + 1}
               </Text>
             </TouchableOpacity>
@@ -140,7 +145,6 @@ const styles = StyleSheet.create({
   pageNum: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: 14,
-    color: Colors.text.secondary,
   },
   pageNumActive: {
     color: Colors.canvas.background,
@@ -148,9 +152,7 @@ const styles = StyleSheet.create({
   tile: {
     width: TILE_SIZE,
     height: TILE_SIZE,
-    backgroundColor: "#F9FAFB",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.text.secondary + "40",
     borderRadius: Borders.radius.medium,
     alignItems: "center",
     justifyContent: "center",
@@ -158,7 +160,6 @@ const styles = StyleSheet.create({
   tileSelected: {
     borderWidth: 2,
     borderColor: Colors.interaction.primary,
-    backgroundColor: "#ECFDF5",
   },
   emojiText: {
     fontSize: 22,

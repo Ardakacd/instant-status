@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RootStackParamList } from "../../App";
 import Toast from "react-native-toast-message";
 
-import { Colors, Borders, Spacing, Typography, useResponsive } from "../design";
+import { Colors, Borders, Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 import { TextInput } from "../components/inputs/TextInput";
@@ -27,6 +27,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
+  const colors = useColors();
   const [inviteCode, setInviteCode] = useState("");
   const [myInviteCode, setMyInviteCode] = useState("");
   const [shareableLink, setShareableLink] = useState("");
@@ -212,7 +213,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.canvas.background }]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
@@ -232,7 +233,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text variant="primary" style={[styles.headerTitle, { fontSize: fs(18) }]}>
             Connect Friends
@@ -241,14 +242,14 @@ export default function ConnectScreen({ navigation, route }: Props) {
         </View>
 
         {/* Invite Code */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>INVITE CODE</Text>
+        <View style={[styles.card, { backgroundColor: colors.canvas.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>INVITE CODE</Text>
 
           {/* Your code display */}
-          <View style={styles.codeDisplay}>
+          <View style={[styles.codeDisplay, { backgroundColor: colors.canvas.background }]}>
             {inviteCodeError ? (
               <TouchableOpacity onPress={loadMyInviteCode}>
-                <Text style={styles.retryText}>Tap to retry</Text>
+                <Text style={[styles.retryText, { color: colors.interaction.primary }]}>Tap to retry</Text>
               </TouchableOpacity>
             ) : (
               <Text variant="primary" style={[styles.codeText, { fontSize: fs(26) }]}>
@@ -258,19 +259,19 @@ export default function ConnectScreen({ navigation, route }: Props) {
           </View>
 
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionPill} onPress={handleCopyCode}>
-              <Ionicons name="copy-outline" size={16} color={Colors.interaction.primary} />
-              <Text style={styles.actionPillText}>Copy</Text>
+            <TouchableOpacity style={[styles.actionPill, { backgroundColor: colors.canvas.background }]} onPress={handleCopyCode}>
+              <Ionicons name="copy-outline" size={16} color={colors.interaction.primary} />
+              <Text style={[styles.actionPillText, { color: colors.interaction.primary }]}>Copy</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionPill} onPress={handleShareCode}>
-              <Ionicons name="share-outline" size={16} color={Colors.interaction.primary} />
-              <Text style={styles.actionPillText}>Share</Text>
+            <TouchableOpacity style={[styles.actionPill, { backgroundColor: colors.canvas.background }]} onPress={handleShareCode}>
+              <Ionicons name="share-outline" size={16} color={colors.interaction.primary} />
+              <Text style={[styles.actionPillText, { color: colors.interaction.primary }]}>Share</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.text.secondary }]} />
 
-          <Text style={styles.sectionTitle}>ENTER A FRIEND'S CODE</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>ENTER A FRIEND'S CODE</Text>
           <View style={styles.inputContainer}>
             <TextInput
               placeholder="8-character code"
@@ -293,26 +294,26 @@ export default function ConnectScreen({ navigation, route }: Props) {
         </View>
 
         {/* Shareable Link */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>SHAREABLE LINK</Text>
+        <View style={[styles.card, { backgroundColor: colors.canvas.card }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>SHAREABLE LINK</Text>
           <Text variant="secondary" style={styles.linkDescription}>
             Send a link that instantly connects you when opened.
           </Text>
 
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionPill} onPress={handleCopyLink}>
-              <Ionicons name="copy-outline" size={16} color={Colors.interaction.primary} />
-              <Text style={styles.actionPillText}>Copy Link</Text>
+            <TouchableOpacity style={[styles.actionPill, { backgroundColor: colors.canvas.background }]} onPress={handleCopyLink}>
+              <Ionicons name="copy-outline" size={16} color={colors.interaction.primary} />
+              <Text style={[styles.actionPillText, { color: colors.interaction.primary }]}>Copy Link</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionPill} onPress={handleShareLink}>
-              <Ionicons name="share-outline" size={16} color={Colors.interaction.primary} />
-              <Text style={styles.actionPillText}>Share Link</Text>
+            <TouchableOpacity style={[styles.actionPill, { backgroundColor: colors.canvas.background }]} onPress={handleShareLink}>
+              <Ionicons name="share-outline" size={16} color={colors.interaction.primary} />
+              <Text style={[styles.actionPillText, { color: colors.interaction.primary }]}>Share Link</Text>
             </TouchableOpacity>
           </View>
 
           {connectingByLink && (
             <View style={styles.connectingContainer}>
-              <ActivityIndicator size="small" color={Colors.interaction.primary} />
+              <ActivityIndicator size="small" color={colors.interaction.primary} />
               <Text variant="secondary" style={styles.connectingText}>Connecting…</Text>
             </View>
           )}
@@ -325,7 +326,6 @@ export default function ConnectScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas.background,
   },
   scrollView: {
     flex: 1,
@@ -352,19 +352,16 @@ const styles = StyleSheet.create({
   card: {
     marginTop: Spacing.md,
     padding: Spacing.md,
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
   },
   sectionTitle: {
     fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.text.secondary,
     letterSpacing: 0.8,
     marginBottom: Spacing.md,
   },
   codeDisplay: {
     paddingVertical: Spacing.lg,
-    backgroundColor: Colors.canvas.background,
     borderRadius: Borders.radius.medium,
     marginBottom: Spacing.md,
     overflow: "visible",
@@ -380,7 +377,6 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.interaction.primary,
   },
   actionRow: {
     flexDirection: "row",
@@ -393,18 +389,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: Spacing.xs,
-    backgroundColor: Colors.canvas.background,
     borderRadius: Borders.radius.medium,
     paddingVertical: Spacing.sm,
   },
   actionPillText: {
     fontSize: 14,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.interaction.primary,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.text.secondary,
     opacity: 0.3,
     marginBottom: Spacing.md,
   },

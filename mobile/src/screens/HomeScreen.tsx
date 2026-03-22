@@ -25,12 +25,13 @@ import Toast from "react-native-toast-message";
 import Sentry from "../../sentry";
 import { useIsPremium } from "../hooks/useIsPremium";
 import { presentPaywall } from "../services/purchases.service";
-import { Colors, Borders, Spacing, Typography, useResponsive } from "../design";
+import { Colors, Borders, Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
 export default function HomeScreen() {
   const { horizontalPadding, fs } = useResponsive();
+  const colors = useColors();
   const navigation = useNavigation();
   const route = useRoute();
   const { isPremium, loading: premiumLoading } = useIsPremium();
@@ -387,12 +388,13 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.canvas.background }]} edges={["top"]}>
       {/* Refresh Hint Banner */}
       {showRefreshHint && (
         <Animated.View
           style={[
             styles.refreshHintBanner,
+            { backgroundColor: colors.tint.mint },
             {
               transform: [{ translateY: slideAnim }],
             },
@@ -402,7 +404,7 @@ export default function HomeScreen() {
             <Ionicons
               name="arrow-down"
               size={20}
-              color={Colors.interaction.primary}
+              color={colors.interaction.primary}
             />
             <Text variant="primary" style={styles.refreshHintText}>
               Pull down to refresh
@@ -415,7 +417,7 @@ export default function HomeScreen() {
             <Ionicons
               name="close"
               size={20}
-              color={Colors.text.secondary}
+              color={colors.text.secondary}
             />
           </TouchableOpacity>
         </Animated.View>
@@ -436,14 +438,14 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={Colors.interaction.primary}
-            colors={[Colors.interaction.primary]}
+            tintColor={colors.interaction.primary}
+            colors={[colors.interaction.primary]}
             progressViewOffset={showRefreshHint ? 130 : 80}
           />
         }
       >
         {/* My Status Card */}
-        <View style={styles.statusCard}>
+        <View style={[styles.statusCard, { backgroundColor: colors.canvas.card }]}>
           <View style={styles.cardTitleContainer}>
             <Text style={styles.cardTitle}>YOUR STATUS</Text>
             <TouchableOpacity
@@ -453,11 +455,11 @@ export default function HomeScreen() {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               {premiumLoading ? (
-                <ActivityIndicator size="small" color={Colors.interaction.primary} />
+                <ActivityIndicator size="small" color={colors.interaction.primary} />
               ) : isPremium ? (
-                <Ionicons name="settings-outline" size={20} color={Colors.text.secondary} />
+                <Ionicons name="settings-outline" size={20} color={colors.text.secondary} />
               ) : (
-                <Ionicons name="lock-closed-outline" size={20} color={Colors.text.secondary} />
+                <Ionicons name="lock-closed-outline" size={20} color={colors.text.secondary} />
               )}
             </TouchableOpacity>
           </View>
@@ -469,9 +471,9 @@ export default function HomeScreen() {
                   key={option.id}
                   style={[
                     styles.statusButton,
-                    { height: fs(100) },
+                    { height: fs(100), backgroundColor: colors.canvas.subtle },
                     isActive && styles.statusButtonActive,
-                    isActive && { backgroundColor: option.color },
+                    isActive && { backgroundColor: option.color, borderColor: colors.canvas.background },
                   ]}
                   onPress={() => handleStatusButtonPress(option)}
                   disabled={loading}
@@ -481,13 +483,13 @@ export default function HomeScreen() {
                   <Text
                     style={[
                       styles.statusButtonText,
-                      { fontSize: fs(14) },
-                      isActive && styles.statusButtonTextActive,
+                      { fontSize: fs(14), color: colors.text.secondary },
+                      isActive && { color: colors.canvas.background },
                     ]}
                   >
                     {option.label}
                   </Text>
-                  {isActive && <View style={styles.activeIndicator} />}
+                  {isActive && <View style={[styles.activeIndicator, { backgroundColor: colors.canvas.background }]} />}
                 </TouchableOpacity>
               );
             })}
@@ -506,7 +508,7 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>FRIENDS</Text>
             <View style={styles.headerRight}>
               {friendsStatus.length > 0 && (
-                <View style={styles.layoutToggle}>
+                <View style={[styles.layoutToggle, { backgroundColor: colors.canvas.card, borderColor: colors.text.secondary + "40" }]}>
                   <TouchableOpacity
                     style={[
                       styles.layoutToggleButton,
@@ -518,7 +520,7 @@ export default function HomeScreen() {
                     <Ionicons
                       name="list"
                       size={16}
-                      color={friendLayoutMode === "large" ? "#FFFFFF" : Colors.text.secondary}
+                      color={friendLayoutMode === "large" ? "#FFFFFF" : colors.text.secondary}
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -532,16 +534,16 @@ export default function HomeScreen() {
                     <Ionicons
                       name="grid"
                       size={14}
-                      color={friendLayoutMode === "compact" ? "#FFFFFF" : Colors.text.secondary}
+                      color={friendLayoutMode === "compact" ? "#FFFFFF" : colors.text.secondary}
                     />
                   </TouchableOpacity>
                 </View>
               )}
-              <View style={styles.friendCount}>
+              <View style={[styles.friendCount, { backgroundColor: colors.tint.mint }]}>
                 <Ionicons
                   name="people-outline"
                   size={14}
-                  color={Colors.text.secondary}
+                  color={colors.text.secondary}
                   style={styles.friendCountIcon}
                 />
                 <Text style={styles.friendCountText}>{friendsStatus.length}</Text>
@@ -556,7 +558,7 @@ export default function HomeScreen() {
                 <Ionicons
                   name="person-add"
                   size={16}
-                  color={Colors.interaction.primary}
+                  color={colors.interaction.primary}
                 />
                 <Text style={styles.connectButtonText}>Connect</Text>
               </TouchableOpacity>
@@ -565,12 +567,12 @@ export default function HomeScreen() {
 
           {refreshing && friendsStatus.length === 0 ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={Colors.interaction.primary} />
+              <ActivityIndicator size="small" color={colors.interaction.primary} />
             </View>
           ) : friendsStatus.length === 0 ? (
             <View style={styles.emptyState}>
-              <View style={styles.emptyIconCircle}>
-                <Ionicons name="people-outline" size={fs(32)} color={Colors.text.secondary} />
+              <View style={[styles.emptyIconCircle, { backgroundColor: colors.canvas.subtle }]}>
+                <Ionicons name="people-outline" size={fs(32)} color={colors.text.secondary} />
               </View>
               <Text variant="primary" style={styles.emptyTitle}>
                 No friends yet
@@ -602,7 +604,7 @@ export default function HomeScreen() {
                 return (
                   <TouchableOpacity
                     key={status.user_id}
-                    style={styles.friendCardCompact}
+                    style={[styles.friendCardCompact, { backgroundColor: colors.canvas.card }]}
                     activeOpacity={0.7}
                     onPress={() => {
                       setSelectedFriend(status);
@@ -618,7 +620,7 @@ export default function HomeScreen() {
                         {displayName}
                       </Text>
                       {getConnectionForFriend(status.user_id)?.user_shows_status === false && (
-                        <Ionicons name="eye-off-outline" size={11} color={Colors.text.secondary} />
+                        <Ionicons name="eye-off-outline" size={11} color={colors.text.secondary} />
                       )}
                     </View>
                     <Text variant="secondary" style={styles.friendStatusCompact} numberOfLines={1}>
@@ -642,7 +644,7 @@ export default function HomeScreen() {
                 return (
                   <TouchableOpacity
                     key={status.user_id}
-                    style={styles.friendCard}
+                    style={[styles.friendCard, { backgroundColor: colors.canvas.card }]}
                     activeOpacity={0.7}
                     onPress={() => {
                       setSelectedFriend(status);
@@ -675,7 +677,7 @@ export default function HomeScreen() {
                           {displayName}
                         </Text>
                         {getConnectionForFriend(status.user_id)?.user_shows_status === false && (
-                          <Ionicons name="eye-off-outline" size={13} color={Colors.text.secondary} />
+                          <Ionicons name="eye-off-outline" size={13} color={colors.text.secondary} />
                         )}
                       </View>
                       <View style={styles.friendStatusRow}>
@@ -725,7 +727,7 @@ export default function HomeScreen() {
         <TouchableWithoutFeedback onPress={closeFriendModal}>
           <View style={styles.friendModalOverlay}>
             <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-              <View style={styles.friendModalContent}>
+              <View style={[styles.friendModalContent, { backgroundColor: colors.canvas.background }]}>
                 {selectedFriend && (
                   <>
                     {/* Header */}
@@ -748,7 +750,7 @@ export default function HomeScreen() {
                         <Ionicons
                           name="close"
                           size={24}
-                          color={Colors.text.secondary}
+                          color={colors.text.secondary}
                         />
                       </TouchableOpacity>
                     </View>
@@ -789,10 +791,10 @@ export default function HomeScreen() {
                     {/* Manage Actions */}
                     {getConnectionForFriend(selectedFriend.user_id) && (
                       <>
-                        <View style={styles.friendModalDivider} />
+                        <View style={[styles.friendModalDivider, { backgroundColor: colors.text.secondary }]} />
                         {!getConnectionForFriend(selectedFriend.user_id)?.user_shows_status && (
-                          <View style={styles.friendModalHiddenNoteBox}>
-                            <Ionicons name="eye-off-outline" size={13} color={Colors.text.secondary} />
+                          <View style={[styles.friendModalHiddenNoteBox, { backgroundColor: colors.canvas.card }]}>
+                            <Ionicons name="eye-off-outline" size={13} color={colors.text.secondary} />
                             <Text variant="secondary" style={styles.friendModalHiddenNote}>
                               You've hidden your status from them, so they can't see yours either.
                             </Text>
@@ -805,7 +807,7 @@ export default function HomeScreen() {
                           activeOpacity={0.7}
                         >
                           {togglingVisibility ? (
-                            <ActivityIndicator size="small" color={Colors.text.secondary} />
+                            <ActivityIndicator size="small" color={colors.text.secondary} />
                           ) : (
                             <Text variant="secondary" style={styles.friendModalActionText}>
                               {getConnectionForFriend(selectedFriend.user_id)?.user_shows_status
@@ -837,14 +839,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas.background,
   },
   refreshHintBanner: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#ECFDF5",
     paddingTop: 50,
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.sm,
@@ -875,7 +875,6 @@ const styles = StyleSheet.create({
   statusCard: {
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
   },
@@ -889,7 +888,6 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.text.secondary,
     letterSpacing: 0.8,
     flexShrink: 1,
     minWidth: 0,
@@ -907,7 +905,6 @@ const styles = StyleSheet.create({
     height: 100,
     flexGrow: 1,
     minWidth: "30%",
-    backgroundColor: "#F3F4F6",
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
     alignItems: "center",
@@ -916,9 +913,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     position: "relative",
   },
-  statusButtonActive: {
-    borderColor: Colors.canvas.background,
-  },
+  statusButtonActive: {},
   statusIcon: {
     fontSize: 22,
     lineHeight: 26,
@@ -926,13 +921,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   statusButtonText: {
-    color: Colors.text.secondary,
     fontSize: 14,
     fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
-  },
-  statusButtonTextActive: {
-    color: Colors.canvas.background,
   },
   activeIndicator: {
     position: "absolute",
@@ -941,7 +932,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.canvas.background,
   },
   friendsSection: {
     marginTop: Spacing.lg,
@@ -956,7 +946,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.text.secondary,
     letterSpacing: 0.8,
     flexShrink: 1,
     minWidth: 0,
@@ -970,7 +959,6 @@ const styles = StyleSheet.create({
   friendCount: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#ECFDF5",
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Borders.radius.medium,
@@ -983,7 +971,6 @@ const styles = StyleSheet.create({
   friendCountText: {
     fontSize: 14,
     fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.text.primary,
   },
   connectButton: {
     flexDirection: "row",
@@ -995,7 +982,7 @@ const styles = StyleSheet.create({
   connectButtonText: {
     fontSize: 14,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.interaction.primary,
+    color: Colors.interaction.primary, // stays mint
   },
   loadingContainer: {
     padding: Spacing.xxl,
@@ -1012,7 +999,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.lg,
@@ -1031,11 +1017,9 @@ const styles = StyleSheet.create({
   },
   layoutToggle: {
     flexDirection: "row",
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.small,
     padding: 2,
     borderWidth: Borders.width,
-    borderColor: Colors.text.secondary + "40",
   },
   layoutToggleButton: {
     width: 26,
@@ -1057,7 +1041,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   friendCardCompact: {
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     padding: Spacing.sm,
     alignItems: "center",
@@ -1096,7 +1079,6 @@ const styles = StyleSheet.create({
   friendCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
   },
@@ -1161,7 +1143,6 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   friendModalContent: {
-    backgroundColor: Colors.canvas.background,
     borderRadius: Borders.radius.large,
     padding: Spacing.lg,
     width: "100%",
@@ -1189,7 +1170,6 @@ const styles = StyleSheet.create({
   friendModalLabel: {
     fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.text.secondary,
     letterSpacing: 0.8,
     marginBottom: Spacing.xs,
   },
@@ -1211,7 +1191,6 @@ const styles = StyleSheet.create({
   },
   friendModalDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.text.secondary,
     opacity: 0.3,
     marginVertical: Spacing.md,
   },
@@ -1219,7 +1198,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: Spacing.xs,
-    backgroundColor: "#F9FAFB",
     borderRadius: 8,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
@@ -1246,6 +1224,6 @@ const styles = StyleSheet.create({
   friendModalRemoveText: {
     fontSize: 14,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.interaction.error,
+    color: Colors.interaction.error, // always red
   },
 });

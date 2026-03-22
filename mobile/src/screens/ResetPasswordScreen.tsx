@@ -12,7 +12,7 @@ import { authService } from "../services/auth.service";
 import { RootStackParamList } from "../../App";
 import { ErrorBanner } from "../components/ErrorBanner";
 import Toast from "react-native-toast-message";
-import { Colors, Spacing, Typography, useResponsive } from "../design";
+import { Colors, Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
@@ -23,6 +23,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "ResetPassword">;
 export default function ResetPasswordScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
+  const colors = useColors();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -133,7 +134,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
 
   if (validatingCode) {
     // Show nothing while we verify the code so there's no flash of invalid-link UI
-    return <View style={[styles.container, { paddingTop: insets.top }]} />;
+    return <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]} />;
   }
 
   if (!isValidLink) {
@@ -141,12 +142,12 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
       ? codeError
       : "This password reset link is invalid or has expired. Please request a new one.";
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
         <TouchableOpacity
           style={[styles.backButton, { paddingHorizontal: horizontalPadding }]}
           onPress={() => navigation.navigate("SignIn")}
         >
-          <Ionicons name="arrow-back" size={22} color={Colors.text.primary} />
+          <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
           <Text variant="secondary" style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
@@ -158,7 +159,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
         >
           <Section spacing="md" style={styles.content}>
             <View style={styles.header}>
-              <View style={[styles.iconCircle, styles.iconCircleError]}>
+              <View style={[styles.iconCircle, { backgroundColor: colors.interaction.error }]}>
                 <Ionicons name="lock-closed-outline" size={fs(32)} color="#FFFFFF" />
               </View>
               <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
@@ -176,12 +177,12 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
       <TouchableOpacity
         style={[styles.backButton, { paddingHorizontal: horizontalPadding }]}
         onPress={() => navigation.navigate("SignIn")}
       >
-        <Ionicons name="arrow-back" size={22} color={Colors.text.primary} />
+        <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
         <Text variant="secondary" style={styles.backButtonText}>Back to Sign In</Text>
       </TouchableOpacity>
 
@@ -193,7 +194,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
       >
         <Section spacing="md" style={styles.content}>
           <View style={styles.header}>
-            <View style={styles.iconCircle}>
+            <View style={[styles.iconCircle, { backgroundColor: colors.interaction.primary }]}>
               <Ionicons name="lock-open-outline" size={fs(32)} color="#FFFFFF" />
             </View>
             <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
@@ -249,8 +250,8 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
             </Button>
           </Section>
 
-          <View style={styles.tipBox}>
-            <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
+          <View style={[styles.tipBox, { backgroundColor: colors.canvas.card }]}>
+            <Ionicons name="time-outline" size={16} color={colors.text.secondary} />
             <Text variant="secondary" style={styles.tipText}>
               This link expires in 15 minutes for your security.
             </Text>
@@ -264,7 +265,6 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas.background,
   },
   backButton: {
     flexDirection: "row",
@@ -290,13 +290,9 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.interaction.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.lg,
-  },
-  iconCircleError: {
-    backgroundColor: Colors.interaction.error,
   },
   title: {
     fontFamily: Typography.fontFamily.semiBold,
@@ -316,7 +312,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
-    backgroundColor: "#F9FAFB",
     borderRadius: 8,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,

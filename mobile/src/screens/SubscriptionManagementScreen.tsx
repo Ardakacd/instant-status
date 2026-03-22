@@ -21,7 +21,7 @@ import {
   presentCustomerCenter,
 } from "../services/purchases.service";
 import { useIsPremium } from "../hooks/useIsPremium";
-import { Colors, Borders, Spacing, Typography, useResponsive } from "../design";
+import { Colors, Borders, Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { InfoBox } from "../components/feedback/InfoBox";
 
@@ -29,6 +29,7 @@ export default function SubscriptionManagementScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
+  const colors = useColors();
   const { isPremium, willRenew, expirationDate, managementURL } = useIsPremium();
 
   const [loading, setLoading] = useState(true);
@@ -278,13 +279,13 @@ export default function SubscriptionManagementScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.canvas.background }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text variant="primary" style={styles.headerTitle}>
             Subscription
@@ -292,7 +293,7 @@ export default function SubscriptionManagementScreen() {
           <View style={styles.backButton} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.interaction.primary} />
+          <ActivityIndicator size="large" color={colors.interaction.primary} />
           <Text variant="secondary" style={styles.loadingText}>
             Loading subscription options...
           </Text>
@@ -303,13 +304,13 @@ export default function SubscriptionManagementScreen() {
 
   if (loadError && !offerings) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.canvas.background }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text variant="primary" style={styles.headerTitle}>
             Subscription
@@ -321,10 +322,10 @@ export default function SubscriptionManagementScreen() {
             Failed to load subscription options.
           </Text>
           <TouchableOpacity
-            style={styles.retryButton}
+            style={[styles.retryButton, { backgroundColor: colors.interaction.primary }]}
             onPress={loadSubscriptionData}
           >
-            <Text variant="primary" style={styles.retryButtonText}>
+            <Text variant="primary" style={[styles.retryButtonText, { color: colors.canvas.background }]}>
               Try Again
             </Text>
           </TouchableOpacity>
@@ -362,13 +363,13 @@ export default function SubscriptionManagementScreen() {
   const savings = calculateSavings(monthlyPkg || null, annualPkg || null);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.canvas.background }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <Text variant="primary" style={[styles.headerTitle, { fontSize: fs(18) }]}>
           Subscription
@@ -387,8 +388,8 @@ export default function SubscriptionManagementScreen() {
       >
         {/* Lifetime Access Message */}
         {hasLifetime && (
-          <View style={styles.lifetimeCard}>
-            <Ionicons name="infinite" size={36} color={Colors.interaction.primary} />
+          <View style={[styles.lifetimeCard, { backgroundColor: colors.tint.premium, borderColor: colors.interaction.primary + "40" }]}>
+            <Ionicons name="infinite" size={36} color={colors.interaction.primary} />
             <Text variant="primary" style={[styles.lifetimeTitle, { fontSize: fs(20) }]}>
               Lifetime Access
             </Text>
@@ -400,15 +401,15 @@ export default function SubscriptionManagementScreen() {
 
         {/* Current Plan Status (only for non-lifetime subscriptions) */}
         {isPremium && !hasLifetime && (
-          <View style={styles.currentPlanCard}>
+          <View style={[styles.currentPlanCard, { backgroundColor: colors.tint.premium, borderColor: colors.interaction.primary + "30" }]}>
             <View style={styles.currentPlanTopRow}>
-              <View style={styles.premiumPill}>
+              <View style={[styles.premiumPill, { backgroundColor: colors.interaction.primary }]}>
                 <Ionicons name="star" size={12} color="#FFFFFF" />
                 <Text style={styles.premiumPillText}>Premium</Text>
               </View>
               {willRenew === false && (
-                <View style={styles.cancelledPill}>
-                  <Text style={styles.cancelledPillText}>Cancels</Text>
+                <View style={[styles.cancelledPill, { backgroundColor: colors.interaction.error + "20" }]}>
+                  <Text style={[styles.cancelledPillText, { color: colors.interaction.error }]}>Cancels</Text>
                 </View>
               )}
             </View>
@@ -424,9 +425,9 @@ export default function SubscriptionManagementScreen() {
 
             {/* Plan Switch Information */}
             {availablePackages.length > 0 && currentPackage && expirationDate && (
-              <View style={styles.switchInfoBox}>
-                <Ionicons name="swap-horizontal-outline" size={16} color={Colors.interaction.primary} />
-                <Text variant="secondary" style={styles.switchInfoText}>
+              <View style={[styles.switchInfoBox, { borderTopColor: colors.interaction.primary + "40" }]}>
+                <Ionicons name="swap-horizontal-outline" size={16} color={colors.interaction.primary} />
+                <Text variant="secondary" style={[styles.switchInfoText, { color: colors.text.secondary }]}>
                   {(() => {
                     const currentLabel = getPackageLabel(currentPackage);
                     const isYearly = currentLabel.toLowerCase().includes("yearly");
@@ -449,7 +450,7 @@ export default function SubscriptionManagementScreen() {
         {/* Available Plans (only show if not lifetime and there are other plans) */}
         {!hasLifetime && availablePackages.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>
               {isPremium ? "CHANGE PLAN" : "CHOOSE A PLAN"}
             </Text>
 
@@ -462,7 +463,7 @@ export default function SubscriptionManagementScreen() {
               return (
                 <TouchableOpacity
                   key={pkg.identifier}
-                  style={[styles.packageCard, isPurchasing && styles.packageCardPurchasing]}
+                  style={[styles.packageCard, { backgroundColor: colors.canvas.card }, isPurchasing && styles.packageCardPurchasing]}
                   onPress={() => handlePurchasePackage(pkg)}
                   disabled={isPurchasing}
                   activeOpacity={0.75}
@@ -473,7 +474,7 @@ export default function SubscriptionManagementScreen() {
                         {label}
                       </Text>
                       {isAnnual && savings && (
-                        <View style={styles.savingsBadge}>
+                        <View style={[styles.savingsBadge, { backgroundColor: colors.interaction.primary }]}>
                           <Text style={styles.savingsBadgeText}>
                             Save {savings.percentage}%
                           </Text>
@@ -493,16 +494,16 @@ export default function SubscriptionManagementScreen() {
                   </View>
 
                   {isAnnual && savings && (
-                    <Text style={styles.savingsText}>
+                    <Text style={[styles.savingsText, { color: colors.interaction.primary }]}>
                       {savings.percentage}% cheaper than monthly
                     </Text>
                   )}
 
-                  <View style={styles.packageCta}>
+                  <View style={[styles.packageCta, { borderTopColor: colors.text.secondary + "30" }]}>
                     {isPurchasing ? (
-                      <ActivityIndicator size="small" color={Colors.interaction.primary} />
+                      <ActivityIndicator size="small" color={colors.interaction.primary} />
                     ) : (
-                      <Text style={[styles.packageCtaText, { fontSize: fs(14) }]}>
+                      <Text style={[styles.packageCtaText, { fontSize: fs(14), color: colors.interaction.primary }]}>
                         {isPremium ? "Switch to this plan" : "Subscribe"} →
                       </Text>
                     )}
@@ -515,27 +516,27 @@ export default function SubscriptionManagementScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionsSection}>
-          <Text style={styles.sectionTitle}>OTHER</Text>
-          <View style={styles.actionsCard}>
+          <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>OTHER</Text>
+          <View style={[styles.actionsCard, { backgroundColor: colors.canvas.card }]}>
             <TouchableOpacity
               style={styles.actionRow}
               onPress={handleRestorePurchases}
               disabled={restoring}
             >
               {restoring ? (
-                <ActivityIndicator size="small" color={Colors.interaction.primary} />
+                <ActivityIndicator size="small" color={colors.interaction.primary} />
               ) : (
-                <Ionicons name="refresh-outline" size={18} color={Colors.interaction.primary} />
+                <Ionicons name="refresh-outline" size={18} color={colors.interaction.primary} />
               )}
-              <Text style={styles.actionRowText}>Restore Purchases</Text>
+              <Text style={[styles.actionRowText, { color: colors.interaction.primary }]}>Restore Purchases</Text>
             </TouchableOpacity>
 
             {isPremium && !hasLifetime && (
               <>
-                <View style={styles.actionDivider} />
+                <View style={[styles.actionDivider, { backgroundColor: colors.text.secondary + "30" }]} />
                 <TouchableOpacity style={styles.actionRow} onPress={handleCancelMembership}>
-                  <Ionicons name="close-circle-outline" size={18} color={Colors.interaction.error} />
-                  <Text style={[styles.actionRowText, styles.cancelText]}>Cancel Membership</Text>
+                  <Ionicons name="close-circle-outline" size={18} color={colors.interaction.error} />
+                  <Text style={[styles.actionRowText, { color: colors.interaction.error }]}>Cancel Membership</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -551,7 +552,7 @@ export default function SubscriptionManagementScreen() {
         onRequestClose={() => setPlanChangeModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.canvas.background }]}>
             <View style={styles.modalHeader}>
               <Ionicons
                 name={
@@ -562,8 +563,8 @@ export default function SubscriptionManagementScreen() {
                 size={48}
                 color={
                   planChangeInfo?.isUpgrade
-                    ? Colors.interaction.primary
-                    : Colors.interaction.accent
+                    ? colors.interaction.primary
+                    : colors.interaction.accent
                 }
               />
               <Text variant="primary" style={[styles.modalTitle, { fontSize: fs(22) }]}>
@@ -592,7 +593,7 @@ export default function SubscriptionManagementScreen() {
                       <Ionicons
                         name="time-outline"
                         size={20}
-                        color={Colors.text.secondary}
+                        color={colors.text.secondary}
                       />
                     }
                     style={styles.infoBoxSpacing}
@@ -612,7 +613,7 @@ export default function SubscriptionManagementScreen() {
                         <Ionicons
                           name="calendar-outline"
                           size={20}
-                          color={Colors.text.secondary}
+                          color={colors.text.secondary}
                         />
                       }
                       style={styles.infoBoxSpacing}
@@ -652,7 +653,7 @@ export default function SubscriptionManagementScreen() {
                       <Ionicons
                         name="information-circle-outline"
                         size={20}
-                        color={Colors.interaction.accent}
+                        color={colors.interaction.accent}
                       />
                     }
                     style={styles.infoBoxSpacing}
@@ -672,7 +673,7 @@ export default function SubscriptionManagementScreen() {
                       <Ionicons
                         name="checkmark-circle-outline"
                         size={20}
-                        color={Colors.interaction.primary}
+                        color={colors.interaction.primary}
                       />
                     }
                     style={styles.infoBoxSpacing}
@@ -691,13 +692,13 @@ export default function SubscriptionManagementScreen() {
             </ScrollView>
 
             <TouchableOpacity
-              style={styles.modalButton}
+              style={[styles.modalButton, { backgroundColor: colors.interaction.primary }]}
               onPress={() => {
                 setPlanChangeModalVisible(false);
                 setPlanChangeInfo(null);
               }}
             >
-              <Text variant="primary" style={styles.modalButtonText}>
+              <Text variant="primary" style={[styles.modalButtonText, { color: colors.canvas.background }]}>
                 Got it
               </Text>
             </TouchableOpacity>
@@ -711,7 +712,6 @@ export default function SubscriptionManagementScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas.background,
   },
   header: {
     flexDirection: "row",
@@ -719,7 +719,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.canvas.background,
   },
   backButton: {
     width: 40,
@@ -751,28 +750,23 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xl,
-    backgroundColor: Colors.interaction.primary,
     borderRadius: Borders.radius.medium,
   },
   retryButtonText: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.canvas.background,
   },
   sectionTitle: {
     fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.text.secondary,
     letterSpacing: 0.8,
     marginBottom: Spacing.sm,
   },
   // Current plan card
   currentPlanCard: {
-    backgroundColor: "#F0FDF8",
     borderRadius: Borders.radius.medium,
     padding: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.interaction.primary + "30",
   },
   currentPlanTopRow: {
     flexDirection: "row",
@@ -784,7 +778,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: Colors.interaction.primary,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 20,
@@ -795,7 +788,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   cancelledPill: {
-    backgroundColor: Colors.interaction.error + "20",
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 20,
@@ -803,7 +795,6 @@ const styles = StyleSheet.create({
   cancelledPillText: {
     fontSize: 12,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.interaction.error,
   },
   currentPlanName: {
     fontFamily: Typography.fontFamily.semiBold,
@@ -819,21 +810,17 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.interaction.primary + "40",
   },
   switchInfoText: {
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
-    color: Colors.text.secondary,
   },
   // Lifetime card
   lifetimeCard: {
-    backgroundColor: "#F0FDF8",
     borderRadius: Borders.radius.medium,
     padding: Spacing.xl,
     borderWidth: 1,
-    borderColor: Colors.interaction.primary + "40",
     alignItems: "center",
   },
   lifetimeTitle: {
@@ -852,7 +839,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   packageCard: {
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     padding: Spacing.lg,
     marginBottom: Spacing.sm,
@@ -877,7 +863,6 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.semiBold,
   },
   savingsBadge: {
-    backgroundColor: Colors.interaction.primary,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 20,
@@ -899,18 +884,15 @@ const styles = StyleSheet.create({
   },
   savingsText: {
     fontSize: 13,
-    color: Colors.interaction.primary,
     marginBottom: Spacing.sm,
   },
   packageCta: {
     marginTop: Spacing.sm,
     paddingTop: Spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.text.secondary + "30",
   },
   packageCtaText: {
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.interaction.primary,
   },
   // Actions
   actionsSection: {
@@ -918,7 +900,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   actionsCard: {
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
@@ -933,14 +914,9 @@ const styles = StyleSheet.create({
   actionRowText: {
     fontSize: 15,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.interaction.primary,
-  },
-  cancelText: {
-    color: Colors.interaction.error,
   },
   actionDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.text.secondary + "30",
   },
   modalOverlay: {
     flex: 1,
@@ -950,7 +926,6 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   modalContent: {
-    backgroundColor: Colors.canvas.background,
     borderRadius: Borders.radius.large,
     width: "100%",
     maxWidth: 400,
@@ -995,7 +970,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   modalButton: {
-    backgroundColor: Colors.interaction.primary,
     borderRadius: Borders.radius.medium,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
@@ -1006,6 +980,5 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.canvas.background,
   },
 });

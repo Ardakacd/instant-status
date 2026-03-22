@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ViewProps, StyleSheet, TouchableOpacity, TouchableOpacityProps } from 'react-native';
-import { Borders, Spacing } from '../../design';
+import { Borders, Spacing } from '../../design/tokens';
+import { useColors } from '../../design';
 
 export type CardVariant = 'flat' | 'elevated';
 
@@ -17,8 +18,10 @@ export const Card: React.FC<CardProps> = ({
   style,
   ...props
 }) => {
+  const colors = useColors();
   const cardStyle = [
     styles.card,
+    { backgroundColor: colors.canvas.card },
     variant === 'elevated' && styles.elevated,
     style,
   ];
@@ -45,7 +48,6 @@ export const Card: React.FC<CardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
   },
@@ -57,4 +59,3 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 });
-

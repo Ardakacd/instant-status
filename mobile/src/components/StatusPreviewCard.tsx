@@ -1,6 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import { Colors, Spacing, Typography, getContrastingTextColor } from "../design";
+import { Colors, Spacing, Typography, getContrastingTextColor, useColors } from "../design";
 import { Card } from "./containers/Card";
 import { Text } from "./primitives/Text";
 
@@ -15,12 +15,13 @@ export default function StatusPreviewCard({
   label,
   color,
 }: StatusPreviewCardProps) {
+  const colors = useColors();
   const backgroundColor = color || "#3B82F6";
   const textColor = getContrastingTextColor(backgroundColor);
   
   return (
     <View style={styles.container}>
-      <Text style={styles.previewLabel}>PREVIEW</Text>
+      <Text style={[styles.previewLabel, { color: colors.text.secondary }]}>PREVIEW</Text>
       
       {/* We use variant="elevated" so the preview looks like 
           a real physical object the user is "building" 
@@ -47,7 +48,6 @@ const styles = StyleSheet.create({
   previewLabel: {
     fontFamily: Typography.fontFamily.medium,
     fontSize: 11,
-    color: Colors.text.secondary,
     letterSpacing: 0.8,
     marginBottom: Spacing.xs,
   },

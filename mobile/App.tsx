@@ -26,6 +26,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Typography } from "./src/design";
+import { ThemeProvider, useTheme } from "./src/contexts/ThemeContext";
 import Toast from "react-native-toast-message";
 import * as Linking from "expo-linking";
 
@@ -174,12 +175,13 @@ SplashScreen.preventAutoHideAsync();
 
 function MainTabs() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.interaction.primary,
-        tabBarInactiveTintColor: Colors.text.secondary,
+        tabBarActiveTintColor: colors.interaction.primary,
+        tabBarInactiveTintColor: colors.text.secondary,
         tabBarLabelStyle: {
           fontFamily: Typography.fontFamily.medium,
           fontSize: 11,
@@ -187,7 +189,8 @@ function MainTabs() {
         tabBarStyle: {
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
-          borderTopColor: Colors.text.secondary + "20",
+          backgroundColor: colors.canvas.background,
+          borderTopColor: colors.text.secondary + "20",
         },
       }}
     >
@@ -392,9 +395,7 @@ function AppNavigator() {
   // Show splash screen while loading auth state
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-        <StatusBar style="dark" />
-      </View>
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />
     );
   }
 
@@ -531,6 +532,16 @@ function AppNavigator() {
   );
 }
 
+function AppNavigatorWithTheme() {
+  const { isDark } = useTheme();
+  return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <AppNavigator />
+    </>
+  );
+}
+
 function App() {
   const [appIsReady, setAppIsReady] = useState(false);
   const appState = useRef(AppState.currentState);
@@ -612,11 +623,12 @@ function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <StatusBar style="dark" />
-        <AppNavigator />
-        <Toast config={toastConfig} topOffset={60} />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppNavigatorWithTheme />
+          <Toast config={toastConfig} topOffset={60} />
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

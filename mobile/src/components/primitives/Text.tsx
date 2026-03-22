@@ -1,13 +1,13 @@
 /**
  * Text Primitive Component
- * 
+ *
  * Components express intention. Screens only assemble them.
- * 
+ *
  * Variants:
  * - Primary: Titles, status text, names
  * - Secondary: Timestamps, hints, labels
  * - Hint: Subtle guidance text
- * 
+ *
  * Rules:
  * - No decorative text
  * - No emphasis via color except mint/yellow by role
@@ -16,8 +16,9 @@
  */
 
 import React from 'react';
-import { Text as RNText, TextProps as RNTextProps, StyleSheet } from 'react-native';
-import { Colors, Typography } from '../../design';
+import { Text as RNText, TextProps as RNTextProps } from 'react-native';
+import { Typography } from '../../design/tokens';
+import { useColors } from '../../design';
 
 export type TextVariant = 'primary' | 'secondary' | 'hint';
 
@@ -26,16 +27,39 @@ export interface TextProps extends RNTextProps {
   children: React.ReactNode;
 }
 
-export const Text: React.FC<TextProps> = ({ 
-  variant = 'primary', 
-  style, 
+export const Text: React.FC<TextProps> = ({
+  variant = 'primary',
+  style,
   children,
-  allowFontScaling = true, // Default to true for accessibility, set to false for critical UI elements
-  ...props 
+  allowFontScaling = true,
+  ...props
 }) => {
+  const colors = useColors();
+  const variantStyle =
+    variant === 'primary'
+      ? {
+          fontFamily: Typography.fontFamily.medium,
+          fontSize: 16,
+          lineHeight: 16 * Typography.lineHeight.default,
+          color: colors.text.primary,
+        }
+      : variant === 'secondary'
+      ? {
+          fontFamily: Typography.fontFamily.regular,
+          fontSize: 16,
+          lineHeight: 16 * Typography.lineHeight.default,
+          color: colors.text.secondary,
+        }
+      : {
+          fontFamily: Typography.fontFamily.regular,
+          fontSize: 14,
+          lineHeight: 14 * 1.2,
+          color: colors.text.secondary,
+        };
+
   return (
-    <RNText 
-      style={[styles[variant], style]} 
+    <RNText
+      style={[variantStyle, style]}
       allowFontScaling={allowFontScaling}
       {...props}
     >
@@ -43,27 +67,3 @@ export const Text: React.FC<TextProps> = ({
     </RNText>
   );
 };
-
-const styles = StyleSheet.create({
-  primary: {
-    // Status text and Names usually need that extra "Medium" weight to feel punchy
-    fontFamily: Typography.fontFamily.medium,
-    fontSize: 16,
-    lineHeight: 16 * Typography.lineHeight.default,
-    color: Colors.text.primary,
-  },
-  secondary: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: 16,
-    lineHeight: 16 * Typography.lineHeight.default,
-    color: Colors.text.secondary,
-  },
-  hint: {
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: 14,
-    // Slightly tighter line height for small hints looks more professional
-    lineHeight: 14 * 1.2,
-    color: Colors.text.secondary,
-  },
-});
-

@@ -17,7 +17,7 @@ import { RootStackParamList } from "../../App";
 import { authService } from "../services/auth.service";
 import { ErrorBanner } from "../components/ErrorBanner";
 import Toast from "react-native-toast-message";
-import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
@@ -29,6 +29,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "SignIn">;
 export default function LoginScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
+  const colors = useColors();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -169,7 +170,7 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -181,7 +182,7 @@ export default function LoginScreen({ navigation }: Props) {
       >
         <Section spacing="md" style={styles.content}>
           <View style={styles.header}>
-            <View style={styles.logoCircle}>
+            <View style={[styles.logoCircle, { backgroundColor: colors.interaction.primary }]}>
               <Ionicons name="radio-outline" size={28} color="#FFFFFF" />
             </View>
             <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
@@ -191,7 +192,7 @@ export default function LoginScreen({ navigation }: Props) {
           </View>
 
           {authError && (
-            <Text variant="hint" style={styles.authErrorText}>{authError}</Text>
+            <Text variant="hint" style={[styles.authErrorText, { color: colors.interaction.error }]}>{authError}</Text>
           )}
           {globalError && (
             <ErrorBanner message={globalError} />
@@ -242,16 +243,16 @@ export default function LoginScreen({ navigation }: Props) {
           </Section>
 
           <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text variant="hint" style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: colors.text.secondary }]} />
+            <Text variant="hint" style={[styles.dividerText, { color: colors.text.secondary }]}>OR</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.text.secondary }]} />
           </View>
 
           {/* Google */}
           <Pressable
             onPress={handleGoogleSignIn}
             disabled={googleLoading || loading || appleLoading}
-            style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
+            style={({ pressed }) => [styles.socialButton, { backgroundColor: colors.canvas.card }, pressed && styles.socialButtonPressed]}
           >
             {googleLoading ? (
               <Text variant="secondary" style={styles.socialButtonText}>Loading…</Text>
@@ -303,7 +304,7 @@ export default function LoginScreen({ navigation }: Props) {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
-          <View style={[styles.modalContent, { paddingBottom: SAFE_AREA_BOTTOM }]}>
+          <View style={[styles.modalContent, { paddingBottom: SAFE_AREA_BOTTOM, backgroundColor: colors.canvas.background }]}>
             <View style={styles.modalHeader}>
               <Text variant="primary" style={styles.modalTitle}>Reset Password</Text>
               <TouchableOpacity
@@ -314,7 +315,7 @@ export default function LoginScreen({ navigation }: Props) {
                 }}
                 disabled={sendingReset}
               >
-                <Ionicons name="close" size={24} color={Colors.text.primary} />
+                <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
 
@@ -357,7 +358,6 @@ export default function LoginScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -375,7 +375,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.interaction.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.md,
@@ -394,7 +393,6 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.xs,
   },
   authErrorText: {
-    color: Colors.interaction.error,
     fontFamily: Typography.fontFamily.semiBold,
     fontSize: 14,
     textAlign: "center",
@@ -412,14 +410,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.text.secondary,
     opacity: 0.4,
   },
   dividerText: {
     marginHorizontal: Spacing.md,
     fontSize: 12,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.text.secondary,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
@@ -427,7 +423,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     height: 52,
     paddingHorizontal: Spacing.lg,
@@ -464,7 +459,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: Colors.canvas.background,
     borderTopLeftRadius: Borders.radius.large,
     borderTopRightRadius: Borders.radius.large,
     paddingHorizontal: Spacing.lg,

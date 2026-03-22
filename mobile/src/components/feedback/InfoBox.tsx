@@ -1,11 +1,11 @@
 /**
  * Info Box Component
- * 
+ *
  * Used for:
  * - Pending plan
  * - Explanation
  * - Gentle warnings
- * 
+ *
  * Style:
  * - Light mint tint background
  * - Flat
@@ -15,12 +15,13 @@
 
 import React from 'react';
 import { View, StyleSheet, ViewProps } from 'react-native';
-import { Borders, Spacing } from '../../design';
+import { Borders, Spacing } from '../../design/tokens';
+import { useColors } from '../../design';
 import { Text } from '../primitives/Text';
 
 export interface InfoBoxProps extends ViewProps {
   children: React.ReactNode;
-  icon?: React.ReactNode; // Only if essential
+  icon?: React.ReactNode;
 }
 
 export const InfoBox: React.FC<InfoBoxProps> = ({
@@ -29,9 +30,10 @@ export const InfoBox: React.FC<InfoBoxProps> = ({
   style,
   ...props
 }) => {
+  const colors = useColors();
   return (
     <View
-      style={[styles.infoBox, style]}
+      style={[styles.infoBox, { backgroundColor: colors.tint.mint }, style]}
       {...props}
     >
       {icon && <View style={styles.iconContainer}>{icon}</View>}
@@ -48,19 +50,14 @@ export const InfoBox: React.FC<InfoBoxProps> = ({
 
 const styles = StyleSheet.create({
   infoBox: {
-    backgroundColor: '#ECFDF5', // Light mint tint — matches primary palette
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
-    flexDirection: 'row', // Horizontal alignment is more "Inline"
+    flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.sm, // Clean gap between icon and text
-    // Flat, no elevation
+    gap: Spacing.sm,
   },
-  iconContainer: {
-    // No margin needed if using gap
-  },
+  iconContainer: {},
   content: {
-    flex: 1, // Ensures text wraps correctly and doesn't push the icon off-screen
+    flex: 1,
   },
 });
-

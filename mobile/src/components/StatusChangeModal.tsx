@@ -20,6 +20,7 @@ import {
   getContrastingTextColor,
   SAFE_AREA_BOTTOM,
   useResponsive,
+  useColors,
 } from "../design";
 import { Text } from "./primitives/Text";
 import { TextInput } from "./inputs/TextInput";
@@ -52,6 +53,7 @@ export default function StatusChangeModal({
   );
   const insets = useSafeAreaInsets();
   const { fs } = useResponsive();
+  const colors = useColors();
 
   // Note: All statuses can have expiration times
 
@@ -191,6 +193,7 @@ export default function StatusChangeModal({
               <View
                 style={[
                   styles.modalContainer,
+                  { backgroundColor: colors.canvas.background },
                   expiresAt && styles.modalContainerExpanded,
                   { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom },
                 ]}
@@ -222,7 +225,7 @@ export default function StatusChangeModal({
                     <Ionicons
                       name="close"
                       size={24}
-                      color={Colors.text.secondary}
+                      color={colors.text.secondary}
                     />
                   </TouchableOpacity>
                 </View>
@@ -238,7 +241,7 @@ export default function StatusChangeModal({
                     <View>
                       <Text style={styles.sectionLabel}>NOTE</Text>
                       <TextInput
-                        style={styles.noteInput}
+                        style={[styles.noteInput, { backgroundColor: colors.canvas.background, borderColor: colors.text.secondary + "40" }]}
                         placeholder="Add a note..."
                         value={note}
                         onChangeText={setNote}
@@ -263,121 +266,39 @@ export default function StatusChangeModal({
 
                       {/* Presets */}
                       <View style={styles.presetsContainer}>
-                        <TouchableOpacity
-                          style={[
-                            styles.presetButton,
-                            expiresAt &&
-                              Math.abs(
-                                expiresAt.getTime() -
-                                  getPresetDate("30min").getTime(),
-                              ) < 60000 &&
-                              styles.presetButtonActive,
-                          ]}
-                          onPress={() => handlePresetSelect("30min")}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            variant="primary"
+                        {[
+                          { key: "30min", label: "30 min", isActive: expiresAt ? Math.abs(expiresAt.getTime() - getPresetDate("30min").getTime()) < 60000 : false },
+                          { key: "1hour", label: "1 hour", isActive: expiresAt ? Math.abs(expiresAt.getTime() - getPresetDate("1hour").getTime()) < 60000 : false },
+                          { key: "2hours", label: "2 hours", isActive: expiresAt ? Math.abs(expiresAt.getTime() - getPresetDate("2hours").getTime()) < 60000 : false },
+                          { key: "endOfDay", label: "Until Tonight", isActive: expiresAt ? isEndOfDay(expiresAt) : false },
+                        ].map(({ key, label, isActive }) => (
+                          <TouchableOpacity
+                            key={key}
                             style={[
-                              styles.presetButtonText,
-                              expiresAt &&
-                                Math.abs(
-                                  expiresAt.getTime() -
-                                    getPresetDate("30min").getTime(),
-                                ) < 60000 &&
-                                styles.presetButtonTextActive,
+                              styles.presetButton,
+                              { backgroundColor: isActive ? colors.interaction.primary : colors.canvas.card, borderColor: colors.text.secondary + "40" },
+                              isActive && styles.presetButtonActive,
                             ]}
+                            onPress={() => handlePresetSelect(key)}
+                            activeOpacity={0.7}
                           >
-                            30 min
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.presetButton,
-                            expiresAt &&
-                              Math.abs(
-                                expiresAt.getTime() -
-                                  getPresetDate("1hour").getTime(),
-                              ) < 60000 &&
-                              styles.presetButtonActive,
-                          ]}
-                          onPress={() => handlePresetSelect("1hour")}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            variant="primary"
-                            style={[
-                              styles.presetButtonText,
-                              expiresAt &&
-                                Math.abs(
-                                  expiresAt.getTime() -
-                                    getPresetDate("1hour").getTime(),
-                                ) < 60000 &&
-                                styles.presetButtonTextActive,
-                            ]}
-                          >
-                            1 hour
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.presetButton,
-                            expiresAt &&
-                              Math.abs(
-                                expiresAt.getTime() -
-                                  getPresetDate("2hours").getTime(),
-                              ) < 60000 &&
-                              styles.presetButtonActive,
-                          ]}
-                          onPress={() => handlePresetSelect("2hours")}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            variant="primary"
-                            style={[
-                              styles.presetButtonText,
-                              expiresAt &&
-                                Math.abs(
-                                  expiresAt.getTime() -
-                                    getPresetDate("2hours").getTime(),
-                                ) < 60000 &&
-                                styles.presetButtonTextActive,
-                            ]}
-                          >
-                            2 hours
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.presetButton,
-                            expiresAt &&
-                              isEndOfDay(expiresAt) &&
-                              styles.presetButtonActive,
-                          ]}
-                          onPress={() => handlePresetSelect("endOfDay")}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            variant="primary"
-                            style={[
-                              styles.presetButtonText,
-                              expiresAt &&
-                                isEndOfDay(expiresAt) &&
-                                styles.presetButtonTextActive,
-                            ]}
-                          >
-                            Until Tonight
-                          </Text>
-                        </TouchableOpacity>
+                            <Text
+                              variant="primary"
+                              style={[
+                                styles.presetButtonText,
+                                isActive && styles.presetButtonTextActive,
+                              ]}
+                            >
+                              {label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
                       </View>
 
                       {/* Custom Date/Time Picker */}
                       {!showCustomPicker && (
                         <TouchableOpacity
-                          style={styles.customPickerButton}
+                          style={[styles.customPickerButton, { backgroundColor: colors.canvas.card }]}
                           onPress={() => {
                             setShowCustomPicker(true);
                             setAndroidPickerMode("date"); // Reset to date mode
@@ -387,7 +308,7 @@ export default function StatusChangeModal({
                           <Ionicons
                             name="calendar-outline"
                             size={20}
-                            color={Colors.interaction.primary}
+                            color={colors.interaction.primary}
                           />
                           <Text
                             variant="primary"
@@ -400,7 +321,7 @@ export default function StatusChangeModal({
 
                       {/* Display selected datetime */}
                       {expiresAt && !showCustomPicker && (
-                        <View style={styles.selectedDateTimeContainer}>
+                        <View style={[styles.selectedDateTimeContainer, { backgroundColor: colors.tint.mint }]}>
                           <View style={styles.selectedDateTimeContent}>
                             <View style={styles.selectedDateTimeTextContainer}>
                               <Text style={styles.selectedDateTimeLabel}>
@@ -421,7 +342,7 @@ export default function StatusChangeModal({
                               <Ionicons
                                 name="close-circle"
                                 size={20}
-                                color={Colors.text.secondary}
+                                color={colors.text.secondary}
                               />
                             </TouchableOpacity>
                           </View>
@@ -429,8 +350,8 @@ export default function StatusChangeModal({
                       )}
 
                       {showCustomPicker && Platform.OS === "ios" && (
-                        <View style={styles.iosPickerContainer}>
-                          <View style={styles.iosPickerHeader}>
+                        <View style={[styles.iosPickerContainer, { backgroundColor: colors.canvas.card }]}>
+                          <View style={[styles.iosPickerHeader, { backgroundColor: colors.canvas.card }]}>
                             <TouchableOpacity
                               onPress={() => setShowCustomPicker(false)}
                               style={styles.iosPickerCancelButton}
@@ -541,7 +462,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContainer: {
-    backgroundColor: Colors.canvas.background,
     borderTopLeftRadius: Borders.radius.large,
     borderTopRightRadius: Borders.radius.large,
     maxHeight: "90%",
@@ -603,7 +523,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.text.secondary,
     letterSpacing: 0.8,
     marginBottom: Spacing.xs,
   },
@@ -612,13 +531,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   noteInput: {
-    backgroundColor: Colors.canvas.background,
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
     fontSize: 16,
     minHeight: 100,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.text.secondary + "40",
   },
   charCount: {
     fontSize: 12,
@@ -635,9 +552,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Borders.radius.medium,
-    backgroundColor: "#F9FAFB",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.text.secondary + "40",
   },
   presetButtonActive: {
     backgroundColor: Colors.interaction.primary,
@@ -655,7 +570,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: Spacing.md,
     borderRadius: Borders.radius.medium,
-    backgroundColor: "#F9FAFB",
     marginTop: Spacing.sm,
   },
   customPickerText: {
@@ -667,7 +581,6 @@ const styles = StyleSheet.create({
   selectedDateTimeContainer: {
     marginTop: Spacing.md,
     padding: Spacing.md,
-    backgroundColor: "#ECFDF5",
     borderRadius: Borders.radius.medium,
   },
   selectedDateTimeContent: {
@@ -681,7 +594,6 @@ const styles = StyleSheet.create({
   selectedDateTimeLabel: {
     fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.text.secondary,
     letterSpacing: 0.8,
     marginBottom: Spacing.xs,
   },
@@ -698,7 +610,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: Spacing.md,
     padding: Spacing.md,
-    backgroundColor: "#ECFDF5",
     borderRadius: Borders.radius.medium,
   },
   selectedExpiresText: {
@@ -726,14 +637,12 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.text.primary, // Charcoal text for contrast on colored backgrounds
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   iosPickerContainer: {
     marginTop: Spacing.md,
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     overflow: "hidden",
   },
@@ -742,7 +651,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: Spacing.md,
-    backgroundColor: "#F9FAFB",
   },
   iosPickerTitle: {
     fontSize: 16,
@@ -764,6 +672,5 @@ const styles = StyleSheet.create({
   },
   iosPicker: {
     height: 200,
-    backgroundColor: Colors.canvas.background,
   },
 });

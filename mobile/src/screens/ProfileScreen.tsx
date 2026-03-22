@@ -31,7 +31,8 @@ import {
 import { useIsPremium } from "../hooks/useIsPremium";
 import Toast from "react-native-toast-message";
 import Sentry from "../../sentry";
-import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive, useColors, useTheme } from "../design";
+import type { ThemeMode } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 import { TextInput as DesignTextInput } from "../components/inputs/TextInput";
@@ -43,6 +44,8 @@ export default function ProfileScreen() {
   const { user, logout, deleteAccount, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
+  const colors = useColors();
+  const { themeMode, setThemeMode } = useTheme();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const notifCheckTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
@@ -342,7 +345,7 @@ export default function ProfileScreen() {
     .slice(0, 2) || "?";
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.canvas.background }]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
@@ -370,8 +373,8 @@ export default function ProfileScreen() {
 
         {/* Profile Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PROFILE</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>PROFILE</Text>
+          <View style={[styles.card, { backgroundColor: colors.canvas.card }]}>
             {/* First Name */}
             {editingFirstName ? (
               <View style={styles.editingRow}>
@@ -386,13 +389,13 @@ export default function ProfileScreen() {
                   />
                   <TouchableOpacity onPress={handleSaveFirstName} disabled={saving} style={styles.iconBtn}>
                     {saving ? (
-                      <ActivityIndicator size="small" color={Colors.interaction.primary} />
+                      <ActivityIndicator size="small" color={colors.interaction.primary} />
                     ) : (
-                      <Ionicons name="checkmark" size={22} color={Colors.interaction.primary} />
+                      <Ionicons name="checkmark" size={22} color={colors.interaction.primary} />
                     )}
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => { setFirstName(user?.first_name || ""); setEditingFirstName(false); }} style={styles.iconBtn}>
-                    <Ionicons name="close" size={22} color={Colors.text.secondary} />
+                    <Ionicons name="close" size={22} color={colors.text.secondary} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -401,11 +404,11 @@ export default function ProfileScreen() {
                 <Text variant="secondary" style={styles.inlineLabel}>First name</Text>
                 <View style={styles.inlineValueRow}>
                   <Text variant="primary">{user?.first_name || "Add"}</Text>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
+                  <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
                 </View>
               </TouchableOpacity>
             )}
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.text.secondary + "30" }]} />
             {/* Last Name */}
             {editingLastName ? (
               <View style={styles.editingRow}>
@@ -420,13 +423,13 @@ export default function ProfileScreen() {
                   />
                   <TouchableOpacity onPress={handleSaveLastName} disabled={saving} style={styles.iconBtn}>
                     {saving ? (
-                      <ActivityIndicator size="small" color={Colors.interaction.primary} />
+                      <ActivityIndicator size="small" color={colors.interaction.primary} />
                     ) : (
-                      <Ionicons name="checkmark" size={22} color={Colors.interaction.primary} />
+                      <Ionicons name="checkmark" size={22} color={colors.interaction.primary} />
                     )}
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => { setLastName(user?.last_name || ""); setEditingLastName(false); }} style={styles.iconBtn}>
-                    <Ionicons name="close" size={22} color={Colors.text.secondary} />
+                    <Ionicons name="close" size={22} color={colors.text.secondary} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -435,18 +438,18 @@ export default function ProfileScreen() {
                 <Text variant="secondary" style={styles.inlineLabel}>Last name</Text>
                 <View style={styles.inlineValueRow}>
                   <Text variant="primary">{user?.last_name || "Add"}</Text>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
+                  <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
                 </View>
               </TouchableOpacity>
             )}
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.text.secondary + "30" }]} />
             {/* Password / Auth */}
             {authProvider === "password" ? (
               <TouchableOpacity style={styles.inlineRow} onPress={handleChangePassword}>
                 <Text variant="secondary" style={styles.inlineLabel}>Password</Text>
                 <View style={styles.inlineValueRow}>
                   <Text variant="primary">Change password</Text>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
+                  <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
                 </View>
               </TouchableOpacity>
             ) : (
@@ -462,11 +465,11 @@ export default function ProfileScreen() {
 
         {/* Subscription */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SUBSCRIPTION</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>SUBSCRIPTION</Text>
+          <View style={[styles.card, { backgroundColor: colors.canvas.card }]}>
             {premiumLoading ? (
               <View style={styles.loadingRow}>
-                <ActivityIndicator size="small" color={Colors.interaction.primary} />
+                <ActivityIndicator size="small" color={colors.interaction.primary} />
                 <Text variant="secondary">Checking status…</Text>
               </View>
             ) : isPremium ? (
@@ -484,13 +487,13 @@ export default function ProfileScreen() {
                     <Text variant="secondary" style={styles.expiryText}>Active</Text>
                   )}
                 </View>
-                <View style={styles.divider} />
+                <View style={[styles.divider, { backgroundColor: colors.text.secondary + "30" }]} />
                 <TouchableOpacity
                   style={styles.inlineRow}
                   onPress={() => navigation.navigate("SubscriptionManagement" as never)}
                 >
                   <Text variant="primary">Manage subscription</Text>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
+                  <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
                 </TouchableOpacity>
               </>
             ) : (
@@ -512,7 +515,7 @@ export default function ProfileScreen() {
                   <Text variant="primary" style={styles.upgradeTitle}>Upgrade to Premium</Text>
                   <Text variant="secondary" style={styles.upgradeSubtitle} numberOfLines={1}>Themes, statuses & more</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
+                <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -520,8 +523,8 @@ export default function ProfileScreen() {
 
         {/* Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SETTINGS</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>SETTINGS</Text>
+          <View style={[styles.card, { backgroundColor: colors.canvas.card }]}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text variant="primary">Push notifications</Text>
@@ -535,30 +538,59 @@ export default function ProfileScreen() {
                 value={pushNotifications}
                 onValueChange={handleTogglePushNotifications}
                 trackColor={{
-                  false: Colors.interaction.disabled,
-                  true: Colors.interaction.primary,
+                  false: colors.interaction.disabled,
+                  true: colors.interaction.primary,
                 }}
-                thumbColor={Colors.canvas.background}
+                thumbColor={colors.canvas.background}
               />
+            </View>
+          </View>
+        </View>
+
+        {/* Appearance */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>APPEARANCE</Text>
+          <View style={[styles.card, { backgroundColor: colors.canvas.card }]}>
+            <View style={styles.themeRow}>
+              {(['system', 'light', 'dark'] as ThemeMode[]).map((mode) => (
+                <TouchableOpacity
+                  key={mode}
+                  style={[
+                    styles.themePill,
+                    { backgroundColor: themeMode === mode ? colors.interaction.primary : colors.canvas.subtle },
+                  ]}
+                  onPress={() => setThemeMode(mode)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.themePillText,
+                      { color: themeMode === mode ? '#FFFFFF' : colors.text.secondary },
+                    ]}
+                  >
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
         </View>
 
         {/* Account Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ACCOUNT</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>ACCOUNT</Text>
+          <View style={[styles.card, { backgroundColor: colors.canvas.card }]}>
             <TouchableOpacity style={styles.actionRow} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={20} color={Colors.text.primary} />
+              <Ionicons name="log-out-outline" size={20} color={colors.text.primary} />
               <Text variant="primary">Log out</Text>
             </TouchableOpacity>
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.text.secondary + "30" }]} />
             <TouchableOpacity
               style={styles.actionRow}
               onPress={handleDeleteAccount}
               disabled={deletingAccount}
             >
-              <Ionicons name="trash-outline" size={20} color={Colors.interaction.error} />
+              <Ionicons name="trash-outline" size={20} color={colors.interaction.error} />
               <Text style={styles.dangerText}>Delete account</Text>
             </TouchableOpacity>
           </View>
@@ -566,31 +598,31 @@ export default function ProfileScreen() {
 
         {/* App Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ABOUT</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>ABOUT</Text>
+          <View style={[styles.card, { backgroundColor: colors.canvas.card }]}>
             <View style={styles.inlineRow}>
               <Text variant="secondary" style={styles.inlineLabel}>Version</Text>
               <Text variant="secondary">
                 {Constants.expoConfig?.version || "1.0.0"}
               </Text>
             </View>
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.text.secondary + "30" }]} />
             <TouchableOpacity style={styles.inlineRow} onPress={openPrivacyPolicy}>
               <Text variant="primary">Privacy Policy</Text>
-              <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
+              <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
             </TouchableOpacity>
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.text.secondary + "30" }]} />
             <TouchableOpacity style={styles.inlineRow} onPress={openTermsOfUse}>
               <Text variant="primary">Terms of Use</Text>
-              <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
+              <Ionicons name="chevron-forward" size={16} color={colors.text.secondary} />
             </TouchableOpacity>
           </View>
         </View>
 
         {__DEV__ && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>DEVELOPER</Text>
-            <View style={styles.card}>
+            <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>DEVELOPER</Text>
+            <View style={[styles.card, { backgroundColor: colors.canvas.card }]}>
               <TouchableOpacity
                 style={styles.actionRow}
                 onPress={async () => {
@@ -619,7 +651,7 @@ export default function ProfileScreen() {
         onRequestClose={() => setChangePasswordModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.canvas.background, paddingBottom: SAFE_AREA_BOTTOM + insets.bottom }]}>
             <View style={styles.modalHeader}>
               <Text variant="primary" style={[styles.modalTitle, { fontSize: fs(18) }]}>
                 Change password
@@ -633,7 +665,7 @@ export default function ProfileScreen() {
                 }}
                 disabled={changingPassword}
               >
-                <Ionicons name="close" size={24} color={Colors.text.primary} />
+                <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>
             </View>
             <ScrollView
@@ -700,7 +732,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas.background,
   },
   scrollView: {
     flex: 1,
@@ -742,12 +773,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.text.secondary,
     letterSpacing: 0.8,
     marginBottom: Spacing.sm,
   },
   card: {
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
@@ -786,7 +815,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.text.secondary + "30",
   },
   loadingRow: {
     flexDirection: "row",
@@ -874,13 +902,27 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.medium,
     color: Colors.interaction.error,
   },
+  themeRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  themePill: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Borders.radius.medium,
+    alignItems: "center",
+  },
+  themePillText: {
+    fontSize: 14,
+    fontFamily: Typography.fontFamily.medium,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: Colors.canvas.background,
     borderTopLeftRadius: Borders.radius.large,
     borderTopRightRadius: Borders.radius.large,
     paddingHorizontal: Spacing.lg,

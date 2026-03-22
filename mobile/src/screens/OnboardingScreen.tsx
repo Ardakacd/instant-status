@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import { userService } from "../services/user.service";
 import { ErrorBanner } from "../components/ErrorBanner";
-import { Colors, Spacing, Typography, useResponsive } from "../design";
+import { Colors, Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
@@ -18,6 +18,7 @@ import { Section } from "../components/containers/Section";
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
+  const colors = useColors();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [firstNameError, setFirstNameError] = useState("");
@@ -81,7 +82,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -93,7 +94,7 @@ export default function OnboardingScreen() {
       >
         <Section spacing="md" style={styles.content}>
           <View style={styles.header}>
-            <View style={styles.logoCircle}>
+            <View style={[styles.logoCircle, { backgroundColor: colors.interaction.primary }]}>
               <Ionicons name="radio-outline" size={28} color="#FFFFFF" />
             </View>
             <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
@@ -153,8 +154,8 @@ export default function OnboardingScreen() {
               { icon: "phone-portrait-outline" as const, text: "Widget on your home screen" },
             ].map(({ icon, text }) => (
               <View key={text} style={styles.hintRow}>
-                <View style={styles.hintIcon}>
-                  <Ionicons name={icon} size={16} color={Colors.interaction.primary} />
+                <View style={[styles.hintIcon, { backgroundColor: colors.interaction.primary + "15" }]}>
+                  <Ionicons name={icon} size={16} color={colors.interaction.primary} />
                 </View>
                 <Text variant="secondary" style={styles.hintText}>{text}</Text>
               </View>
@@ -169,7 +170,6 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -186,7 +186,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.interaction.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.md,
@@ -217,7 +216,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.interaction.primary + "15",
     justifyContent: "center",
     alignItems: "center",
   },

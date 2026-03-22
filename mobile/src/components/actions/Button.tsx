@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
   type ViewStyle,
 } from "react-native";
-import { Colors, Borders, Spacing, Typography, useResponsive } from "../../design";
+import { Borders, Spacing, Typography, useResponsive, useColors } from "../../design";
 import { Text as DesignText } from "../primitives/Text";
 import { hapticAction } from "../../utils/haptics";
 
@@ -48,6 +48,7 @@ export const Button = forwardRef<View, ButtonProps>(
     ref
   ) => {
     const { fs } = useResponsive();
+    const colors = useColors();
     const isDisabled = disabled || loading || variant === "disabled";
 
     const handlePressIn = useCallback(() => {
@@ -63,24 +64,24 @@ export const Button = forwardRef<View, ButtonProps>(
 
     const backgroundColor =
       variant === "primary"
-        ? Colors.interaction.primary
+        ? colors.interaction.primary
         : variant === "secondary"
-          ? Colors.canvas.background
-          : Colors.interaction.disabled;
+          ? colors.canvas.background
+          : colors.interaction.disabled;
 
     const borderColor =
       variant === "secondary"
-        ? Colors.text.secondary
-        : Colors.interaction.disabled;
+        ? colors.text.secondary
+        : colors.interaction.disabled;
 
     const hasBorder = variant !== "primary";
 
     const textColor =
       variant === "primary"
-        ? Colors.text.primary
+        ? colors.text.primary
         : variant === "secondary"
-          ? Colors.text.primary
-          : Colors.text.secondary;
+          ? colors.text.primary
+          : colors.text.secondary;
 
     return (
       <Pressable

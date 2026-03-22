@@ -15,7 +15,7 @@ import { auth } from "../config/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { RootStackParamList } from "../../App";
 import Toast from "react-native-toast-message";
-import { Colors, Spacing, Typography, useResponsive } from "../design";
+import { Colors, Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
@@ -24,6 +24,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "EmailVerification">;
 export default function EmailVerificationScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
+  const colors = useColors();
   const { checkEmailVerification, logout, authError } = useAuth();
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -149,19 +150,19 @@ export default function EmailVerificationScreen({ route }: Props) {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
       {/* Back button */}
       <TouchableOpacity
         style={[styles.backButton, { paddingHorizontal: horizontalPadding }]}
         onPress={handleGoBack}
       >
-        <Ionicons name="arrow-back" size={22} color={Colors.text.primary} />
+        <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
         <Text variant="secondary" style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
 
       <View style={[styles.content, { paddingHorizontal: horizontalPadding }]}>
         {/* Icon */}
-        <View style={styles.iconCircle}>
+        <View style={[styles.iconCircle, { backgroundColor: colors.interaction.primary }]}>
           <Ionicons name="mail-outline" size={fs(32)} color="#FFFFFF" />
         </View>
 
@@ -170,15 +171,15 @@ export default function EmailVerificationScreen({ route }: Props) {
         </Text>
 
         {authError && (
-          <Text style={styles.authErrorText}>{authError}</Text>
+          <Text style={[styles.authErrorText, { color: colors.interaction.error }]}>{authError}</Text>
         )}
 
         <Text variant="secondary" style={styles.subtitle}>
           We sent a verification link to your email. Tap it to confirm your account.
         </Text>
 
-        <View style={styles.tipBox}>
-          <Ionicons name="information-circle-outline" size={16} color={Colors.text.secondary} />
+        <View style={[styles.tipBox, { backgroundColor: colors.canvas.card }]}>
+          <Ionicons name="information-circle-outline" size={16} color={colors.text.secondary} />
           <Text variant="secondary" style={styles.tipText}>
             Can't find it? Check your spam folder.
           </Text>
@@ -186,7 +187,7 @@ export default function EmailVerificationScreen({ route }: Props) {
 
         {verifying ? (
           <View style={styles.verifyingContainer}>
-            <ActivityIndicator size="small" color={Colors.interaction.primary} />
+            <ActivityIndicator size="small" color={colors.interaction.primary} />
             <Text variant="secondary" style={styles.verifyingText}>Checking verification…</Text>
           </View>
         ) : (
@@ -218,7 +219,6 @@ export default function EmailVerificationScreen({ route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas.background,
   },
   backButton: {
     flexDirection: "row",
@@ -238,7 +238,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.interaction.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.lg,
@@ -251,7 +250,6 @@ const styles = StyleSheet.create({
   authErrorText: {
     fontSize: 14,
     fontFamily: Typography.fontFamily.semiBold,
-    color: Colors.interaction.error,
     textAlign: "center",
     marginBottom: Spacing.md,
   },
@@ -265,7 +263,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
-    backgroundColor: "#F9FAFB",
     borderRadius: 8,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,

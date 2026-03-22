@@ -3,13 +3,14 @@ import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
-import { Colors, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
+import { Colors, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
 export default function NoInternetScreen() {
   const insets = useSafeAreaInsets();
   const { fs } = useResponsive();
+  const colors = useColors();
   const { refreshUser } = useAuth();
   const [retrying, setRetrying] = useState(false);
 
@@ -23,10 +24,10 @@ export default function NoInternetScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: SAFE_AREA_BOTTOM + insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: SAFE_AREA_BOTTOM + insets.bottom, backgroundColor: colors.canvas.background }]}>
       <View style={styles.content}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="cloud-offline-outline" size={fs(32)} color={Colors.text.secondary} />
+        <View style={[styles.iconCircle, { backgroundColor: colors.canvas.subtle }]}>
+          <Ionicons name="cloud-offline-outline" size={fs(32)} color={colors.text.secondary} />
         </View>
         <Text variant="primary" style={[styles.title, { fontSize: fs(22) }]}>
           No Internet Connection
@@ -51,7 +52,6 @@ export default function NoInternetScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas.background,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: Spacing.lg,
@@ -65,7 +65,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.lg,

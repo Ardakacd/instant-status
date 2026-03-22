@@ -13,7 +13,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { ErrorBanner } from "../components/ErrorBanner";
 import Toast from "react-native-toast-message";
-import { Colors, Borders, Spacing, Typography, useResponsive } from "../design";
+import { Colors, Borders, Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
@@ -25,6 +25,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "SignUp">;
 export default function SignUpScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
+  const colors = useColors();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [emailError, setEmailError] = React.useState("");
@@ -128,7 +129,7 @@ export default function SignUpScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -140,7 +141,7 @@ export default function SignUpScreen({ navigation }: Props) {
       >
         <Section spacing="md" style={styles.content}>
           <View style={styles.header}>
-            <View style={styles.logoCircle}>
+            <View style={[styles.logoCircle, { backgroundColor: colors.interaction.primary }]}>
               <Ionicons name="radio-outline" size={28} color="#FFFFFF" />
             </View>
             <Text
@@ -155,7 +156,7 @@ export default function SignUpScreen({ navigation }: Props) {
           </View>
 
           {authError && (
-            <Text variant="hint" style={styles.authErrorText}>
+            <Text variant="hint" style={[styles.authErrorText, { color: colors.interaction.error }]}>
               {authError}
             </Text>
           )}
@@ -205,9 +206,9 @@ export default function SignUpScreen({ navigation }: Props) {
           </Section>
 
           <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: colors.text.secondary }]} />
+            <Text style={[styles.dividerText, { color: colors.text.secondary }]}>OR</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.text.secondary }]} />
           </View>
 
           {/* Google */}
@@ -216,6 +217,7 @@ export default function SignUpScreen({ navigation }: Props) {
             disabled={googleLoading || loading || appleLoading}
             style={({ pressed }) => [
               styles.socialButton,
+              { backgroundColor: colors.canvas.card },
               pressed && styles.socialButtonPressed,
             ]}
           >
@@ -276,7 +278,6 @@ export default function SignUpScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.canvas.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -294,7 +295,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.interaction.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.md,
@@ -313,7 +313,6 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.xs,
   },
   authErrorText: {
-    color: Colors.interaction.error,
     fontFamily: Typography.fontFamily.semiBold,
     fontSize: 14,
     textAlign: "center",
@@ -327,14 +326,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.text.secondary,
     opacity: 0.4,
   },
   dividerText: {
     marginHorizontal: Spacing.md,
     fontSize: 12,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.text.secondary,
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
@@ -342,7 +339,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F9FAFB",
     borderRadius: Borders.radius.medium,
     height: 52,
     paddingHorizontal: Spacing.lg,

@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive } from "../design";
+import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive, useColors } from "../design";
 import { Text } from "./primitives/Text";
 import { Button } from "./actions/Button";
 
@@ -24,6 +24,7 @@ export function NotificationPermissionModal({
 }: NotificationPermissionModalProps) {
   const insets = useSafeAreaInsets();
   const { fs } = useResponsive();
+  const colors = useColors();
   const [loading, setLoading] = useState(false);
 
   const handleEnable = async () => {
@@ -43,7 +44,7 @@ export function NotificationPermissionModal({
       onRequestClose={onNotNow}
     >
       <View style={[styles.overlay, { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom }]}>
-        <View style={styles.content}>
+        <View style={[styles.content, { backgroundColor: colors.canvas.background }]}>
           <View style={styles.iconCircle}>
             <Ionicons
               name="notifications-outline"
@@ -63,24 +64,24 @@ export function NotificationPermissionModal({
 
           <View style={styles.bullets}>
             <View style={styles.bulletRow}>
-              <View style={styles.bulletIconCircle}>
-                <Ionicons name="sync-outline" size={16} color={Colors.interaction.primary} />
+              <View style={[styles.bulletIconCircle, { backgroundColor: colors.tint.mint }]}>
+                <Ionicons name="sync-outline" size={16} color={colors.interaction.primary} />
               </View>
               <Text variant="secondary" style={[styles.bulletText, { fontSize: fs(15) }]}>
                 Real-time widget updates
               </Text>
             </View>
             <View style={styles.bulletRow}>
-              <View style={styles.bulletIconCircle}>
-                <Ionicons name="phone-portrait-outline" size={16} color={Colors.interaction.primary} />
+              <View style={[styles.bulletIconCircle, { backgroundColor: colors.tint.mint }]}>
+                <Ionicons name="phone-portrait-outline" size={16} color={colors.interaction.primary} />
               </View>
               <Text variant="secondary" style={[styles.bulletText, { fontSize: fs(15) }]}>
                 Live status sync
               </Text>
             </View>
             <View style={styles.bulletRow}>
-              <View style={styles.bulletIconCircle}>
-                <Ionicons name="flash-outline" size={16} color={Colors.interaction.primary} />
+              <View style={[styles.bulletIconCircle, { backgroundColor: colors.tint.mint }]}>
+                <Ionicons name="flash-outline" size={16} color={colors.interaction.primary} />
               </View>
               <Text variant="secondary" style={[styles.bulletText, { fontSize: fs(15) }]}>
                 Faster refresh
@@ -123,7 +124,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   content: {
-    backgroundColor: Colors.canvas.background,
     borderRadius: Borders.radius.large,
     padding: Spacing.xl,
     shadowColor: "#000",
@@ -166,7 +166,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#ECFDF5",
     alignItems: "center",
     justifyContent: "center",
     marginRight: Spacing.sm,
