@@ -12,16 +12,18 @@ private extension Color {
 }
 
 // MARK: - Explicit content colors for legibility on custom backgrounds
-private func contentColors(for style: String, systemScheme: ColorScheme, renderingMode: WidgetRenderingMode) -> (primary: Color, secondary: Color) {
-    if renderingMode == .accented { return (.primary, .secondary) }
+private func contentColors(for style: String, systemScheme: ColorScheme, renderingMode: WidgetRenderingMode) -> (primary: Color, secondary: Color, expiry: Color) {
+    if renderingMode == .accented { return (.primary, .secondary, .orange) }
 
     let primary: Color
     switch style {
-    case "contrast":
-        primary = systemScheme == .dark ? .black : .white
+    case "ocean":
+        primary = .white
     case "softclay":
         primary = Color(hex: "#333333")
-    case "glass", "default":
+    case "aurora":
+        primary = Color(hex: "#1F2937") // fixed dark — aurora is always a light background
+    case "default":
         primary = .primary
     case "plum", "deepspace", "dark", "gradient", "mermaid", "sunset":
         primary = .white
@@ -30,7 +32,25 @@ private func contentColors(for style: String, systemScheme: ColorScheme, renderi
     }
     // 0.85 for dark backgrounds (better legibility on OLED); 0.75 for light
     let secondaryOpacity = ["plum", "deepspace", "dark", "gradient", "mermaid", "sunset"].contains(style) ? 0.85 : 0.75
-    return (primary, primary.opacity(secondaryOpacity))
+
+    // Expiry color chosen to be legible against each specific background.
+    let expiry: Color
+    switch style {
+    case "sunset":
+        expiry = .white               // Golden Hour is orange-toned — orange would vanish
+    case "gradient", "mermaid", "ocean", "plum":
+        expiry = Color(hex: "#FFD60A") // yellow — readable on dark/vibrant backgrounds
+    case "aurora":
+        expiry = Color(hex: "#4338CA") // deep indigo — readable on light pink/lavender
+    case "softclay":
+        expiry = Color(hex: "#0369A1") // sky blue — clearly distinct on warm cream
+    case "deepspace":
+        expiry = Color(hex: "#67E8F9") // cyan-300 — bright and visible on near-black
+    default:
+        expiry = .orange
+    }
+
+    return (primary, primary.opacity(secondaryOpacity), expiry)
 }
 
 // MARK: - WidgetFamily helpers
@@ -47,8 +67,8 @@ private extension WidgetFamily {
 private func widgetBackgroundStyle(from raw: String) -> String {
     switch raw {
     case "Mint-Violet": return "gradient"
-    case "Contrast": return "contrast"
-    case "Liquid Glass": return "glass"
+    case "Aurora": return "aurora"
+    case "Ocean": return "ocean"
     case "Plum Noir": return "plum"
     case "Mermaidcore": return "mermaid"
     case "Golden Hour": return "sunset"
@@ -70,30 +90,29 @@ struct WidgetBackgroundView: View {
                 Color.black.opacity(0.8)
             } else {
                 switch style {
-                case "glass":
-                    ZStack {
-                        Color.clear.background(.ultraThinMaterial)
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.18), Color.clear],
-                            startPoint: .topLeading,
-                            endPoint: .center
-                        )
-                    }
-                case "plum":
-                    Color(hex: "#2B1538")
-                case "mermaid":
+                case "aurora":
                     LinearGradient(
-                        colors: [Color(hex: "#7ED4AD"), Color(hex: "#A78BFA"), Color(hex: "#70D6FF")],
+                        colors: [Color(hex: "#C7D2FE"), Color(hex: "#F9A8D4")],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
+                case "ocean":
+                    LinearGradient(
+                        colors: [Color(hex: "#0EA5E9"), Color(hex: "#06B6D4")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                case "plum":
+                    Color(hex: "#2B1538")
+                case "mermaid":
+                    Color(hex: "#0E7490")
                 case "sunset":
                     LinearGradient(
-                        colors: [Color(hex: "#FF5F6D"), Color(hex: "#FFC371")],
+                        colors: [Color(hex: "#E11D48"), Color(hex: "#EA580C")],
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                case "dark", "contrast":
+                case "dark":
                     Color.adaptiveContrast
                 case "deepspace":
                     Color(hex: "#101417")
@@ -101,7 +120,7 @@ struct WidgetBackgroundView: View {
                     Color(hex: "#F4EBD2")
                 case "gradient":
                     LinearGradient(
-                        colors: [Color(hex: "#10B981"), Color(hex: "#A78BFA")],
+                        colors: [Color(hex: "#047857"), Color(hex: "#5B21B6")],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -226,12 +245,12 @@ struct Provider: AppIntentTimelineProvider {
             filteredFriends = Array(allFriends)
         }
 
-        // Business logic: cap by family + premium (Provider owns limits; View only renders)
+        // Cap only by what each widget size can visually fit; app controls the friend list.
         let maxFriends: Int
         switch family {
         case .systemSmall: maxFriends = 4
         case .systemMedium: maxFriends = 8
-        case .systemLarge: maxFriends = isPremium ? 24 : 8
+        case .systemLarge: maxFriends = 24
         case .accessoryCircular, .accessoryInline, .accessoryRectangular:
             maxFriends = 16 // Pass enough to compute available/busy summary counts
         default: maxFriends = 16
@@ -394,7 +413,7 @@ struct HomeScreenWidgetView: View {
         }
     }
 
-    @ViewBuilder private func emptyState(colors: (primary: Color, secondary: Color)) -> some View {
+    @ViewBuilder private func emptyState(colors: (primary: Color, secondary: Color, expiry: Color)) -> some View {
         VStack(spacing: 4) {
             Spacer()
             if entry.hasAnyFriends {
@@ -410,7 +429,7 @@ struct HomeScreenWidgetView: View {
         .padding()
     }
 
-    @ViewBuilder private func homeContent(colors: (primary: Color, secondary: Color)) -> some View {
+    @ViewBuilder private func homeContent(colors: (primary: Color, secondary: Color, expiry: Color)) -> some View {
         switch family {
         case .systemSmall:
             VStack(alignment: .leading, spacing: 6) {
@@ -421,7 +440,7 @@ struct HomeScreenWidgetView: View {
         case .systemLarge:
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), spacing: 2) {
                 ForEach(entry.friends) { friend in
-                    largeGridCell(friend, primaryColor: colors.primary, secondaryColor: colors.secondary)
+                    largeGridCell(friend, primaryColor: colors.primary, secondaryColor: colors.secondary, expiryColor: colors.expiry)
                 }
             }
             .padding(.horizontal, 3)
@@ -429,14 +448,14 @@ struct HomeScreenWidgetView: View {
         default:
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 0) {
                 ForEach(entry.friends.prefix(8)) { friend in
-                    mediumDetailedRow(friend, primaryColor: colors.primary, secondaryColor: colors.secondary)
+                    mediumDetailedRow(friend, primaryColor: colors.primary, secondaryColor: colors.secondary, expiryColor: colors.expiry)
                 }
             }
             .modifier(HomeScreenWidgetView.TrailingPaddingModifier())
         }
     }
 
-    @ViewBuilder private func largeGridCell(_ friend: FriendStatusWidgetItem, primaryColor: Color, secondaryColor: Color) -> some View {
+    @ViewBuilder private func largeGridCell(_ friend: FriendStatusWidgetItem, primaryColor: Color, secondaryColor: Color, expiryColor: Color) -> some View {
         let isExpired = friend.isExpired
         let optionLabel = friend.effectiveOptionLabel
         let optionEmoji = friend.effectiveOptionEmoji
@@ -468,7 +487,7 @@ struct HomeScreenWidgetView: View {
             if let text = expiryText {
                 Text(text)
                     .font(.system(size: 7, weight: .medium, design: .rounded))
-                    .foregroundColor(.orange)
+                    .foregroundColor(expiryColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.65)
             }
@@ -506,7 +525,7 @@ struct HomeScreenWidgetView: View {
         .animation(.easeInOut, value: isExpired)
     }
 
-    @ViewBuilder private func mediumDetailedRow(_ friend: FriendStatusWidgetItem, primaryColor: Color, secondaryColor: Color) -> some View {
+    @ViewBuilder private func mediumDetailedRow(_ friend: FriendStatusWidgetItem, primaryColor: Color, secondaryColor: Color, expiryColor: Color) -> some View {
         let isExpired = friend.isExpired
         let optionLabel = friend.effectiveOptionLabel
         let optionEmoji = friend.effectiveOptionEmoji
@@ -540,7 +559,7 @@ struct HomeScreenWidgetView: View {
                         Spacer(minLength: 2)
                         Text(text)
                             .font(.system(size: 8, weight: .medium, design: .rounded))
-                            .foregroundColor(.orange)
+                            .foregroundColor(expiryColor)
                             .lineLimit(1)
                             .minimumScaleFactor(0.72)
                             .multilineTextAlignment(.trailing)
@@ -659,7 +678,7 @@ let mockStatuses: [FriendStatusWidgetItem] = makeMockStatuses()
         date: .now,
         configuration: {
             var config = ConfigurationAppIntent()
-            config.backgroundStyle = "Liquid Glass"
+            config.backgroundStyle = "Aurora"
             return config
         }(),
         friends: [

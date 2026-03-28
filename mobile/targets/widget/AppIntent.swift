@@ -97,7 +97,7 @@ struct WidgetBackgroundOptionsProvider: DynamicOptionsProvider {
     func results() async throws -> [String] {
         let isPremium = FriendDataService.shared.fetchIsPremium()
         if isPremium {
-            return ["Default", "Mint-Violet", "Contrast", "Liquid Glass", "Plum Noir", "Mermaidcore", "Golden Hour", "Deep Space", "Soft Clay"]
+            return ["Default", "Mint-Violet", "Aurora", "Ocean", "Plum Noir", "Mermaidcore", "Golden Hour", "Deep Space", "Soft Clay"]
         }
         return ["Default"]
     }
