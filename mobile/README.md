@@ -10,7 +10,9 @@ React Native + Expo mobile app for Instant Status.
 npm install
 ```
 
-2. Configure environment variables:
+2. **App logo:** put your square `logo.png` in `assets/`, then run `npm run generate:logo-assets` to build adaptive icons, notification icon, web/PWA icons, Firebase `public/` favicons, and iOS widget icons. See `assets/README.md`.
+
+3. Configure environment variables:
    Create a `.env` file in the mobile directory:
 
 ```
@@ -27,7 +29,7 @@ EXPO_PUBLIC_RC_ANDROID_KEY=goog_xxxxx
 
    For Firebase Hosting (verify, reset-password pages): Run `node scripts/generate-firebase-config.js` before deploying. This creates `public/firebase-config.js` from your .env (the file is gitignored).
 
-3. Set up Firebase:
+4. Set up Firebase:
 
    - Create a Firebase project
    - Enable Phone Authentication
@@ -35,7 +37,7 @@ EXPO_PUBLIC_RC_ANDROID_KEY=goog_xxxxx
    - Add your iOS/Android apps to Firebase
    - Download `google-services.json` (Android) and `GoogleService-Info.plist` (iOS)
 
-4. Run the app:
+5. Run the app:
 
 ```bash
 npm start

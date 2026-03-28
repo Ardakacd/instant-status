@@ -5,13 +5,13 @@
     "scheme": "instant-status",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#10B981"
     },
     "ios": {
       "supportsTablet": true,
@@ -41,7 +41,7 @@
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#10B981"
       },
       "notification": {
         "icon": "assets/notification-icon.png",
@@ -79,7 +79,12 @@
             "DEFAULT"
           ]
         }
-      ]
+      ],
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#10B981"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.ico",
@@ -89,8 +94,8 @@
       "shortName": "Instant Status",
       "lang": "en",
       "scope": "/",
-      "themeColor": "#ffffff",
-      "backgroundColor": "#ffffff",
+      "themeColor": "#10B981",
+      "backgroundColor": "#10B981",
       "display": "standalone",
       "orientation": "portrait",
       "startUrl": "/",
@@ -110,6 +115,26 @@
       ]
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#10B981",
+          "image": "./assets/splash.png",
+          "imageWidth": 300,
+          "resizeMode": "cover",
+          "android": {
+            "backgroundColor": "#10B981",
+            "image": "./assets/splash.png",
+            "imageWidth": 300,
+            "resizeMode": "cover"
+          },
+          "ios": {
+            "backgroundColor": "#10B981",
+            "image": "./assets/splash.png",
+            "resizeMode": "cover"
+          }
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-web-browser",
       [
