@@ -304,7 +304,7 @@ export default function LoginScreen({ navigation }: Props) {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
-          <View style={[styles.modalContent, { paddingBottom: SAFE_AREA_BOTTOM, backgroundColor: colors.canvas.background }]}>
+          <View style={[styles.modalContent, { paddingBottom: SAFE_AREA_BOTTOM + insets.bottom, backgroundColor: colors.canvas.background }]}>
             <View style={styles.modalHeader}>
               <Text variant="primary" style={styles.modalTitle}>Reset Password</Text>
               <TouchableOpacity
