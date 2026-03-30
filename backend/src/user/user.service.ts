@@ -150,11 +150,16 @@ export class UserService {
   /**
    * Smart update for premium status.
    * Handles out-of-order webhooks and protects Lifetime status.
+   *
+   * @param forceUpdate When true, bypasses the newDate > existingDate guard for
+   *   extension events. Use for PRODUCT_CHANGE where a downgrade intentionally
+   *   moves premium_until earlier. Lifetime protection always applies.
    */
   async updatePremiumExpiration(
     id: string,
     premiumUntil: Date | null,
     revenuecatId?: string | null,
+    forceUpdate = false,
   ): Promise<User> {
     const user = await this.findById(id);
 
@@ -172,12 +177,20 @@ export class UserService {
     // 1. EXTENSION / PURCHASE EVENTS (newDate is a Date)
     // ===============================
     if (newDate !== null) {
-      // Only update if we don't have a date yet, OR the new date is further in the future
-      if (!existingDate || newDate > existingDate) {
+      // forceUpdate (PRODUCT_CHANGE): always apply; out-of-order guard skipped
+      // because a plan change is an explicit user action, not a delayed webhook.
+      // Normal path: only advance premium_until, never shrink it.
+      const isLifetime =
+        existingDate &&
+        existingDate.getTime() === LIFETIME_PREMIUM_UNTIL.getTime();
+
+      if (isLifetime) {
+        this.logger.warn(`Blocked attempt to change premium_until on Lifetime user ${id}`);
+      } else if (forceUpdate || !existingDate || newDate > existingDate) {
         user.premium_until = newDate;
         shouldSave = true;
         this.logger.log(
-          `Extended premium for user ${id} to ${newDate.toISOString()}`,
+          `${forceUpdate ? "Force-updated" : "Extended"} premium for user ${id} to ${newDate.toISOString()}`,
         );
       } else {
         this.logger.debug(
@@ -242,6 +255,13 @@ export class UserService {
     const byFirebaseUid = await this.userRepository.findOne({
       where: { firebase_uid: identifier },
     });
+    if (byFirebaseUid) {
+      // Resolved via firebase_uid — revenuecat_id not yet linked.
+      // updatePremiumExpiration will link it on this call.
+      this.logger.debug(
+        `Resolved RC identifier ${redactUid(identifier)} via firebase_uid (revenuecat_id not yet set)`
+      );
+    }
     return byFirebaseUid ?? null;
   }
 
@@ -253,6 +273,7 @@ export class UserService {
   async updatePremiumExpirationByRevenueCatId(
     identifier: string,
     premiumUntil: Date | null,
+    forceUpdate = false,
   ): Promise<User | null> {
     const user = await this.findUserByRevenueCatIdentifier(identifier);
 
@@ -261,7 +282,7 @@ export class UserService {
       return null;
     }
 
-    return this.updatePremiumExpiration(user.id, premiumUntil, identifier);
+    return this.updatePremiumExpiration(user.id, premiumUntil, identifier, forceUpdate);
   }
 
   async delete(id: string): Promise<void> {

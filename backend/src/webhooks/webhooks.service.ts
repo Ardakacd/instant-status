@@ -120,24 +120,22 @@ export class WebhooksService implements OnModuleInit {
     const isPremiumEntitlement =
       entitlement_ids?.includes("Instant Status Premium") ?? false;
 
-    if (!isPremiumEntitlement && entitlement_ids && entitlement_ids.length > 0) {
-      this.logger.debug(
-        `Ignoring webhook for non-premium entitlement: ${entitlement_ids.join(", ")}`
-      );
-      return;
-    }
-
     const premiumUntil = expiration_at_ms
       ? new Date(expiration_at_ms)
       : LIFETIME_PREMIUM_UNTIL;
 
     try {
-      switch (type) {
+      if (!isPremiumEntitlement && entitlement_ids && entitlement_ids.length > 0) {
+        this.logger.debug(
+          `Ignoring webhook for non-premium entitlement: ${entitlement_ids.join(", ")}`
+        );
+        // fall through to the completed update below
+      } else switch (type) {
         case "INITIAL_PURCHASE":
         case "RENEWAL":
-        case "PRODUCT_CHANGE": // User changed plan tier
         case "UNCANCELLATION":
-        case "NON_RENEWING_PURCHASE": {
+        case "NON_RENEWING_PURCHASE":
+        case "SUBSCRIPTION_EXTENDED": {
           const identifier = await this.resolveUserIdentifier(event.event);
           if (!identifier) {
             this.logger.warn(`No user found for ${type} (app_user_id: ${redactUid(app_user_id)})`);
@@ -149,6 +147,25 @@ export class WebhooksService implements OnModuleInit {
           );
           this.logger.log(
             `Updated user ${redactUid(identifier)} premium_until: ${premiumUntil === LIFETIME_PREMIUM_UNTIL ? "lifetime" : premiumUntil.toISOString()}`
+          );
+          break;
+        }
+
+        case "PRODUCT_CHANGE": {
+          // Plan change may move premium_until earlier (downgrade) or later (upgrade).
+          // forceUpdate bypasses the newDate > existingDate guard so downgrades apply.
+          const identifier = await this.resolveUserIdentifier(event.event);
+          if (!identifier) {
+            this.logger.warn(`No user found for PRODUCT_CHANGE (app_user_id: ${redactUid(app_user_id)})`);
+            break;
+          }
+          await this.userService.updatePremiumExpirationByRevenueCatId(
+            identifier,
+            premiumUntil,
+            true // forceUpdate
+          );
+          this.logger.log(
+            `PRODUCT_CHANGE: updated user ${redactUid(identifier)} premium_until: ${premiumUntil === LIFETIME_PREMIUM_UNTIL ? "lifetime" : premiumUntil.toISOString()}`
           );
           break;
         }
@@ -165,7 +182,10 @@ export class WebhooksService implements OnModuleInit {
         }
 
         case "CANCELLATION": {
-          if (expiration_at_ms == null) break;
+          if (expiration_at_ms == null) {
+            this.logger.warn(`CANCELLATION for ${redactUid(app_user_id)} has no expiration_at_ms — no change made`);
+            break;
+          }
           const identifier = await this.resolveUserIdentifier(event.event);
           if (!identifier) break;
           await this.userService.updatePremiumExpirationByRevenueCatId(
@@ -186,9 +206,8 @@ export class WebhooksService implements OnModuleInit {
           break;
 
         case "SUBSCRIPTION_PAUSED":
-        case "SUBSCRIPTION_EXTENDED":
           this.logger.log(
-            `[${environment ?? "unknown"}] User ${redactUid(app_user_id ?? "?")} ${type}. No premium change needed.`
+            `[${environment ?? "unknown"}] User ${redactUid(app_user_id ?? "?")} SUBSCRIPTION_PAUSED. No premium change needed.`
           );
           break;
 
