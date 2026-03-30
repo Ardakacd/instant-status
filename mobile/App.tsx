@@ -307,32 +307,22 @@ function AppNavigator() {
       try {
         // 1. On iOS, request permission automatically on first launch (only once)
         // On Android, only register token if permission already granted (to avoid permission loop)
-        if (Platform.OS === "ios") {
-          const PERMISSION_ASKED_KEY = "notification_permission_asked_ios";
-          const hasAskedBefore = await AsyncStorage.getItem(PERMISSION_ASKED_KEY);
-          const hasPerm = await messagingService.hasPermission();
+        const PERMISSION_ASKED_KEY =
+          Platform.OS === "ios"
+            ? "notification_permission_asked_ios"
+            : "notification_permission_asked_android";
+        const hasAskedBefore = await AsyncStorage.getItem(PERMISSION_ASKED_KEY);
+        const hasPerm = await messagingService.hasPermission();
 
-          if (!hasAskedBefore && !hasPerm && isMounted) {
-            // First time, no permission yet - show pre-permission screen before system dialog
-            setShowNotificationModal(true);
-          } else if (isMounted) {
-            // Already asked or already granted - register token if granted
-            if (hasPerm && isMounted) {
-              const token = await messagingService.getToken();
-              if (token && user && isMounted) {
-                await deviceTokenService.registerToken(token);
-              }
-            }
-          }
-        } else if (isMounted) {
-          // Android: Only register token if permission already granted
-          // Don't automatically request - let user control via ProfileScreen toggle
-          const hasPerm = await messagingService.hasPermission();
-          if (hasPerm && isMounted) {
-            const token = await messagingService.getToken();
-            if (token && user && isMounted) {
-              await deviceTokenService.registerToken(token);
-            }
+        if (!hasAskedBefore && !hasPerm && isMounted) {
+          // First launch with no permission — show pre-permission modal on both platforms.
+          // iOS: system dialog is one-shot, so we gate it behind our modal.
+          // Android 13+: POST_NOTIFICATIONS requires explicit request; same modal flow applies.
+          setShowNotificationModal(true);
+        } else if (hasPerm && isMounted) {
+          const token = await messagingService.getToken();
+          if (token && user && isMounted) {
+            await deviceTokenService.registerToken(token);
           }
         }
 
@@ -411,8 +401,12 @@ function AppNavigator() {
   }
 
   const handleNotificationModalEnable = async () => {
+    const PERMISSION_ASKED_KEY =
+      Platform.OS === "ios"
+        ? "notification_permission_asked_ios"
+        : "notification_permission_asked_android";
     const granted = await messagingService.requestPermission();
-    await AsyncStorage.setItem("notification_permission_asked_ios", "true");
+    await AsyncStorage.setItem(PERMISSION_ASKED_KEY, "true");
     setShowNotificationModal(false);
     if (granted && user?.id) {
       const token = await messagingService.getToken();
@@ -435,7 +429,11 @@ function AppNavigator() {
   };
 
   const handleNotificationModalNotNow = async () => {
-    await AsyncStorage.setItem("notification_permission_asked_ios", "true");
+    const PERMISSION_ASKED_KEY =
+      Platform.OS === "ios"
+        ? "notification_permission_asked_ios"
+        : "notification_permission_asked_android";
+    await AsyncStorage.setItem(PERMISSION_ASKED_KEY, "true");
     setShowNotificationModal(false);
   };
 
@@ -574,25 +572,20 @@ function App() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Keep splash screen visible while we load fonts
-        await SplashScreen.preventAutoHideAsync();
-
-        // Load Inter font weights
-        // Note: The key becomes the fontFamily name used in styles
         const fontMap = {
           "Inter-Regular": require("./assets/fonts/Inter-Regular.ttf"),
           "Inter-Medium": require("./assets/fonts/Inter-Medium.ttf"),
           "Inter-SemiBold": require("./assets/fonts/Inter-SemiBold.ttf"),
         };
-
         await Font.loadAsync(fontMap);
-
-        setAppIsReady(true);
       } catch {
         // Continue even if font loading fails (fallback to system font)
-        setAppIsReady(true);
       } finally {
-        await SplashScreen.hideAsync();
+        try {
+          await SplashScreen.hideAsync();
+        } finally {
+          setAppIsReady(true);
+        }
       }
     }
     prepare();
