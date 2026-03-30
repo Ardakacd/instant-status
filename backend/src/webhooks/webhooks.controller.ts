@@ -59,16 +59,9 @@ export class WebhooksController {
       throw new UnauthorizedException("Invalid webhook authorization");
     }
 
+    let event: RevenueCatWebhookEvent;
     try {
-      const event = RevenueCatWebhookSchema.parse(body);
-      
-      this.logger.log(
-        `Received RevenueCat webhook: ${event.event.type} for app_user_id: ${event.event.app_user_id ?? (event.event.type === "TRANSFER" ? "transfer" : "unknown")}`
-      );
-
-      await this.webhooksService.handleRevenueCatEvent(event);
-
-      return { received: true };
+      event = RevenueCatWebhookSchema.parse(body);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const details = error.errors.map((e: { path: (string | number)[]; message: string }) => ({
@@ -81,16 +74,18 @@ export class WebhooksController {
         });
         throw new BadRequestException("Invalid webhook payload");
       }
-      
-      this.logger.error(
-        `Error processing RevenueCat webhook: ${error.message}`,
-        error.stack
-      );
-      
-      // Return 200 to prevent RevenueCat from retrying
-      // Log the error for investigation
-      return { received: true, error: "Processing failed" };
+      throw error;
     }
+
+    this.logger.log(
+      `Received RevenueCat webhook: ${event.event.type} for app_user_id: ${event.event.app_user_id ?? (event.event.type === "TRANSFER" ? "transfer" : "unknown")}`
+    );
+
+    // Processing errors propagate as 5xx so RevenueCat retries.
+    // The service unclaims the event_id row before re-throwing.
+    await this.webhooksService.handleRevenueCatEvent(event);
+
+    return { received: true };
   }
 }
 

@@ -1,15 +1,15 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, OnModuleInit } from "@nestjs/common";
 import { StructuredLogger } from "../common/logger/structured-logger";
 import { redactUid } from "../utils/redact";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { LessThan, Repository } from "typeorm";
 import { UserService } from "../user/user.service";
 import { ProcessedWebhook } from "../entities/processed-webhook.entity";
 import { RevenueCatWebhookEvent } from "./webhooks.controller";
 import { LIFETIME_PREMIUM_UNTIL } from "../utils/premium";
 
 @Injectable()
-export class WebhooksService {
+export class WebhooksService implements OnModuleInit {
   private readonly logger = new StructuredLogger(WebhooksService.name);
 
   constructor(
@@ -17,6 +17,24 @@ export class WebhooksService {
     @InjectRepository(ProcessedWebhook)
     private processedWebhookRepo: Repository<ProcessedWebhook>,
   ) {}
+
+  /**
+   * On startup, delete any rows stuck in 'processing' for more than 5 minutes.
+   * These were claimed by a process that crashed before completing or unclaiming,
+   * so RevenueCat will retry them and they must not be blocked by a stale row.
+   */
+  async onModuleInit() {
+    const staleThreshold = new Date(Date.now() - 5 * 60 * 1000);
+    const deleted = await this.processedWebhookRepo.delete({
+      status: "processing",
+      claimed_at: LessThan(staleThreshold),
+    });
+    if (deleted.affected && deleted.affected > 0) {
+      this.logger.warn(
+        `Startup cleanup: removed ${deleted.affected} stale 'processing' webhook row(s) — RevenueCat will retry them`
+      );
+    }
+  }
 
   /**
    * Resolve user identity from app_user_id, aliases, and original_app_user_id.
@@ -78,12 +96,12 @@ export class WebhooksService {
     }
 
     // 3. ATOMIC IDEMPOTENCY: Claim the event before processing.
-    // Unique constraint prevents double-processing; 23505 = already handled.
+    // Unique constraint prevents double-processing; 23505 = already claimed/completed.
     try {
-      await this.processedWebhookRepo.insert({ event_id: eventId });
+      await this.processedWebhookRepo.insert({ event_id: eventId, status: "processing" });
     } catch (error: any) {
       if (error.code === "23505") {
-        this.logger.debug(`Event ${eventId} already handled. Ignoring.`);
+        this.logger.debug(`Event ${eventId} already claimed or completed. Ignoring.`);
         return;
       }
       this.logger.error(
@@ -178,6 +196,7 @@ export class WebhooksService {
           // Subscription moved from old account(s) to new. Revoke premium from transferor.
           // Transferee will receive RENEWAL/INITIAL_PURCHASE separately.
           const fromIds = transferred_from ?? [];
+          const transferErrors: Error[] = [];
           for (const oldId of fromIds) {
             try {
               const user = await this.userService.findUserByRevenueCatIdentifier(oldId);
@@ -189,17 +208,24 @@ export class WebhooksService {
                 this.logger.log(`Transfer: revoked premium from ${redactUid(oldId)}`);
               }
             } catch (transferError: any) {
-              // Log and continue — partial failure must not block remaining revocations.
-              // The event is already claimed so retries won't re-run this loop.
+              // Collect failures — rethrow after the loop so the outer catch
+              // can unclaim the event and let RevenueCat retry.
+              // Already-revoked IDs are idempotent on retry (premium_until stays null).
               this.logger.error(
                 `Transfer: failed to revoke premium from ${redactUid(oldId)}: ${transferError.message}`,
                 transferError.stack
               );
+              transferErrors.push(transferError);
             }
           }
           this.logger.log(
             `Transfer: from [${fromIds.map(redactUid).join(", ")}] to [${(transferred_to ?? []).map(redactUid).join(", ")}]`
           );
+          if (transferErrors.length > 0) {
+            throw new Error(
+              `Transfer partially failed: ${transferErrors.length}/${fromIds.length} revocation(s) errored`
+            );
+          }
           break;
         }
 
@@ -207,11 +233,25 @@ export class WebhooksService {
           this.logger.debug(`Unhandled webhook type: ${type}`);
           break;
       }
+
+      // Mark as completed — prevents startup cleanup from treating this row as stale
+      await this.processedWebhookRepo.update({ event_id: eventId }, { status: "completed" });
     } catch (error: any) {
       this.logger.error(
         `Webhook processing failed for event ${eventId}: ${error.message}`,
         error.stack
       );
+      // Unclaim the event so RevenueCat can retry on the next attempt.
+      // If the delete itself fails, log critically — the event stays claimed
+      // and will require manual re-processing.
+      try {
+        await this.processedWebhookRepo.delete({ event_id: eventId });
+      } catch (deleteError: any) {
+        this.logger.error(
+          `CRITICAL: failed to unclaim event ${eventId} after processing error — manual re-processing required: ${deleteError.message}`,
+          deleteError.stack
+        );
+      }
       throw error;
     }
   }
