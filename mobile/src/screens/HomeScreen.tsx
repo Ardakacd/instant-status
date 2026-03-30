@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   TouchableOpacity,
@@ -11,7 +11,7 @@ import {
   Animated,
   Alert,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Status, StatusOption, Connection } from "../types";
@@ -30,7 +30,10 @@ import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
 export default function HomeScreen() {
-  const { horizontalPadding, fs } = useResponsive();
+  const { width: screenWidth, horizontalPadding, fs } = useResponsive();
+  const availableStatusWidth = screenWidth - horizontalPadding * 2 - Spacing.md * 2;
+  const statusCols = Math.min(2, Math.max(1, Math.floor((availableStatusWidth + Spacing.md) / (140 + Spacing.md))));
+  const statusButtonWidth = (availableStatusWidth - Spacing.md * (statusCols - 1)) / statusCols;
   const colors = useColors();
   const navigation = useNavigation();
   const route = useRoute();
@@ -119,6 +122,14 @@ export default function HomeScreen() {
       Sentry.captureException(error);
     }
   };
+
+  // Reload status options whenever this screen comes back into focus
+  // so changes made in ManageStatusScreen are reflected immediately.
+  useFocusEffect(
+    useCallback(() => {
+      loadStatusOptions();
+    }, [])
+  );
 
   // Handle navigation params to open friend detail modal
   useEffect(() => {
@@ -471,7 +482,7 @@ export default function HomeScreen() {
                   key={option.id}
                   style={[
                     styles.statusButton,
-                    { height: fs(100), backgroundColor: colors.canvas.subtle },
+                    { width: statusButtonWidth, height: fs(100), backgroundColor: colors.canvas.subtle },
                     isActive && styles.statusButtonActive,
                     isActive && { backgroundColor: option.color, borderColor: colors.canvas.background },
                   ]}
@@ -481,6 +492,7 @@ export default function HomeScreen() {
                 >
                   <Text style={[styles.statusIcon, { fontSize: fs(22), lineHeight: fs(26) }]}>{option.emoji}</Text>
                   <Text
+                    numberOfLines={2}
                     style={[
                       styles.statusButtonText,
                       { fontSize: fs(14), color: colors.text.secondary },
@@ -898,13 +910,10 @@ const styles = StyleSheet.create({
   statusButtonsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
     gap: Spacing.md,
   },
   statusButton: {
     height: 100,
-    flexGrow: 1,
-    minWidth: "30%",
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
     alignItems: "center",

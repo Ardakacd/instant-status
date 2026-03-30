@@ -32,7 +32,7 @@ import { MAX_CUSTOM_STATUS_OPTIONS } from "../constants/statusOptions";
 export default function ManageStatusScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { horizontalPadding, fs } = useResponsive();
+  const { width: screenWidth, horizontalPadding, fs } = useResponsive();
   const colors = useColors();
   const { isPremium } = useIsPremium();
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
@@ -272,6 +272,11 @@ export default function ManageStatusScreen() {
 
   const customOptions = statusOptions.filter((opt) => opt.user_id !== null);
 
+  const MIN_CARD_WIDTH = 140;
+  const availableWidth = screenWidth - horizontalPadding * 2;
+  const columns = Math.min(2, Math.max(1, Math.floor((availableWidth + Spacing.md) / (MIN_CARD_WIDTH + Spacing.md))));
+  const cardWidth = (availableWidth - Spacing.md * (columns - 1)) / columns;
+
   if (loading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.canvas.background }]}>
@@ -341,7 +346,7 @@ export default function ManageStatusScreen() {
             {customOptions.map((option) => (
               <TouchableOpacity
                 key={option.id}
-                style={[styles.optionCard, { backgroundColor: colors.canvas.card }]}
+                style={[styles.optionCard, { backgroundColor: colors.canvas.card, width: cardWidth }]}
                 onPress={() => handleEdit(option)}
                 activeOpacity={0.7}
               >
@@ -356,7 +361,7 @@ export default function ManageStatusScreen() {
             ))}
             {customOptions.length < MAX_CUSTOM_STATUS_OPTIONS && (
               <TouchableOpacity
-                style={[styles.addCard, { borderColor: colors.text.secondary + "30" }]}
+                style={[styles.addCard, { borderColor: colors.text.secondary + "30", width: cardWidth }]}
                 onPress={handleCreate}
                 activeOpacity={0.7}
               >
@@ -694,14 +699,12 @@ const styles = StyleSheet.create({
   optionsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
     gap: Spacing.md,
   },
   optionCard: {
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
     alignItems: "center",
-    width: "48%",
     overflow: "hidden",
   },
   optionColorBar: {
@@ -722,7 +725,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   addCard: {
-    width: "48%",
     borderRadius: Borders.radius.medium,
     padding: Spacing.md,
     alignItems: "center",
