@@ -11,6 +11,7 @@ import { UserService } from "../user/user.service";
 import { EmailService } from "../email/email.service";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
 import { redactEmail, redactUid } from "../utils/redact";
+import { computePremiumGraceFlags, isUserPremium } from "../utils/premium";
 
 @Injectable()
 export class AuthService {
@@ -86,7 +87,7 @@ export class AuthService {
    * Eliminates race conditions from separate verify + getMe + checkEmailVerification calls.
    */
   async syncAuthState(idToken: string): Promise<{
-    user: { id: string; firebase_uid: string; email: string | null; first_name: string | null; last_name: string | null };
+    user: { id: string; firebase_uid: string; email: string | null; first_name: string | null; last_name: string | null; is_premium: boolean; premium_until: Date | null; is_in_grace_period: boolean; should_reset_custom_status: boolean };
     onboarding: boolean;
     emailVerified: boolean;
   }> {
@@ -117,6 +118,9 @@ export class AuthService {
       );
     }
 
+    const { is_in_grace_period, should_reset_custom_status } =
+      computePremiumGraceFlags(user);
+
     return {
       user: {
         id: user.id,
@@ -124,6 +128,10 @@ export class AuthService {
         email: user.email,
         first_name: user.first_name,
         last_name: user.last_name,
+        is_premium: isUserPremium(user),
+        premium_until: user.premium_until ?? null,
+        is_in_grace_period,
+        should_reset_custom_status,
       },
       onboarding,
       emailVerified,

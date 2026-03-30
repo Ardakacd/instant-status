@@ -71,7 +71,13 @@ export class WebhooksService {
       return;
     }
 
-    // 2. ATOMIC IDEMPOTENCY: Claim the event before processing.
+    // 2. Dashboard test webhooks — acknowledge without idempotency row / premium logic
+    if (type === "TEST") {
+      this.logger.log("RevenueCat TEST webhook received (no-op)");
+      return;
+    }
+
+    // 3. ATOMIC IDEMPOTENCY: Claim the event before processing.
     // Unique constraint prevents double-processing; 23505 = already handled.
     try {
       await this.processedWebhookRepo.insert({ event_id: eventId });
@@ -87,7 +93,7 @@ export class WebhooksService {
       throw error;
     }
 
-    // 3. Tag logs so you can filter (e.g. [SANDBOX] vs [PRODUCTION])
+    // 4. Tag logs so you can filter (e.g. [SANDBOX] vs [PRODUCTION])
     this.logger.log(
       `[${environment ?? "unknown"}] Processing ${type} for ${app_user_id ?? "TRANSFER"}`
     );

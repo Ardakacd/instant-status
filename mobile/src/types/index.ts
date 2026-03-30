@@ -13,6 +13,10 @@ export interface User {
   email: string | null;
   first_name: string | null;
   last_name: string | null;
+  is_premium: boolean;
+  premium_until: string | null;
+  is_in_grace_period: boolean;
+  should_reset_custom_status: boolean;
   created_at?: string;
   updated_at?: string;
 }

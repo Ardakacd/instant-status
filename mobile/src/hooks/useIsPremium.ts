@@ -4,75 +4,74 @@ import { useAuth } from "../contexts/AuthContext";
 import { widgetStorageService } from "../services/widget-storage.service";
 
 export function useIsPremium() {
-  const { user, loading: authLoading } = useAuth();
-  const [isPremium, setIsPremium] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading, refreshUser } = useAuth();
   const [willRenew, setWillRenew] = useState<boolean | null>(null);
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
   const [managementURL, setManagementURL] = useState<string | null>(null);
 
-  const updatePremiumState = (info: CustomerInfo) => {
-    const entitlement = info.entitlements.active["Instant Status Premium"];
-    const isActive = entitlement !== undefined;
+  const isSubscriptionActive = user?.is_premium ?? false;
+  const isInGracePeriod = user?.is_in_grace_period ?? false;
+  /** Matches API feature gating (active subscription or 3-day grace). */
+  const hasPremiumAccess = isSubscriptionActive || isInGracePeriod;
 
-    setIsPremium(isActive);
-    widgetStorageService.setPremiumStatus(isActive);
-
-    if (isActive) {
-      setWillRenew(entitlement.willRenew ?? true);
-      setExpirationDate(
-        entitlement.expirationDate
-          ? new Date(entitlement.expirationDate)
-          : null
-      );
-      setManagementURL(info.managementURL || null);
-    } else {
-      setWillRenew(null);
-      setExpirationDate(null);
-      setManagementURL(null);
-    }
-  };
-
+  // Keep widget storage in sync — widgets should reflect the same access level as the API
   useEffect(() => {
-    // Wait for AuthProvider to finish (Purchases.logIn, refreshUser, etc.)
+    widgetStorageService.setPremiumStatus(hasPremiumAccess);
+  }, [hasPremiumAccess]);
+
+  // Fetch display-only fields from RevenueCat (willRenew, expirationDate, managementURL)
+  // These are not used to gate features — only for showing plan details in the UI
+  useEffect(() => {
     if (authLoading) return;
 
-    const checkStatus = async () => {
-      try {
-        const info = await Purchases.getCustomerInfo();
-        updatePremiumState(info);
-      } catch {
-        setIsPremium(false);
-        widgetStorageService.setPremiumStatus(false);
-        setWillRenew(null);
-        setExpirationDate(null);
-        setManagementURL(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (!user) {
-      setIsPremium(false);
-      widgetStorageService.setPremiumStatus(false);
       setWillRenew(null);
       setExpirationDate(null);
       setManagementURL(null);
-      setLoading(false);
       return;
     }
 
-    checkStatus();
+    const updateDisplayFields = (info: CustomerInfo) => {
+      const entitlement = info.entitlements.active["Instant Status Premium"];
+      if (entitlement) {
+        setWillRenew(entitlement.willRenew ?? true);
+        setExpirationDate(
+          entitlement.expirationDate
+            ? new Date(entitlement.expirationDate)
+            : null
+        );
+        setManagementURL(info.managementURL || null);
+      } else {
+        setWillRenew(null);
+        setExpirationDate(null);
+        setManagementURL(null);
+      }
+    };
 
+    Purchases.getCustomerInfo()
+      .then(updateDisplayFields)
+      .catch(() => {});
+
+    // When RevenueCat detects a subscription change, resync with backend
     const listener = (info: CustomerInfo) => {
-      updatePremiumState(info);
+      updateDisplayFields(info);
+      refreshUser();
     };
 
     Purchases.addCustomerInfoUpdateListener(listener);
-    return () => {
-      Purchases.removeCustomerInfoUpdateListener(listener);
-    };
+    return () => { Purchases.removeCustomerInfoUpdateListener(listener); };
   }, [user, authLoading]);
 
-  return { isPremium, loading, willRenew, expirationDate, managementURL };
+  return {
+    /** Same as `hasPremiumAccess` — use for feature gating / widgets. */
+    isPremium: hasPremiumAccess,
+    hasPremiumAccess,
+    /** Strict backend flag: paid period not expired (no grace). Use for copy like “renew” vs “manage”. */
+    isSubscriptionActive,
+    isInGracePeriod,
+    loading: authLoading,
+    willRenew,
+    expirationDate,
+    managementURL,
+  };
 }

@@ -50,6 +50,10 @@ export class AuthService {
       email: string | null;
       first_name: string | null;
       last_name: string | null;
+      is_premium: boolean;
+      premium_until: string | null;
+      is_in_grace_period: boolean;
+      should_reset_custom_status: boolean;
     };
     onboarding: boolean;
     emailVerified: boolean;

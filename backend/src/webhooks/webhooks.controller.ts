@@ -113,6 +113,7 @@ const RevenueCatWebhookSchema = z.object({
       "SUBSCRIPTION_PAUSED",
       "SUBSCRIPTION_EXTENDED",
       "TRANSFER",
+      "TEST", // RevenueCat dashboard “Send test event”
     ]),
     // app_user_id is omitted for TRANSFER events
     app_user_id: z.string().optional(),
@@ -125,7 +126,7 @@ const RevenueCatWebhookSchema = z.object({
     purchased_at_ms: z.number().optional(),
     expiration_at_ms: z.number().optional(),
     environment: z.enum(["SANDBOX", "PRODUCTION"]).optional(),
-    entitlement_ids: z.array(z.string()).optional(),
+    entitlement_ids: z.array(z.string()).nullish(), // RC test payloads often send null
   }),
 });
 

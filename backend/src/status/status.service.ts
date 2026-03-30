@@ -17,6 +17,7 @@ import * as admin from "firebase-admin";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
 import { redactUid } from "../utils/redact";
 import { sendEachAndCleanup } from "../utils/fcm";
+import { PREMIUM_GRACE_PERIOD_MS } from "../utils/premium";
 
 @Injectable()
 export class StatusService {
@@ -63,10 +64,8 @@ export class StatusService {
           if (user.premium_until) {
             const now = new Date();
             const expirationDate = new Date(user.premium_until);
-            const gracePeriodMs = 3 * 24 * 60 * 60 * 1000; // 3 days
-
             // If more than 3 days past expiration, reset to default
-            if (now >= new Date(expirationDate.getTime() + gracePeriodMs)) {
+            if (now >= new Date(expirationDate.getTime() + PREMIUM_GRACE_PERIOD_MS)) {
               // Reset to default "Available" status
               const defaultOption = await this.statusOptionService.getDefaultStatusOption();
               if (!defaultOption) {

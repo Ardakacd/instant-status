@@ -21,7 +21,8 @@ import {
   presentCustomerCenter,
 } from "../services/purchases.service";
 import { useIsPremium } from "../hooks/useIsPremium";
-import { Colors, Borders, Spacing, Typography, useResponsive, useColors } from "../design";
+import { useAuth } from "../contexts/AuthContext";
+import { Borders, Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { InfoBox } from "../components/feedback/InfoBox";
 
@@ -30,7 +31,15 @@ export default function SubscriptionManagementScreen() {
   const insets = useSafeAreaInsets();
   const { horizontalPadding, fs } = useResponsive();
   const colors = useColors();
-  const { isPremium, willRenew, expirationDate, managementURL } = useIsPremium();
+  const { refreshUser } = useAuth();
+  const {
+    isPremium,
+    isSubscriptionActive,
+    isInGracePeriod,
+    willRenew,
+    expirationDate,
+    managementURL,
+  } = useIsPremium();
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -134,6 +143,12 @@ export default function SubscriptionManagementScreen() {
           newExpirationDate,
         });
         setPlanChangeModalVisible(true);
+
+        // Sync backend premium status. Webhook from RevenueCat typically
+        // arrives within seconds; we refresh immediately and again after a
+        // short delay to catch any slight webhook delivery latency.
+        refreshUser();
+        setTimeout(() => refreshUser(), 3000);
 
         // Reload data to reflect changes
         await loadSubscriptionData();
@@ -399,6 +414,13 @@ export default function SubscriptionManagementScreen() {
           </View>
         )}
 
+        {isInGracePeriod && (
+          <InfoBox style={{ marginBottom: Spacing.md }}>
+            Your subscription period has ended. You still have full access for a
+            short grace window — renew to avoid losing premium features.
+          </InfoBox>
+        )}
+
         {/* Current Plan Status (only for non-lifetime subscriptions) */}
         {isPremium && !hasLifetime && (
           <View style={[styles.currentPlanCard, { backgroundColor: colors.tint.premium, borderColor: colors.interaction.primary + "30" }]}>
@@ -531,7 +553,7 @@ export default function SubscriptionManagementScreen() {
               <Text style={[styles.actionRowText, { color: colors.interaction.primary }]}>Restore Purchases</Text>
             </TouchableOpacity>
 
-            {isPremium && !hasLifetime && (
+            {isSubscriptionActive && !hasLifetime && (
               <>
                 <View style={[styles.actionDivider, { backgroundColor: colors.text.secondary + "30" }]} />
                 <TouchableOpacity style={styles.actionRow} onPress={handleCancelMembership}>

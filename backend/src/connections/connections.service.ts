@@ -10,7 +10,7 @@ import { EntityManager, Repository } from "typeorm";
 import { Connection } from "../entities/connection.entity";
 import { DeviceToken } from "../entities/device-token.entity";
 import { User } from "../entities/user.entity";
-import { isUserPremium } from "../utils/premium";
+import { isUserPremium, PREMIUM_GRACE_PERIOD_MS, CUSTOM_STATUS_POST_EXPIRY_RESET_MS } from "../utils/premium";
 import * as admin from "firebase-admin";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
 import { sendEachAndCleanup } from "../utils/fcm";
@@ -100,11 +100,9 @@ export class ConnectionsService {
 
     const now = new Date();
     const expirationDate = new Date(user.premium_until);
-    const gracePeriodMs = 3 * 24 * 60 * 60 * 1000; // 3 days
-
     return (
       now >= expirationDate &&
-      now < new Date(expirationDate.getTime() + gracePeriodMs)
+      now < new Date(expirationDate.getTime() + PREMIUM_GRACE_PERIOD_MS)
     );
   }
 
@@ -116,9 +114,7 @@ export class ConnectionsService {
 
     const now = new Date();
     const expirationDate = new Date(user.premium_until);
-    const customStatusGracePeriodMs = 24 * 60 * 60 * 1000; // 24 hours
-
-    return now >= new Date(expirationDate.getTime() + customStatusGracePeriodMs);
+    return now >= new Date(expirationDate.getTime() + CUSTOM_STATUS_POST_EXPIRY_RESET_MS);
   }
 
   /**

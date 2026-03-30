@@ -13,6 +13,7 @@ import { StatusOption } from "../entities/status-option.entity";
 import { Status } from "../entities/status.entity";
 import { UserService } from "../user/user.service";
 import { MAX_CUSTOM_STATUS_OPTIONS } from "./status-option.constants";
+import { PREMIUM_GRACE_PERIOD_MS } from "../utils/premium";
 
 @Injectable()
 export class StatusOptionService {
@@ -103,9 +104,7 @@ export class StatusOptionService {
 
     const now = new Date();
     const expirationDate = new Date(user.premium_until);
-    const gracePeriodMs = 3 * 24 * 60 * 60 * 1000; // 3 days grace period
-
-    return now < new Date(expirationDate.getTime() + gracePeriodMs);
+    return now < new Date(expirationDate.getTime() + PREMIUM_GRACE_PERIOD_MS);
   }
 
   /**
