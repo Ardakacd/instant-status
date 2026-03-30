@@ -11,15 +11,14 @@ import {
   WIDGET_CONFIG_KEY_PREFIX,
   WIDGET_CONFIG_BACKGROUND_PREFIX,
   IS_PREMIUM_KEY,
-  getWidgetLayout,
 } from "./widget-shared";
 import Sentry from "../sentry";
 
 const VALID_BACKGROUND_STYLES: WidgetBackgroundStyle[] = [
   "default",
   "gradient",
-  "contrast",
   "aurora",
+  "ocean",
   "plum",
   "mermaid",
   "sunset",
@@ -88,10 +87,11 @@ async function loadWidgetData(widgetId: number): Promise<{
 async function renderCurrentWidget(props: WidgetTaskHandlerProps) {
   const Widget =
     nameToWidget[props.widgetInfo.widgetName as keyof typeof nameToWidget];
-  const layoutSize = getWidgetLayout(
-    props.widgetInfo.width,
-    props.widgetInfo.height
-  );
+
+  const widgetWidthDp  = props.widgetInfo.width;
+  const widgetHeightDp = props.widgetInfo.height;
+  console.log(`[Widget] widgetWidthDp: ${widgetWidthDp}, widgetHeightDp: ${widgetHeightDp}`);
+
   const { friends, hasAnyFriends, isPremium, backgroundStyle } =
     await loadWidgetData(props.widgetInfo.widgetId);
 
@@ -100,20 +100,22 @@ async function renderCurrentWidget(props: WidgetTaskHandlerProps) {
       <Widget
         friends={friends}
         hasAnyFriends={hasAnyFriends}
-        layoutSize={layoutSize}
         isPremium={isPremium}
         backgroundStyle={backgroundStyle}
         isDarkMode={false}
+        widgetHeightDp={widgetHeightDp}
+        widgetWidthDp={widgetWidthDp}
       />
     ),
     dark: (
       <Widget
         friends={friends}
         hasAnyFriends={hasAnyFriends}
-        layoutSize={layoutSize}
         isPremium={isPremium}
         backgroundStyle={backgroundStyle}
         isDarkMode={true}
+        widgetHeightDp={widgetHeightDp}
+        widgetWidthDp={widgetWidthDp}
       />
     ),
   });

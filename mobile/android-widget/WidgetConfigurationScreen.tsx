@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  type WidgetConfigurationScreenProps,
-  requestWidgetUpdate,
-} from "react-native-android-widget";
+import type { WidgetConfigurationScreenProps } from "react-native-android-widget";
 import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM } from "../src/design";
 import {
   InstantStatusWidget,
@@ -26,7 +23,6 @@ import {
   WIDGET_CONFIG_KEY_PREFIX,
   WIDGET_CONFIG_BACKGROUND_PREFIX,
   IS_PREMIUM_KEY,
-  getWidgetLayout,
 } from "./widget-shared";
 import Sentry from "../sentry";
 
@@ -52,6 +48,7 @@ function WidgetConfigurationScreenContent({
   );
   const [backgroundStyle, setBackgroundStyle] =
     useState<WidgetBackgroundStyle>("default");
+  const originalBackground = useRef<WidgetBackgroundStyle>("default");
   const [isPremium, setIsPremium] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -89,12 +86,29 @@ function WidgetConfigurationScreenContent({
       const savedBg = await AsyncStorage.getItem(bgConfigKey);
       if (savedBg && WIDGET_BACKGROUND_OPTIONS.some((o) => o.value === savedBg)) {
         setBackgroundStyle(savedBg as WidgetBackgroundStyle);
+        originalBackground.current = savedBg as WidgetBackgroundStyle;
       }
     } catch (error) {
       Sentry.captureException(error);
     } finally {
       setLoading(false);
     }
+  }
+
+  function previewBackground(bg: WidgetBackgroundStyle) {
+    setBackgroundStyle(bg);
+    const selectedFriends = friends.filter((f) => selectedFriendIds.has(f.id));
+    renderWidget(
+      <InstantStatusWidget
+        friends={selectedFriends}
+        hasAnyFriends={friends.length > 0}
+        isPremium={isPremium}
+        backgroundStyle={bg}
+        isDarkMode={false}
+        widgetHeightDp={widgetInfo.width}
+        widgetWidthDp={widgetInfo.height}
+      />
+    );
   }
 
   function toggleFriendSelection(friendId: string) {
@@ -120,26 +134,20 @@ function WidgetConfigurationScreenContent({
       const selectedFriends = friends.filter((f) =>
         selectedFriendIds.has(f.id)
       );
-      const layoutSize = getWidgetLayout(
-        widgetInfo.width,
-        widgetInfo.height
-      );
-      // Config screen only supports single element; use light variant for preview.
-      // Actual widget uses light/dark variants from task handler.
+      const widgetWidthDp  = widgetInfo.width;
+      const widgetHeightDp = widgetInfo.height;
       renderWidget(
         <InstantStatusWidget
           friends={selectedFriends}
           hasAnyFriends={friends.length > 0}
-          layoutSize={layoutSize}
           isPremium={isPremium}
           backgroundStyle={backgroundStyle}
           isDarkMode={false}
+          widgetHeightDp={widgetHeightDp}
+          widgetWidthDp={widgetWidthDp}
         />
       );
 
-      await requestWidgetUpdate({
-        widgetName: "InstantStatusWidget",
-      } as any);
       setResult("ok");
     } catch (error) {
       Sentry.captureException(error);
@@ -150,6 +158,10 @@ function WidgetConfigurationScreenContent({
   }
 
   function handleCancel() {
+    // Restore the original background if it was previewed but not saved.
+    if (backgroundStyle !== originalBackground.current) {
+      previewBackground(originalBackground.current);
+    }
     setResult("cancel");
   }
 
@@ -177,7 +189,7 @@ function WidgetConfigurationScreenContent({
           <Text style={styles.emptySubtitle}>
             Add some friends in the app first
           </Text>
-          <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+          <TouchableOpacity style={styles.emptyCancelButton} onPress={handleCancel}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
         </View>
@@ -211,7 +223,7 @@ function WidgetConfigurationScreenContent({
                     styles.backgroundChip,
                     isSelected && styles.backgroundChipSelected,
                   ]}
-                  onPress={() => setBackgroundStyle(opt.value)}
+                  onPress={() => previewBackground(opt.value)}
                 >
                   <Text
                     style={[
@@ -398,6 +410,13 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     padding: 14,
+    borderRadius: Borders.radius.small,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+  },
+  emptyCancelButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 40,
     borderRadius: Borders.radius.small,
     backgroundColor: "#F3F4F6",
     alignItems: "center",

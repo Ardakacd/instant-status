@@ -25,8 +25,8 @@ export type WidgetLayoutSize = "small" | "medium" | "large";
 export const WIDGET_BACKGROUND_OPTIONS = [
   { value: "default", label: "Default" },
   { value: "gradient", label: "Mint-Violet" },
-  { value: "contrast", label: "Contrast" },
   { value: "aurora", label: "Aurora" },
+  { value: "ocean", label: "Ocean" },
   { value: "plum", label: "Plum Noir" },
   { value: "mermaid", label: "Mermaidcore" },
   { value: "sunset", label: "Golden Hour" },
@@ -37,8 +37,8 @@ export const WIDGET_BACKGROUND_OPTIONS = [
 export type WidgetBackgroundStyle =
   | "default"
   | "gradient"
-  | "contrast"
   | "aurora"
+  | "ocean"
   | "plum"
   | "mermaid"
   | "sunset"
@@ -48,11 +48,13 @@ export type WidgetBackgroundStyle =
 interface InstantStatusWidgetProps {
   friends?: FriendStatusWidgetItem[];
   hasAnyFriends?: boolean;
-  layoutSize?: WidgetLayoutSize;
   backgroundStyle?: WidgetBackgroundStyle;
   isPremium?: boolean;
-  /** System dark mode - used for adaptive text/background (default, contrast) */
+  /** System dark mode - used for adaptive text/background (default) */
   isDarkMode?: boolean;
+  /** Actual widget dimensions in dp. Width drives columns; height drives rows. */
+  widgetHeightDp?: number;
+  widgetWidthDp?: number;
 }
 
 function getWidgetBackgroundStyle(
@@ -70,26 +72,20 @@ function getWidgetBackgroundStyle(
     case "gradient":
       return {
         backgroundGradient: {
-          from: "#10B981",
-          to: "#A78BFA",
+          from: "#047857",
+          to: "#5B21B6",
           orientation: "TL_BR",
         },
       };
     case "plum":
       return { backgroundColor: "#2B1538" };
     case "mermaid":
-      return {
-        backgroundGradient: {
-          from: "#7ED4AD",
-          to: "#A78BFA",
-          orientation: "TL_BR",
-        },
-      };
+      return { backgroundColor: "#0E7490" };
     case "sunset":
       return {
         backgroundGradient: {
-          from: "#FF5F6D",
-          to: "#FFC371",
+          from: "#E11D48",
+          to: "#EA580C",
           orientation: "TOP_BOTTOM",
         },
       };
@@ -97,13 +93,19 @@ function getWidgetBackgroundStyle(
       return { backgroundColor: "#101417" };
     case "softclay":
       return { backgroundColor: "#F4EBD2" };
-    case "contrast":
-      return { backgroundColor: isDarkMode ? "#FFFFFF" : "#000000" };
+    case "ocean":
+      return {
+        backgroundGradient: {
+          from: "#0EA5E9",
+          to: "#06B6D4",
+          orientation: "TL_BR",
+        },
+      };
     case "aurora":
       return {
         backgroundGradient: {
-          from: "#E0E7FF",
-          to: "#FCE7F3",
+          from: "#C7D2FE",
+          to: "#F9A8D4",
           orientation: "TL_BR",
         },
       };
@@ -113,20 +115,6 @@ function getWidgetBackgroundStyle(
 }
 
 function getContentColors(style: WidgetBackgroundStyle, isDarkMode: boolean) {
-  // Contrast: adaptive (black bg + white text in light, white bg + black text in dark)
-  if (style === "contrast") {
-    return isDarkMode
-      ? {
-          primary: "#000000" as const,
-          secondary: "rgba(0, 0, 0, 0.75)" as const,
-          muted: "#8E8E93" as const,
-        }
-      : {
-          primary: "#FFFFFF" as const,
-          secondary: "rgba(255, 255, 255, 0.85)" as const,
-          muted: "#8E8E93" as const,
-        };
-  }
   // Default: adaptive (system background + primary text)
   if (style === "default") {
     return isDarkMode
@@ -134,39 +122,81 @@ function getContentColors(style: WidgetBackgroundStyle, isDarkMode: boolean) {
           primary: "#FFFFFF" as const,
           secondary: "rgba(255, 255, 255, 0.85)" as const,
           muted: "#8E8E93" as const,
+          expiry: "#FF9500" as const,
         }
       : {
           primary: "#000000" as const,
           secondary: "rgba(0, 0, 0, 0.75)" as const,
           muted: "#8E8E93" as const,
+          expiry: "#FF9500" as const,
         };
   }
-  // Fixed dark backgrounds: white text
-  const darkStyles: WidgetBackgroundStyle[] = [
-    "plum",
-    "mermaid",
-    "sunset",
-    "deepspace",
-  ];
-  if (darkStyles.includes(style)) {
-    return {
-      primary: "#FFFFFF" as const,
-      secondary: "rgba(255, 255, 255, 0.85)" as const,
-      muted: "#8E8E93" as const,
-    };
+  // Dark / vivid backgrounds — primary always white, muted always light gray
+  // so status text is readable regardless of the background hue.
+  switch (style) {
+    case "gradient": // dark green → dark violet
+      return {
+        primary: "#FFFFFF" as const,
+        secondary: "rgba(255, 255, 255, 0.85)" as const,
+        muted: "#D1FAE5" as const,   // very light mint — lifts text off dark green/violet
+        expiry: "#FFD60A" as const,  // yellow
+      };
+    case "plum": // #2B1538 dark purple
+      return {
+        primary: "#FFFFFF" as const,
+        secondary: "rgba(255, 255, 255, 0.85)" as const,
+        muted: "#E9D5FF" as const,   // light lavender — harmonises with purple bg
+        expiry: "#FFD60A" as const,
+      };
+    case "mermaid": // #0E7490 medium teal
+      return {
+        primary: "#FFFFFF" as const,
+        secondary: "rgba(255, 255, 255, 0.85)" as const,
+        muted: "#CFFAFE" as const,   // very light cyan — lifts off teal bg
+        expiry: "#FFD60A" as const,
+      };
+    case "ocean": // #0EA5E9 → #06B6D4 bright blue/cyan
+      return {
+        primary: "#FFFFFF" as const,
+        secondary: "rgba(255, 255, 255, 0.85)" as const,
+        muted: "#E0F2FE" as const,   // very light sky blue — clearly readable on bright blue
+        expiry: "#FFD60A" as const,
+      };
+    case "sunset": // #E11D48 → #EA580C vivid red/orange
+      return {
+        primary: "#FFFFFF" as const,
+        secondary: "rgba(255, 255, 255, 0.85)" as const,
+        muted: "#FFE4E6" as const,   // very light rose — readable on red/orange
+        expiry: "#FEF08A" as const,  // light yellow — distinct from white primary
+      };
+    case "deepspace": // #101417 near-black
+      return {
+        primary: "#FFFFFF" as const,
+        secondary: "rgba(255, 255, 255, 0.85)" as const,
+        muted: "#9CA3AF" as const,   // medium-light gray — fine on near-black
+        expiry: "#67E8F9" as const,  // cyan
+      };
+    case "softclay": // #F4EBD2 warm cream
+      return {
+        primary: "#333333" as const,
+        secondary: "rgba(51, 51, 51, 0.75)" as const,
+        muted: "#6B7280" as const,
+        expiry: "#0369A1" as const,
+      };
+    case "aurora": // #C7D2FE → #F9A8D4 light lavender/pink
+      return {
+        primary: "#1F2937" as const,
+        secondary: "rgba(31, 41, 55, 0.75)" as const,
+        muted: "#4B5563" as const,   // dark gray — readable on light pastel bg
+        expiry: "#4338CA" as const,  // deep indigo
+      };
   }
-  if (style === "softclay") {
-    return {
-      primary: "#333333" as const,
-      secondary: "rgba(51, 51, 51, 0.75)" as const,
-      muted: "#6B7280" as const,
-    };
-  }
-  // Default: aurora, gradient (light backgrounds)
+  // default and aurora (handled above) — light backgrounds
   return {
     primary: "#000000" as const,
     secondary: "rgba(0, 0, 0, 0.75)" as const,
     muted: "#8E8E93" as const,
+    expiry: "#FF9500" as const,
   };
 }
 
@@ -244,7 +274,7 @@ function FriendRow({
   showExpiry = true,
 }: {
   friend: FriendStatusWidgetItem;
-  colors: { primary: string; secondary: string; muted: string };
+  colors: { primary: string; secondary: string; muted: string; expiry: string };
   /** Small widget: hide "until …" to save space (matches iOS). */
   showExpiry?: boolean;
 }) {
@@ -268,7 +298,8 @@ function FriendRow({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 6,
+        marginBottom: 0,
+        width: "match_parent",
       }}
       clickAction="OPEN_APP"
     >
@@ -322,7 +353,7 @@ function FriendRow({
               style={{
                 fontSize: 9,
                 fontWeight: "500",
-                color: "#FF9500",
+                color: colors.expiry as `#${string}`,
                 marginLeft: 4,
               }}
               maxLines={1}
@@ -343,21 +374,112 @@ function FriendRow({
   );
 }
 
-function chunkIntoRows<T>(items: T[], rowSize: number): T[][] {
-  const rows: T[][] = [];
-  for (let i = 0; i < items.length; i += rowSize) {
-    rows.push(items.slice(i, i + rowSize));
-  }
-  return rows;
+/** Compact cell for medium 2-column layout — matches iOS medium style. */
+function MediumFriendCell({
+  friend,
+  colors,
+  showExpiry = true,
+}: {
+  friend: FriendStatusWidgetItem;
+  colors: { primary: string; secondary: string; muted: string; expiry: string };
+  showExpiry?: boolean;
+}) {
+  const effectiveStatus = getEffectiveStatus(friend);
+  const isExpired =
+    friend.expiresAt &&
+    new Date(friend.expiresAt) <= new Date() &&
+    effectiveStatus.label === "Available";
+  const displayStatus = isExpired ? "Available" : effectiveStatus.label;
+  const timeUntil =
+    showExpiry && friend.expiresAt && !isExpired ? formatTimeUntil(friend.expiresAt) : "";
+
+  return (
+    <FlexWidget
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        width: "match_parent",
+      }}
+      clickAction="OPEN_APP"
+    >
+      <TextWidget
+        text={effectiveStatus.emoji}
+        style={{ fontSize: 11, marginRight: 5 }}
+      />
+      <FlexWidget style={{ flexDirection: "column", flex: 1, alignItems: "flex-start" }}>
+        <FlexWidget
+          style={{ flexDirection: "row", alignItems: "center", marginBottom: 1 }}
+        >
+          <FlexWidget style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+            <TextWidget
+              text={friend.firstName}
+              style={{
+                fontSize: 11,
+                fontWeight: "bold",
+                color: (isExpired ? colors.muted : colors.primary) as `#${string}`,
+              }}
+              maxLines={1}
+            />
+            {hasNonEmptyNote(friend) ? (
+              <TextWidget
+                text="📝"
+                style={{ fontSize: 8, marginLeft: 2, color: colors.muted as `#${string}` }}
+              />
+            ) : null}
+          </FlexWidget>
+          {timeUntil ? <FlexWidget style={{ width: 4 }} /> : null}
+          {timeUntil ? (
+            <TextWidget
+              text={timeUntil}
+              style={{ fontSize: 8, fontWeight: "500", color: colors.expiry as `#${string}`, marginLeft: 3 }}
+              maxLines={1}
+            />
+          ) : null}
+        </FlexWidget>
+        <TextWidget
+          text={displayStatus}
+          style={{ fontSize: 9, color: colors.muted as `#${string}` }}
+          maxLines={1}
+        />
+      </FlexWidget>
+    </FlexWidget>
+  );
 }
 
-/** Dense cell for premium large widget: 3 columns × up to 8 rows (24 friends) + expiry. */
+
+// ---------------------------------------------------------------------------
+// Dimension → layout mapping
+// Android widget cells are approximately:
+//   Width:  ~73–110 dp per grid cell (varies by launcher / screen width)
+//   Height: ~116–120 dp per grid cell
+//
+// Columns: ~130 dp per column is a comfortable cell width across phones.
+// Math.round gives natural breakpoints: <65→1, 65–195→1, 195–260→2, >260→3 etc.
+// Capped at 1–3.
+function getColCount(widthDp: number): 1 | 2 | 3 {
+  const cols = Math.round(widthDp / 130);
+  return Math.max(1, Math.min(3, cols)) as 1 | 2 | 3;
+}
+
+// Rows: subtract fixed overhead (refresh button + padding) then divide by
+// ~50 dp per row. Floor so we never show a row that doesn't fully fit.
+// Capped at 3–10.
+function getRowCount(heightDp: number): number {
+  const OVERHEAD = 56;
+  const ROW_HEIGHT = 50;
+  return Math.max(3, Math.min(10, Math.floor((heightDp - OVERHEAD) / ROW_HEIGHT)));
+}
+
+
+/** Compact cell for 3-column layout. */
 function LargeGridFriendCell({
   friend,
   colors,
+  showExpiry = true,
 }: {
   friend: FriendStatusWidgetItem;
-  colors: { primary: string; secondary: string; muted: string };
+  colors: { primary: string; secondary: string; muted: string; expiry: string };
+  showExpiry?: boolean;
 }) {
   const effectiveStatus = getEffectiveStatus(friend);
   const isExpired =
@@ -368,15 +490,14 @@ function LargeGridFriendCell({
   const displayStatus = isExpired ? "Available" : effectiveStatus.label;
 
   const timeUntil =
-    friend.expiresAt && !isExpired ? formatTimeUntil(friend.expiresAt) : "";
+    showExpiry && friend.expiresAt && !isExpired ? formatTimeUntil(friend.expiresAt) : "";
 
   return (
     <FlexWidget
       style={{
-        flex: 1,
         flexDirection: "column",
-        marginHorizontal: 2,
-        marginBottom: 2,
+        alignItems: "flex-start",
+        width: "match_parent",
       }}
       clickAction="OPEN_APP"
     >
@@ -385,31 +506,34 @@ function LargeGridFriendCell({
           flexDirection: "row",
           alignItems: "center",
           marginBottom: 1,
+          width: "match_parent",
         }}
       >
         <TextWidget
           text={effectiveStatus.emoji}
           style={{ fontSize: 10, marginRight: 3 }}
         />
-        <TextWidget
-          text={friend.firstName}
-          style={{
-            fontSize: 10,
-            fontWeight: "bold",
-            color: (isExpired ? colors.muted : colors.primary) as `#${string}`,
-          }}
-          maxLines={1}
-        />
-        {hasNonEmptyNote(friend) ? (
+        <FlexWidget style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
           <TextWidget
-            text="📝"
+            text={friend.firstName}
             style={{
-              fontSize: 8,
-              marginLeft: 2,
-              color: colors.muted as `#${string}`,
+              fontSize: 10,
+              fontWeight: "bold",
+              color: (isExpired ? colors.muted : colors.primary) as `#${string}`,
             }}
+            maxLines={1}
           />
-        ) : null}
+          {hasNonEmptyNote(friend) ? (
+            <TextWidget
+              text="📝"
+              style={{
+                fontSize: 8,
+                marginLeft: 2,
+                color: colors.muted as `#${string}`,
+              }}
+            />
+          ) : null}
+        </FlexWidget>
       </FlexWidget>
       <TextWidget
         text={displayStatus}
@@ -419,42 +543,38 @@ function LargeGridFriendCell({
         }}
         maxLines={1}
       />
-      {timeUntil ? (
-        <TextWidget
-          text={timeUntil}
-          style={{
-            fontSize: 7,
-            fontWeight: "500",
-            color: "#FF9500",
-          }}
-          maxLines={1}
-        />
-      ) : null}
+      {/* Always render this line so every cell has the same height.
+          When there is no expiry, a single space holds the vertical space invisibly. */}
+      <TextWidget
+        text={timeUntil || " "}
+        style={{
+          fontSize: 7,
+          fontWeight: "500",
+          color: (timeUntil ? colors.expiry : "#00000000") as `#${string}`,
+        }}
+        maxLines={1}
+      />
     </FlexWidget>
   );
 }
 
-const MAX_FRIENDS_BY_LAYOUT: Record<WidgetLayoutSize, number> = {
-  small: 4,
-  medium: 8,
-  large: 24,
-};
-
 export function InstantStatusWidget({
   friends = [],
   hasAnyFriends = true,
-  layoutSize = "medium",
   backgroundStyle = "default",
   isPremium = false,
   isDarkMode = false,
+  widgetHeightDp,
+  widgetWidthDp,
 }: InstantStatusWidgetProps) {
-  const maxFriends =
-    layoutSize === "large"
-      ? isPremium
-        ? 24
-        : 8
-      : MAX_FRIENDS_BY_LAYOUT[layoutSize];
-  const displayFriends = friends.slice(0, maxFriends);
+  const cols = getColCount(widgetWidthDp ?? 200);
+  const rows = getRowCount(widgetHeightDp ?? 220);
+
+  const isLargeGrid = cols === 3;
+  const isTwoCol    = cols === 2;
+  const showExpiry  = cols > 1; // single-col is compact; multi-col always shows expiry
+
+  const displayFriends = friends.slice(0, rows * cols);
 
   const effectiveStyle: WidgetBackgroundStyle =
     isPremium && backgroundStyle ? backgroundStyle : "default";
@@ -464,7 +584,6 @@ export function InstantStatusWidget({
   const hasLightBackground =
     (effectiveStyle === "default" && !isDarkMode) ||
     effectiveStyle === "aurora" ||
-    (effectiveStyle === "contrast" && isDarkMode) ||
     effectiveStyle === "softclay";
 
   if (displayFriends.length === 0) {
@@ -510,8 +629,12 @@ export function InstantStatusWidget({
     );
   }
 
-  const isLargeGrid = layoutSize === "large";
-  const gridRows = isLargeGrid ? chunkIntoRows(displayFriends, 3) : [];
+  // Split friends into columns — same pattern for both 2-col and 3-col.
+  const col1End = Math.ceil(displayFriends.length / cols);
+  const col2End = col1End + Math.ceil((displayFriends.length - col1End) / (cols - 1 || 1));
+  const col1 = displayFriends.slice(0, col1End);
+  const col2 = isTwoCol || isLargeGrid ? displayFriends.slice(col1End, isTwoCol ? undefined : col2End) : [];
+  const col3 = isLargeGrid ? displayFriends.slice(col2End) : [];
 
   return (
     <OverlapWidget
@@ -520,7 +643,7 @@ export function InstantStatusWidget({
         height: "match_parent",
         width: "match_parent",
         borderRadius: 16,
-        padding: isLargeGrid ? 8 : 16,
+        padding: cols === 3 ? 8 : 16,
         ...bgStyle,
       }}
     >
@@ -528,37 +651,50 @@ export function InstantStatusWidget({
       <FlexWidget
         style={{
           flexDirection: "column",
-          paddingTop: displayFriends.length > 0 ? (isLargeGrid ? 20 : 28) : 0,
-          paddingBottom: isLargeGrid ? 4 : 8,
+          width: "match_parent",
+          height: "match_parent",
+          paddingTop: displayFriends.length > 0 ? 28 : 0,
+          paddingBottom: 8,
+          justifyContent: cols === 1 ? "space-evenly" : "flex-start",
         }}
       >
-        {isLargeGrid
-          ? gridRows.map((row, rowIndex) => (
-              <FlexWidget
-                key={rowIndex}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "flex-start",
-                }}
-              >
-                {[0, 1, 2].map((col) => {
-                  const f = row[col];
-                  return f ? (
-                    <LargeGridFriendCell key={f.id} friend={f} colors={colors} />
-                  ) : (
-                    <FlexWidget key={`empty-${col}`} style={{ flex: 1 }} />
-                  );
-                })}
-              </FlexWidget>
-            ))
-          : displayFriends.map((friend) => (
-              <FriendRow
-                key={friend.id}
-                friend={friend}
-                colors={colors}
-                showExpiry={layoutSize !== "small"}
-              />
-            ))}
+        {isLargeGrid ? (
+          // 3-column layout
+          <FlexWidget style={{ flexDirection: "row", flex: 1, width: "match_parent", height: "match_parent" }}>
+            <FlexWidget style={{ flex: 1, flexDirection: "column", height: "match_parent", justifyContent: "space-evenly" }}>
+              {col1.map((friend) => <LargeGridFriendCell key={friend.id} friend={friend} colors={colors} showExpiry={showExpiry} />)}
+            </FlexWidget>
+            <FlexWidget style={{ width: 6 }} />
+            <FlexWidget style={{ flex: 1, flexDirection: "column", height: "match_parent", justifyContent: "space-evenly" }}>
+              {col2.map((friend) => <LargeGridFriendCell key={friend.id} friend={friend} colors={colors} showExpiry={showExpiry} />)}
+            </FlexWidget>
+            <FlexWidget style={{ width: 6 }} />
+            <FlexWidget style={{ flex: 1, flexDirection: "column", height: "match_parent", justifyContent: "space-evenly" }}>
+              {col3.map((friend) => <LargeGridFriendCell key={friend.id} friend={friend} colors={colors} showExpiry={showExpiry} />)}
+            </FlexWidget>
+          </FlexWidget>
+        ) : isTwoCol ? (
+          // 2-column layout
+          <FlexWidget style={{ flexDirection: "row", flex: 1, width: "match_parent", height: "match_parent" }}>
+            <FlexWidget style={{ flex: 1, flexDirection: "column", height: "match_parent", justifyContent: "space-evenly" }}>
+              {col1.map((friend) => <MediumFriendCell key={friend.id} friend={friend} colors={colors} showExpiry={showExpiry} />)}
+            </FlexWidget>
+            <FlexWidget style={{ width: 12 }} />
+            <FlexWidget style={{ flex: 1, flexDirection: "column", height: "match_parent", justifyContent: "space-evenly" }}>
+              {col2.map((friend) => <MediumFriendCell key={friend.id} friend={friend} colors={colors} showExpiry={showExpiry} />)}
+            </FlexWidget>
+          </FlexWidget>
+        ) : (
+          // Small: single column list, no expiry text
+          displayFriends.map((friend) => (
+            <FriendRow
+              key={friend.id}
+              friend={friend}
+              colors={colors}
+              showExpiry={false}
+            />
+          ))
+        )}
       </FlexWidget>
 
       {/* Refresh Button - Top Right */}
