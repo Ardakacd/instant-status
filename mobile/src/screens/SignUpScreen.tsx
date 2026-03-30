@@ -24,7 +24,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "SignUp">;
 
 export default function SignUpScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { horizontalPadding, fs } = useResponsive();
+  const { horizontalPadding, fs, height } = useResponsive();
+  const isShortScreen = height < 700;
   const colors = useColors();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -133,7 +134,10 @@ export default function SignUpScreen({ navigation }: Props) {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingHorizontal: horizontalPadding },
+          {
+            paddingHorizontal: horizontalPadding,
+            paddingTop: isShortScreen ? Spacing.lg : Spacing.xxl,
+          },
         ]}
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
@@ -141,8 +145,13 @@ export default function SignUpScreen({ navigation }: Props) {
       >
         <Section spacing="md" style={styles.content}>
           <View style={styles.header}>
-            <View style={[styles.logoCircle, { backgroundColor: colors.interaction.primary }]}>
-              <Ionicons name="radio-outline" size={28} color="#FFFFFF" />
+            <View style={[styles.logoCircle, {
+              backgroundColor: colors.interaction.primary,
+              width: isShortScreen ? 48 : 64,
+              height: isShortScreen ? 48 : 64,
+              borderRadius: isShortScreen ? 24 : 32,
+            }]}>
+              <Ionicons name="radio-outline" size={isShortScreen ? 22 : 28} color="#FFFFFF" />
             </View>
             <Text
               variant="primary"
@@ -282,7 +291,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingTop: Spacing.xxl,
     paddingBottom: Spacing.xl,
   },
   content: {},
@@ -292,9 +300,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   logoCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.md,

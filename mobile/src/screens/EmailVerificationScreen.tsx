@@ -6,6 +6,7 @@ import {
   Alert,
   ActivityIndicator,
   AppState,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -23,7 +24,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "EmailVerification">;
 
 export default function EmailVerificationScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
-  const { horizontalPadding, fs } = useResponsive();
+  const { horizontalPadding, fs, height } = useResponsive();
+  const isShortScreen = height < 700;
   const colors = useColors();
   const { checkEmailVerification, logout, clearAuthError } = useAuth();
   const [sending, setSending] = useState(false);
@@ -169,10 +171,24 @@ export default function EmailVerificationScreen({ route }: Props) {
         <Text variant="secondary" style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
 
-      <View style={[styles.content, { paddingHorizontal: horizontalPadding }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingHorizontal: horizontalPadding, paddingBottom: Spacing.xl },
+        ]}
+        keyboardShouldPersistTaps="always"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
         {/* Icon */}
-        <View style={[styles.iconCircle, { backgroundColor: colors.interaction.primary }]}>
-          <Ionicons name="mail-outline" size={fs(32)} color="#FFFFFF" />
+        <View style={[styles.iconCircle, {
+          backgroundColor: colors.interaction.primary,
+          width: isShortScreen ? 56 : 72,
+          height: isShortScreen ? 56 : 72,
+          borderRadius: isShortScreen ? 28 : 36,
+          marginBottom: isShortScreen ? Spacing.md : Spacing.lg,
+        }]}>
+          <Ionicons name="mail-outline" size={isShortScreen ? fs(26) : fs(32)} color="#FFFFFF" />
         </View>
 
         <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
@@ -225,7 +241,7 @@ export default function EmailVerificationScreen({ route }: Props) {
             )}
           </View>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -244,17 +260,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingTop: Spacing.lg,
   },
   iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: Spacing.lg,
   },
   title: {
     fontFamily: Typography.fontFamily.semiBold,

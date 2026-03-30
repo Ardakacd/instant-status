@@ -22,7 +22,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "ResetPassword">;
 
 export default function ResetPasswordScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { horizontalPadding, fs } = useResponsive();
+  const { horizontalPadding, fs, height } = useResponsive();
+  const isShortScreen = height < 700;
   const colors = useColors();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -159,8 +160,13 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
         >
           <Section spacing="md" style={styles.content}>
             <View style={styles.header}>
-              <View style={[styles.iconCircle, { backgroundColor: colors.interaction.error }]}>
-                <Ionicons name="lock-closed-outline" size={fs(32)} color="#FFFFFF" />
+              <View style={[styles.iconCircle, {
+                  backgroundColor: colors.interaction.error,
+                  width: isShortScreen ? 56 : 72,
+                  height: isShortScreen ? 56 : 72,
+                  borderRadius: isShortScreen ? 28 : 36,
+                }]}>
+                <Ionicons name="lock-closed-outline" size={isShortScreen ? fs(26) : fs(32)} color="#FFFFFF" />
               </View>
               <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
                 Invalid Link
@@ -194,8 +200,13 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
       >
         <Section spacing="md" style={styles.content}>
           <View style={styles.header}>
-            <View style={[styles.iconCircle, { backgroundColor: colors.interaction.primary }]}>
-              <Ionicons name="lock-open-outline" size={fs(32)} color="#FFFFFF" />
+            <View style={[styles.iconCircle, {
+              backgroundColor: colors.interaction.primary,
+              width: isShortScreen ? 56 : 72,
+              height: isShortScreen ? 56 : 72,
+              borderRadius: isShortScreen ? 28 : 36,
+            }]}>
+              <Ionicons name="lock-open-outline" size={isShortScreen ? fs(26) : fs(32)} color="#FFFFFF" />
             </View>
             <Text variant="primary" style={[styles.title, { fontSize: fs(28), lineHeight: fs(34) }]}>
               New Password
@@ -287,9 +298,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.lg,
