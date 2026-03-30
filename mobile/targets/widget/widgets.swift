@@ -31,13 +31,13 @@ private func contentColors(for style: String, systemScheme: ColorScheme, renderi
         primary = .primary
     }
     // 0.85 for dark backgrounds (better legibility on OLED); 0.75 for light
-    let secondaryOpacity = ["plum", "deepspace", "dark", "gradient", "mermaid", "sunset"].contains(style) ? 0.85 : 0.75
+    let secondaryOpacity = ["plum", "deepspace", "dark", "gradient", "mermaid", "sunset", "ocean"].contains(style) ? 0.85 : 0.75
 
     // Expiry color chosen to be legible against each specific background.
     let expiry: Color
     switch style {
     case "sunset":
-        expiry = .white               // Golden Hour is orange-toned — orange would vanish
+        expiry = Color(hex: "#FEF08A") // light yellow — distinct from white primary on red/orange
     case "gradient", "mermaid", "ocean", "plum":
         expiry = Color(hex: "#FFD60A") // yellow — readable on dark/vibrant backgrounds
     case "aurora":
