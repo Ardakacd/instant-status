@@ -627,14 +627,28 @@ export default function ProfileScreen() {
                 style={styles.actionRow}
                 onPress={async () => {
                   try {
-                    await widgetStorageService.seedMockFriendsForWidgetTesting(24);
-                    Toast.show({ type: "success", text1: "Seeded 24 mock friends for widget" });
+                    await widgetStorageService.seedMockFriendsForWidgetTesting(8);
+                    Toast.show({ type: "success", text1: "Seeded 8 mock friends (marketing presets)" });
                   } catch (e) {
                     Toast.show({ type: "error", text1: "Failed to seed mock friends" });
                   }
                 }}
               >
-                <Text variant="primary">Seed 24 mock friends (widget test)</Text>
+                <Text variant="primary">Seed 8 mock friends (widget / screenshots)</Text>
+              </TouchableOpacity>
+              <View style={[styles.divider, { backgroundColor: colors.text.secondary + "30" }]} />
+              <TouchableOpacity
+                style={styles.actionRow}
+                onPress={async () => {
+                  try {
+                    await widgetStorageService.seedMockFriendsForWidgetTesting(24);
+                    Toast.show({ type: "success", text1: "Seeded 24 mock friends (layout stress)" });
+                  } catch (e) {
+                    Toast.show({ type: "error", text1: "Failed to seed mock friends" });
+                  }
+                }}
+              >
+                <Text variant="primary">Seed 24 mock friends (layout stress)</Text>
               </TouchableOpacity>
             </View>
           </View>

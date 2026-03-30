@@ -220,26 +220,84 @@ export class WidgetStorageService {
   }
 
   /**
-   * DEV ONLY: Seed mock friends for widget layout testing (e.g. 24 friends for premium large widget).
-   * Call from ProfileScreen dev section. Also sets premium status so large widget shows up to 24 friends.
+   * DEV ONLY: Seed mock friends for widget layout testing (e.g. 8 for marketing screenshots, 24 for stress test).
+   * First 8 rows use curated names + distinct emojis (label matches emoji for screenshots).
+   * Call from ProfileScreen dev section. Also sets premium status.
    */
   async seedMockFriendsForWidgetTesting(count: number): Promise<void> {
-    const MOCK_OPTIONS: Array<{
+    /** Eight marketing/demo rows: different emoji per row, short readable names. */
+    const WIDGET_DEMO_PRESETS: Array<{
       optionId: string;
       optionLabel: string;
       optionEmoji: string;
       optionColor: string;
+      firstName: string;
+      note: string | null;
     }> = [
-      { optionId: "available", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981" },
-      { optionId: "busy", optionLabel: "Busy", optionEmoji: "🟠", optionColor: "#F59E0B" },
-      { optionId: "focus", optionLabel: "Focus", optionEmoji: "🟣", optionColor: "#8B5CF6" },
-      { optionId: "dnd", optionLabel: "Do Not Disturb", optionEmoji: "🔴", optionColor: "#EF4444" },
-      { optionId: "social", optionLabel: "Social", optionEmoji: "🩷", optionColor: "#EC4899" },
-      { optionId: "commute", optionLabel: "Commute", optionEmoji: "🔵", optionColor: "#3B82F6" },
-    ];
-    const MOCK_EMOJIS = [
-      "🟢", "🟡", "🟠", "🔴", "🟣", "🩵", "💙", "💜", "🩷", "❤️", "💚", "💛",
-      "🧡", "☕️", "🚀", "💼", "🏃", "🏠", "📞", "📧", "🎯", "🛑", "💤", "🌟",
+      {
+        optionId: "available",
+        optionLabel: "Available",
+        optionEmoji: "✅",
+        optionColor: "#10B981",
+        firstName: "Mia",
+        note: "Free to chat",
+      },
+      {
+        optionId: "busy",
+        optionLabel: "In meetings",
+        optionEmoji: "📅",
+        optionColor: "#F59E0B",
+        firstName: "Leo",
+        note: "Until 4pm",
+      },
+      {
+        optionId: "focus",
+        optionLabel: "Deep focus",
+        optionEmoji: "🎯",
+        optionColor: "#8B5CF6",
+        firstName: "Zoe",
+        note: null,
+      },
+      {
+        optionId: "ooo",
+        optionLabel: "Out of office",
+        optionEmoji: "🏝️",
+        optionColor: "#0891B2",
+        firstName: "Sam",
+        note: "Back Monday",
+      },
+      {
+        optionId: "commute",
+        optionLabel: "On the way",
+        optionEmoji: "🚗",
+        optionColor: "#2563EB",
+        firstName: "Ava",
+        note: "ETA ~20 min",
+      },
+      {
+        optionId: "dnd",
+        optionLabel: "Do not disturb",
+        optionEmoji: "🔕",
+        optionColor: "#EF4444",
+        firstName: "Max",
+        note: "Recording",
+      },
+      {
+        optionId: "social",
+        optionLabel: "Social",
+        optionEmoji: "🎉",
+        optionColor: "#EC4899",
+        firstName: "Jade",
+        note: "Dinner w/ team",
+      },
+      {
+        optionId: "brb",
+        optionLabel: "Quick break",
+        optionEmoji: "☕",
+        optionColor: "#B45309",
+        firstName: "Ron",
+        note: "Coffee run",
+      },
     ];
     const MOCK_FIRST_NAMES = [
       "Alexandra", "Emmanuel", "Christopher", "Alexandria", "Benjamin", "Katherine", "Theodore", "Melissa",
@@ -263,26 +321,35 @@ export class WidgetStorageService {
       "Montgomery",
     ];
     const now = new Date().toISOString();
+    const n = WIDGET_DEMO_PRESETS.length;
     const items: FriendStatusWidgetItem[] = Array.from({ length: count }, (_, i) => {
-      const opt = MOCK_OPTIONS[i % MOCK_OPTIONS.length];
-      const firstName = MOCK_FIRST_NAMES[i % MOCK_FIRST_NAMES.length];
-      const note = MOCK_NOTES[i % MOCK_NOTES.length];
-      // Every mock friend gets a future expiry (staggered: same-day + multi-day for widget "until …").
-      const expiresAt = new Date(
-        Date.now() +
-          (2 + (i % 10)) * 3600 * 1000 + // +2–11 h
-          (i % 3) * 24 * 3600 * 1000 + // +0 / +1 / +2 calendar days
-          i * 30 * 60 * 1000 // +30 min per index
-      ).toISOString();
-      const emoji = MOCK_EMOJIS[i % MOCK_EMOJIS.length];
+      const preset = WIDGET_DEMO_PRESETS[i % n];
+      const usePresetIdentity = i < n;
+      const firstName = usePresetIdentity
+        ? preset.firstName
+        : MOCK_FIRST_NAMES[i % MOCK_FIRST_NAMES.length];
+      const note = usePresetIdentity ? preset.note : MOCK_NOTES[i % MOCK_NOTES.length];
+      // Staggered future expiries for screenshots — skip for DND: long "until Mon, Apr …" wraps next to "Do not disturb"
+      const expiresAt =
+        preset.optionId === "dnd"
+          ? null
+          : new Date(
+              Date.now() +
+                (2 + (i % 10)) * 3600 * 1000 +
+                (i % 3) * 24 * 3600 * 1000 +
+                i * 30 * 60 * 1000
+            ).toISOString();
       return {
         id: `mock-${i + 1}`,
         firstName,
-        lastName: i % 5 === 0 ? MOCK_LAST_NAMES[(i / 5) % MOCK_LAST_NAMES.length] : null,
-        optionId: opt.optionId,
-        optionLabel: opt.optionLabel,
-        optionEmoji: emoji,
-        optionColor: opt.optionColor,
+        lastName:
+          !usePresetIdentity && i % 5 === 0
+            ? MOCK_LAST_NAMES[Math.floor(i / 5) % MOCK_LAST_NAMES.length]
+            : null,
+        optionId: preset.optionId,
+        optionLabel: preset.optionLabel,
+        optionEmoji: preset.optionEmoji,
+        optionColor: preset.optionColor,
         note,
         expiresAt,
         updatedAt: now,
