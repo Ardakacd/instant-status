@@ -611,19 +611,6 @@ export default function ManageStatusScreen() {
               >
                 <Text style={[styles.deleteButtonText, { color: colors.interaction.error }]}>Delete</Text>
               </TouchableOpacity>
-              <Button
-                variant="secondary"
-                onPress={() => {
-                  setEditModalVisible(false);
-                  setSaving(false);
-                  setGlobalError("");
-                  setLabelError("");
-                  setEmojiError("");
-                }}
-                style={styles.modalFooterButton}
-              >
-                Cancel
-              </Button>
               <TouchableOpacity
                 style={[styles.saveButton, { backgroundColor: colors.interaction.primary }, saving && styles.saveButtonDisabled]}
                 onPress={handleSaveEdit}
