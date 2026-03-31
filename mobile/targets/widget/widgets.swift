@@ -637,12 +637,27 @@ struct InstantStatusWidget: Widget {
 private let mockExpiresTwoDaysLater: Date = Date().addingTimeInterval(189_000) // 48h + 4h30m
 private let mockExpiresTwoDaysLaterPM: Date = Date().addingTimeInterval(223_200) // 48h + 14h
 
+/// First four marketing presets — matches app `seedMockFriendsForWidgetTesting(8)` (small widget previews).
 private func makeMockStatuses() -> [FriendStatusWidgetItem] {
-    let a: FriendStatusWidgetItem = FriendStatusWidgetItem(id: "1", firstName: "Alex", lastName: nil, optionId: "busy-id", optionLabel: "Busy", optionEmoji: "🟠", optionColor: "#F59E0B", note: "In a meeting", expiresAt: Date().addingTimeInterval(1800), updatedAt: Date().addingTimeInterval(-300))
-    let b: FriendStatusWidgetItem = FriendStatusWidgetItem(id: "2", firstName: "Emma", lastName: nil, optionId: "available-id", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981", note: nil, expiresAt: mockExpiresTwoDaysLater, updatedAt: Date().addingTimeInterval(-1200))
-    let c: FriendStatusWidgetItem = FriendStatusWidgetItem(id: "3", firstName: "John", lastName: nil, optionId: "focus-id", optionLabel: "Focus", optionEmoji: "🟣", optionColor: "#8B5CF6", note: nil, expiresAt: mockExpiresTwoDaysLaterPM, updatedAt: Date().addingTimeInterval(-3600))
-    let d: FriendStatusWidgetItem = FriendStatusWidgetItem(id: "4", firstName: "Alice", lastName: nil, optionId: "dnd-id", optionLabel: "Do Not Disturb", optionEmoji: "🔴", optionColor: "#EF4444", note: "Coding", expiresAt: Date().addingTimeInterval(2400), updatedAt: Date())
+    let a = FriendStatusWidgetItem(id: "1", firstName: "Mia", lastName: nil, optionId: "available", optionLabel: "Available", optionEmoji: "✅", optionColor: "#10B981", note: "Free to chat", expiresAt: Date().addingTimeInterval(3600), updatedAt: Date())
+    let b = FriendStatusWidgetItem(id: "2", firstName: "Leo", lastName: nil, optionId: "busy", optionLabel: "In meetings", optionEmoji: "📅", optionColor: "#F59E0B", note: "Until 4pm", expiresAt: Date().addingTimeInterval(7200), updatedAt: Date())
+    let c = FriendStatusWidgetItem(id: "3", firstName: "Zoe", lastName: nil, optionId: "focus", optionLabel: "Deep focus", optionEmoji: "🎯", optionColor: "#8B5CF6", note: nil, expiresAt: mockExpiresTwoDaysLater, updatedAt: Date())
+    let d = FriendStatusWidgetItem(id: "4", firstName: "Sam", lastName: nil, optionId: "ooo", optionLabel: "Out of office", optionEmoji: "🏝️", optionColor: "#0891B2", note: "Back Monday", expiresAt: mockExpiresTwoDaysLaterPM, updatedAt: Date())
     return [a, b, c, d]
+}
+
+/// Full eight presets — matches app marketing seed (medium / large screenshots).
+private func makeMockStatusesEight() -> [FriendStatusWidgetItem] {
+    [
+        FriendStatusWidgetItem(id: "1", firstName: "Mia", lastName: nil, optionId: "available", optionLabel: "Available", optionEmoji: "✅", optionColor: "#10B981", note: "Free to chat", expiresAt: Date().addingTimeInterval(3600), updatedAt: Date()),
+        FriendStatusWidgetItem(id: "2", firstName: "Leo", lastName: nil, optionId: "busy", optionLabel: "In meetings", optionEmoji: "📅", optionColor: "#F59E0B", note: "Until 4pm", expiresAt: Date().addingTimeInterval(7200), updatedAt: Date()),
+        FriendStatusWidgetItem(id: "3", firstName: "Zoe", lastName: nil, optionId: "focus", optionLabel: "Deep focus", optionEmoji: "🎯", optionColor: "#8B5CF6", note: nil, expiresAt: mockExpiresTwoDaysLater, updatedAt: Date()),
+        FriendStatusWidgetItem(id: "4", firstName: "Sam", lastName: nil, optionId: "ooo", optionLabel: "Out of office", optionEmoji: "🏝️", optionColor: "#0891B2", note: "Back Monday", expiresAt: mockExpiresTwoDaysLaterPM, updatedAt: Date()),
+        FriendStatusWidgetItem(id: "5", firstName: "Ava", lastName: nil, optionId: "commute", optionLabel: "On the way", optionEmoji: "🚗", optionColor: "#2563EB", note: "ETA ~20 min", expiresAt: Date().addingTimeInterval(1200), updatedAt: Date()),
+        FriendStatusWidgetItem(id: "6", firstName: "Max", lastName: nil, optionId: "dnd", optionLabel: "Do not disturb", optionEmoji: "🔕", optionColor: "#EF4444", note: "Recording", expiresAt: nil, updatedAt: Date()),
+        FriendStatusWidgetItem(id: "7", firstName: "Jade", lastName: nil, optionId: "social", optionLabel: "Social", optionEmoji: "🎉", optionColor: "#EC4899", note: "Dinner w/ team", expiresAt: Date().addingTimeInterval(86400), updatedAt: Date()),
+        FriendStatusWidgetItem(id: "8", firstName: "Ron", lastName: nil, optionId: "brb", optionLabel: "Quick break", optionEmoji: "☕", optionColor: "#B45309", note: "Coffee run", expiresAt: nil, updatedAt: Date())
+    ]
 }
 
 let mockStatuses: [FriendStatusWidgetItem] = makeMockStatuses()
@@ -656,10 +671,10 @@ let mockStatuses: [FriendStatusWidgetItem] = makeMockStatuses()
         configuration: {
             var config = ConfigurationAppIntent()
             config.selectedFriends = [
-                FriendEntity(id: "1", name: "Alex"),
-                FriendEntity(id: "2", name: "Emma"),
-                FriendEntity(id: "3", name: "John"),
-                FriendEntity(id: "4", name: "Alice")
+                FriendEntity(id: "1", name: "Mia"),
+                FriendEntity(id: "2", name: "Leo"),
+                FriendEntity(id: "3", name: "Zoe"),
+                FriendEntity(id: "4", name: "Sam")
             ]
             config.backgroundStyle = "Mint-Violet"
             return config
@@ -681,16 +696,7 @@ let mockStatuses: [FriendStatusWidgetItem] = makeMockStatuses()
             config.backgroundStyle = "Aurora"
             return config
         }(),
-        friends: [
-            FriendStatusWidgetItem(id: "1", firstName: "Alex", lastName: nil, optionId: "busy-id", optionLabel: "Busy", optionEmoji: "🟠", optionColor: "#F59E0B", note: "In a meeting", expiresAt: Date().addingTimeInterval(1800), updatedAt: Date()),
-            FriendStatusWidgetItem(id: "2", firstName: "Emma", lastName: nil, optionId: "available-id", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981", note: "Available now", expiresAt: nil, updatedAt: Date()),
-            FriendStatusWidgetItem(id: "3", firstName: "John", lastName: nil, optionId: "focus-id", optionLabel: "Focus", optionEmoji: "🟣", optionColor: "#8B5CF6", note: "Deep work", expiresAt: nil, updatedAt: Date()),
-            FriendStatusWidgetItem(id: "4", firstName: "James", lastName: nil, optionId: "dnd-id", optionLabel: "Do Not Disturb", optionEmoji: "🔴", optionColor: "#EF4444", note: "Do not disturb", expiresAt: Date().addingTimeInterval(3600), updatedAt: Date()),
-            FriendStatusWidgetItem(id: "5", firstName: "Kevin", lastName: nil, optionId: "available-id", optionLabel: "Available", optionEmoji: "🟢", optionColor: "#10B981", note: nil, expiresAt: mockExpiresTwoDaysLater, updatedAt: Date()),
-            FriendStatusWidgetItem(id: "6", firstName: "Henry", lastName: nil, optionId: "busy-id", optionLabel: "Busy", optionEmoji: "🟠", optionColor: "#F59E0B", note: "In a call", expiresAt: Date().addingTimeInterval(600), updatedAt: Date()),
-            FriendStatusWidgetItem(id: "7", firstName: "Melissa", lastName: nil, optionId: "social-id", optionLabel: "Social", optionEmoji: "🩷", optionColor: "#EC4899", note: "At a party", expiresAt: mockExpiresTwoDaysLaterPM, updatedAt: Date()),
-            FriendStatusWidgetItem(id: "8", firstName: "Eve", lastName: nil, optionId: "commute-id", optionLabel: "Commute", optionEmoji: "🔵", optionColor: "#3B82F6", note: "Driving", expiresAt: nil, updatedAt: Date())
-        ],
+        friends: makeMockStatusesEight(),
         hasAnyFriends: true,
         isPremium: true
     )
@@ -703,12 +709,14 @@ private let mockLargeStatuses: [FriendStatusWidgetItem] = {
         "Mia", "Lucas", "Charlotte", "Benjamin", "Amelia", "Daniel", "Harper", "Matthew",
     ]
     let options: [(label: String, emoji: String, color: String)] = [
-        ("Available", "🟢", "#10B981"), ("Busy", "🟠", "#F59E0B"), ("Focus", "🟣", "#8B5CF6"),
-        ("Do Not Disturb", "🔴", "#EF4444"), ("Social", "🩷", "#EC4899"), ("Commute", "🔵", "#3B82F6")
+        ("Available", "✅", "#10B981"), ("In meetings", "📅", "#F59E0B"), ("Deep focus", "🎯", "#8B5CF6"),
+        ("Out of office", "🏝️", "#0891B2"), ("On the way", "🚗", "#2563EB"), ("Do not disturb", "🔕", "#EF4444"),
+        ("Social", "🎉", "#EC4899"), ("Quick break", "☕", "#B45309")
     ]
     return names.enumerated().map { i, name in
         let opt = options[i % options.count]
         let expiresAt: Date? = {
+            if opt.label == "Do not disturb" { return nil }
             switch i % 5 {
             case 0: return mockExpiresTwoDaysLater
             case 1: return mockExpiresTwoDaysLaterPM
