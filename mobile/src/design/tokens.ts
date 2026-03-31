@@ -19,7 +19,7 @@ export type ColorPalette = {
 };
 
 export const lightColors: ColorPalette = {
-  canvas: { background: '#FFFFFF', card: '#F9FAFB', subtle: '#F3F4F6' },
+  canvas: { background: '#FFFFFF', card: '#F3F4F6', subtle: '#E5E7EB' },
   text: { primary: '#2C2C2C', secondary: '#6B7280' },
   interaction: { primary: '#10B981', accent: '#F59E0B', informational: '#A78BFA', disabled: '#D1D5DB', error: '#FF5C5C' },
   tint: { mint: '#ECFDF5', error: '#FEF2F2', premium: '#F0FDF8' },

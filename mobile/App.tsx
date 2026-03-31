@@ -25,7 +25,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors, Typography } from "./src/design";
+import { Typography } from "./src/design";
 import { ThemeProvider, useTheme } from "./src/contexts/ThemeContext";
 import Toast from "react-native-toast-message";
 import * as Linking from "expo-linking";
