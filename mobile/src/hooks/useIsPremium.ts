@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Purchases, { CustomerInfo } from "react-native-purchases";
 import { useAuth } from "../contexts/AuthContext";
 import { widgetStorageService } from "../services/widget-storage.service";
+import { DEV_ALWAYS_SHOW_PAYWALL } from "../config/dev-features";
 
 export function useIsPremium() {
   const { user, loading: authLoading, refreshUser } = useAuth();
@@ -9,10 +10,16 @@ export function useIsPremium() {
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
   const [managementURL, setManagementURL] = useState<string | null>(null);
 
-  const isSubscriptionActive = user?.is_premium ?? false;
-  const isInGracePeriod = user?.is_in_grace_period ?? false;
+  const devForcePaywall = __DEV__ && DEV_ALWAYS_SHOW_PAYWALL;
+
+  const isSubscriptionActiveRaw = user?.is_premium ?? false;
+  const isInGracePeriodRaw = user?.is_in_grace_period ?? false;
   /** Matches API feature gating (active subscription or 3-day grace). */
-  const hasPremiumAccess = isSubscriptionActive || isInGracePeriod;
+  const hasPremiumAccessRaw = isSubscriptionActiveRaw || isInGracePeriodRaw;
+
+  const isSubscriptionActive = devForcePaywall ? false : isSubscriptionActiveRaw;
+  const isInGracePeriod = devForcePaywall ? false : isInGracePeriodRaw;
+  const hasPremiumAccess = devForcePaywall ? false : hasPremiumAccessRaw;
 
   // Keep widget storage in sync — widgets should reflect the same access level as the API
   useEffect(() => {
