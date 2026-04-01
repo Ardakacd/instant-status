@@ -40,6 +40,8 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
       await widgetStorageService.removeFriendFromWidget(String(data.peer_user_id));
     } else if (type === "widget_resync_friends") {
       await syncWidgetFriendsFromApiInBackground();
+    } else if (type === "friend_added") {
+      await syncWidgetFriendsFromApiInBackground();
     }
   } catch (error) {
     Sentry.captureException(error);

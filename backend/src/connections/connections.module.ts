@@ -11,7 +11,7 @@ import { UserModule } from '../user/user.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Connection, User, DeviceToken]),
-    AuthModule,
+    forwardRef(() => AuthModule),
     forwardRef(() => UserModule),
   ],
   controllers: [ConnectionsController],

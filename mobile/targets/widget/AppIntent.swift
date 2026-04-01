@@ -4,8 +4,8 @@ import AppIntents
 import Foundation
 
 // MARK: - Constants
-// UserDefaults keys for widget payload: WidgetStorageKeys.generated.swift (run: npm run generate:widget-keys)
-private let APP_GROUP_ID = "group.com.arda.instantstatus.dev"
+// App Group id: AppGroup.generated.swift (npm run generate:ios-app-group / prebuild).
+// UserDefaults keys for widget payload: WidgetStorageKeys.generated.swift (npm run generate:widget-keys)
 // MARK: - Status Model
 
 struct FriendStatusWidgetItem: Codable, Identifiable {
@@ -157,13 +157,13 @@ struct FriendDataService {
 
     /// App syncs premium status; widget gates premium backgrounds.
     func fetchIsPremium() -> Bool {
-        guard let defaults = UserDefaults(suiteName: APP_GROUP_ID) else { return false }
+        guard let defaults = UserDefaults(suiteName: AppGroupConstants.id) else { return false }
         return defaults.string(forKey: WidgetStorageKeys.isPremium) == "true"
     }
 
     func fetchAllFriends() -> [FriendStatusWidgetItem] {
         guard
-            let defaults = UserDefaults(suiteName: APP_GROUP_ID),
+            let defaults = UserDefaults(suiteName: AppGroupConstants.id),
             let jsonString = defaults.string(forKey: WidgetStorageKeys.widgetData),
             let jsonData = jsonString.data(using: .utf8)
         else {

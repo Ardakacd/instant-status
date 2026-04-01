@@ -377,6 +377,8 @@ function AppNavigator() {
         await widgetStorageService.removeFriendFromWidget(msg.data.peer_user_id);
       } else if (msg.data?.type === "widget_resync_friends" && isMounted) {
         await syncWidgetFriendsFromApiInBackground();
+      } else if (msg.data?.type === "friend_added" && isMounted) {
+        await syncWidgetFriendsFromApiInBackground();
       }
     });
 

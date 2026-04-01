@@ -10,7 +10,9 @@ import {
   WIDGET_PENDING_TIMELINE_RELOAD_KEY,
 } from "../../android-widget/widget-shared";
 
-const APP_GROUP_ID = "group.com.arda.instantstatus.dev";
+/** Must match App Group in Apple Developer, app entitlements, and AppGroup.generated.swift (prebuild). */
+const APP_GROUP_ID =
+  process.env.EXPO_PUBLIC_IOS_APP_GROUP ?? "group.com.arda.instantstatus.dev";
 
 interface FriendStatusWidgetItem {
   id: string;

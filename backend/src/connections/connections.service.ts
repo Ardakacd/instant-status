@@ -693,6 +693,17 @@ export class ConnectionsService {
           `Error sending friend added push notifications: ${error.message}`,
           error.stack,
         );
+        return;
+      }
+
+      try {
+        // Silent resync so widget storage updates without opening the app (iOS alert path often skips JS).
+        await this.sendWidgetFriendsResyncSilentPush(friendUserId);
+      } catch (error: any) {
+        this.logger.error(
+          `Friend-added widget resync push: ${error.message}`,
+          error.stack,
+        );
       }
     } catch (error: any) {
       this.logger.error(

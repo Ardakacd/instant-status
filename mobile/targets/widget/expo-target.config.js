@@ -1,3 +1,5 @@
+const { resolveFromEnv } = require("../../app-group.shared");
+
 /** @type {import('@bacons/apple-targets/app.plugin').ConfigFunction} */
 module.exports = (config) => ({
   type: "widget",
@@ -5,9 +7,7 @@ module.exports = (config) => ({
   icon: "../../assets/logo.png",
   bundleIdentifier: "com.arda.instantstatus.dev.widget",
   entitlements: {
-    "com.apple.security.application-groups": [
-      "group.com.arda.instantstatus.dev",
-    ],
+    "com.apple.security.application-groups": [resolveFromEnv()],
   },
   // Exclude Firebase frameworks from widget extension since it doesn't use Firebase
   // Widget only reads from App Group storage (UserDefaults)
