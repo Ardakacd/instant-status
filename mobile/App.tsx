@@ -376,9 +376,15 @@ function AppNavigator() {
       } else if (msg.data?.type === "friend_removed" && msg.data.peer_user_id && isMounted) {
         await widgetStorageService.removeFriendFromWidget(msg.data.peer_user_id);
       } else if (msg.data?.type === "widget_resync_friends" && isMounted) {
-        await syncWidgetFriendsFromApiInBackground();
+        const synced = await syncWidgetFriendsFromApiInBackground();
+        if (!synced) {
+          await widgetStorageService.reloadWidget();
+        }
       } else if (msg.data?.type === "friend_added" && isMounted) {
-        await syncWidgetFriendsFromApiInBackground();
+        const synced = await syncWidgetFriendsFromApiInBackground();
+        if (!synced) {
+          await widgetStorageService.reloadWidget();
+        }
       }
     });
 

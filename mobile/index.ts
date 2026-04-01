@@ -43,9 +43,15 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
     } else if (type === "friend_removed" && data?.peer_user_id) {
       await widgetStorageService.removeFriendFromWidget(String(data.peer_user_id));
     } else if (type === "widget_resync_friends") {
-      await syncWidgetFriendsFromApiInBackground();
+      const synced = await syncWidgetFriendsFromApiInBackground();
+      if (!synced) {
+        await widgetStorageService.reloadWidget();
+      }
     } else if (type === "friend_added") {
-      await syncWidgetFriendsFromApiInBackground();
+      const synced = await syncWidgetFriendsFromApiInBackground();
+      if (!synced) {
+        await widgetStorageService.reloadWidget();
+      }
     }
   } catch (error) {
     Sentry.captureException(error);
