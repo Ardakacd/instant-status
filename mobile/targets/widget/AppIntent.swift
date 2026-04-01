@@ -123,11 +123,30 @@ struct RefreshWidgetIntent: AppIntent {
     static var title: LocalizedStringResource = "Refresh Friend Status"
     static var description = IntentDescription("Refresh the widget to show the latest friend statuses")
     
-    // This is what happens when the button is pressed
     func perform() async throws -> some IntentResult {
-        // Returning .result() automatically tells iOS to reload the widget's timeline
-        // iOS will call the timeline provider to fetch fresh data
+        await MainActor.run {
+            WidgetCenter.shared.reloadTimelines(ofKind: "InstantStatusWidget")
+        }
         return .result()
+    }
+}
+
+// MARK: - ISO8601 (API / JS may include or omit fractional seconds)
+
+private enum WidgetJSONDates {
+    private static let internetDateTimeNoFraction: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    /// API / RN usually send `toISOString()` (with ms); some paths omit fractional seconds.
+    static func parse(_ raw: String) -> Date? {
+        let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !s.isEmpty else { return nil }
+        if let d = ISO8601DateFormatter.withFractionalSeconds.date(from: s) { return d }
+        if let d = internetDateTimeNoFraction.date(from: s) { return d }
+        return nil
     }
 }
 
@@ -151,18 +170,16 @@ struct FriendDataService {
             return []
         }
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .custom { decoder in
-            let container = try decoder.singleValueContainer()
+        decoder.dateDecodingStrategy = .custom { dec in
+            let container = try dec.singleValueContainer()
             let dateString = try container.decode(String.self)
-
-            if let date = ISO8601DateFormatter.withFractionalSeconds.date(from: dateString) {
-                return date
+            guard let date = WidgetJSONDates.parse(dateString) else {
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Invalid ISO8601 date: \(dateString)"
+                )
             }
-
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Invalid ISO8601 date: \(dateString)"
-            )
+            return date
         }
 
         do {

@@ -53,7 +53,14 @@ async function loadWidgetData(widgetId: number): Promise<{
     let filteredFriends: FriendStatusWidgetItem[];
     if (savedSelection) {
       const selectedIds: string[] = JSON.parse(savedSelection);
-      filteredFriends = allFriends.filter((f) => selectedIds.includes(f.id));
+      // Match iOS: nil / empty selection = show everyone (ConfigurationAppIntent uses all when empty).
+      if (selectedIds.length === 0) {
+        filteredFriends = [...allFriends];
+      } else {
+        filteredFriends = selectedIds
+          .map((id) => allFriends.find((f) => f.id === id))
+          .filter((f): f is FriendStatusWidgetItem => f != null);
+      }
     } else {
       // No config: use all friends (same as iOS). Widget caps by layout.
       filteredFriends = [...allFriends];

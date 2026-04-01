@@ -8,7 +8,7 @@ import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
 import { EntityManager, Repository } from "typeorm";
 import { Connection } from "../entities/connection.entity";
-import { DeviceToken } from "../entities/device-token.entity";
+import { DeviceToken, Platform } from "../entities/device-token.entity";
 import { User } from "../entities/user.entity";
 import { isUserPremium, PREMIUM_GRACE_PERIOD_MS, CUSTOM_STATUS_POST_EXPIRY_RESET_MS } from "../utils/premium";
 import * as admin from "firebase-admin";
@@ -227,6 +227,17 @@ export class ConnectionsService {
       }
 
       await this.connectionRepository.remove(connection);
+
+      // Widget snapshot is delta-updated; remove the peer from each side's stored list.
+      void Promise.all([
+        this.sendFriendRemovedSilentPush(userId, friendId),
+        this.sendFriendRemovedSilentPush(friendId, userId),
+      ]).catch((error: any) => {
+        this.logger.error(
+          `Friend removed widget push: ${error.message}`,
+          error.stack,
+        );
+      });
     } catch (error: any) {
       // Re-throw NotFoundException as-is
       if (error instanceof NotFoundException) {
@@ -260,6 +271,8 @@ export class ConnectionsService {
         throw new NotFoundException("Connection not found");
       }
 
+      const wasVisible = this.isStatusVisible(connection);
+
       // Determine which field to update based on which user is making the request
       if (userId === a) {
         connection.a_shows_status = showsStatus;
@@ -267,7 +280,23 @@ export class ConnectionsService {
         connection.b_shows_status = showsStatus;
       }
 
-      return await this.connectionRepository.save(connection);
+      const nowVisible = this.isStatusVisible(connection);
+      const saved = await this.connectionRepository.save(connection);
+
+      // Mutual visibility flips how /status/friends represents this row (real vs default).
+      if (wasVisible !== nowVisible) {
+        void Promise.all([
+          this.sendWidgetFriendsResyncSilentPush(a),
+          this.sendWidgetFriendsResyncSilentPush(b),
+        ]).catch((error: any) => {
+          this.logger.error(
+            `Widget resync push after visibility change: ${error.message}`,
+            error.stack,
+          );
+        });
+      }
+
+      return saved;
     } catch (error: any) {
       // Re-throw NotFoundException as-is
       if (error instanceof NotFoundException) {
@@ -423,6 +452,163 @@ export class ConnectionsService {
       this.logger.error(`Error creating connection: ${err.message}`, err.stack);
       throw new InternalServerErrorException("Failed to create connection");
     }
+  }
+
+  /**
+   * Before user row deletion: CASCADE removes connections without `delete()`, so peers never get
+   * `friend_removed` unless we push here.
+   */
+  async notifyPeersUserAccountDeleted(deletedUserId: string): Promise<void> {
+    try {
+      const connections = await this.connectionRepository.find({
+        where: [{ user_id: deletedUserId }, { friend_id: deletedUserId }],
+      });
+      if (connections.length === 0) return;
+
+      const peerIds = new Set<string>();
+      for (const c of connections) {
+        peerIds.add(c.user_id === deletedUserId ? c.friend_id : c.user_id);
+      }
+
+      await Promise.all(
+        [...peerIds].map((peerId) =>
+          this.sendFriendRemovedSilentPush(peerId, deletedUserId),
+        ),
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `notifyPeersUserAccountDeleted: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  /**
+   * Silent data push so clients drop a peer from the widget snapshot (connection deleted).
+   */
+  private async sendFriendRemovedSilentPush(
+    recipientUserId: string,
+    removedPeerUserId: string,
+  ): Promise<void> {
+    const deviceTokens = await this.deviceTokenRepository.find({
+      where: { user_id: recipientUserId },
+    });
+    if (deviceTokens.length === 0) return;
+
+    const commonData: Record<string, string> = {
+      type: "friend_removed",
+      peer_user_id: removedPeerUserId,
+      timestamp: new Date().toISOString(),
+    };
+
+    const messages: any[] = [];
+    const tokenToIdMap = new Map<string, string>();
+
+    for (const token of deviceTokens) {
+      tokenToIdMap.set(token.token, token.id);
+      messages.push({
+        token: token.token,
+        data: commonData,
+        android: { priority: "high" as const },
+        apns: {
+          headers: {
+            "apns-push-type": "background",
+            "apns-priority": "5",
+          },
+          payload: {
+            aps: { "content-available": 1 },
+          },
+        },
+      });
+
+      if (token.platform === Platform.IOS) {
+        messages.push({
+          token: token.token,
+          data: commonData,
+          apns: {
+            headers: {
+              "apns-push-type": "background",
+              "apns-priority": "5",
+            },
+            payload: {
+              aps: { "content-available": 1 },
+            },
+          },
+        });
+        tokenToIdMap.set(token.token, token.id);
+      }
+    }
+
+    await sendEachAndCleanup(
+      this.firebaseAdmin,
+      messages,
+      tokenToIdMap,
+      this.deviceTokenRepository,
+      this.logger,
+    );
+  }
+
+  /**
+   * Silent push: refetch GET /status/friends into widget (visibility changes real vs default row).
+   */
+  private async sendWidgetFriendsResyncSilentPush(
+    targetUserId: string,
+  ): Promise<void> {
+    const deviceTokens = await this.deviceTokenRepository.find({
+      where: { user_id: targetUserId },
+    });
+    if (deviceTokens.length === 0) return;
+
+    const commonData: Record<string, string> = {
+      type: "widget_resync_friends",
+      timestamp: new Date().toISOString(),
+    };
+
+    const messages: any[] = [];
+    const tokenToIdMap = new Map<string, string>();
+
+    for (const token of deviceTokens) {
+      tokenToIdMap.set(token.token, token.id);
+      messages.push({
+        token: token.token,
+        data: commonData,
+        android: { priority: "high" as const },
+        apns: {
+          headers: {
+            "apns-push-type": "background",
+            "apns-priority": "5",
+          },
+          payload: {
+            aps: { "content-available": 1 },
+          },
+        },
+      });
+
+      if (token.platform === Platform.IOS) {
+        messages.push({
+          token: token.token,
+          data: commonData,
+          apns: {
+            headers: {
+              "apns-push-type": "background",
+              "apns-priority": "5",
+            },
+            payload: {
+              aps: { "content-available": 1 },
+            },
+          },
+        });
+        tokenToIdMap.set(token.token, token.id);
+      }
+    }
+
+    await sendEachAndCleanup(
+      this.firebaseAdmin,
+      messages,
+      tokenToIdMap,
+      this.deviceTokenRepository,
+      this.logger,
+    );
   }
 
   private async sendFriendAddedPush(

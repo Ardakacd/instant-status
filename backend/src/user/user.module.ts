@@ -7,11 +7,13 @@ import { Status } from '../entities/status.entity';
 import { AuthModule } from '../auth/auth.module';
 import { EmailModule } from '../email/email.module';
 import { StatusOptionModule } from '../status-option/status-option.module';
+import { ConnectionsModule } from '../connections/connections.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Status]),
     forwardRef(() => AuthModule),
+    forwardRef(() => ConnectionsModule),
     EmailModule,
     StatusOptionModule,
   ],

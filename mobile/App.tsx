@@ -35,6 +35,7 @@ import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { messagingService } from "./src/services/messaging.service";
 import { deviceTokenService } from "./src/services/device-token.service";
 import { widgetStorageService } from "./src/services/widget-storage.service";
+import { syncWidgetFriendsFromApiInBackground } from "./src/services/widget-background-sync";
 import { statusService } from "./src/services/status.service";
 
 // Screens
@@ -372,6 +373,10 @@ function AppNavigator() {
             msg.data.timestamp,
           );
         }
+      } else if (msg.data?.type === "friend_removed" && msg.data.peer_user_id && isMounted) {
+        await widgetStorageService.removeFriendFromWidget(msg.data.peer_user_id);
+      } else if (msg.data?.type === "widget_resync_friends" && isMounted) {
+        await syncWidgetFriendsFromApiInBackground();
       }
     });
 

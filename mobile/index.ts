@@ -36,6 +36,10 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
       );
       // Reconcile full list with server (delta push can miss edge cases; iOS may coalesce alerts).
       await syncWidgetFriendsFromApiInBackground();
+    } else if (type === "friend_removed" && data?.peer_user_id) {
+      await widgetStorageService.removeFriendFromWidget(String(data.peer_user_id));
+    } else if (type === "widget_resync_friends") {
+      await syncWidgetFriendsFromApiInBackground();
     }
   } catch (error) {
     Sentry.captureException(error);

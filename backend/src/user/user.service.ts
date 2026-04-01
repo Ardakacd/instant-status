@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   InternalServerErrorException,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -12,6 +14,7 @@ import { EmailService } from "../email/email.service";
 import { StatusOptionService } from "../status-option/status-option.service";
 import { LIFETIME_PREMIUM_UNTIL } from "../utils/premium";
 import { redactEmail, redactUid } from "../utils/redact";
+import { ConnectionsService } from "../connections/connections.service";
 
 @Injectable()
 export class UserService {
@@ -25,6 +28,8 @@ export class UserService {
     private dataSource: DataSource,
     private emailService: EmailService,
     private statusOptionService: StatusOptionService,
+    @Inject(forwardRef(() => ConnectionsService))
+    private connectionsService: ConnectionsService,
   ) {}
 
   async findById(id: string): Promise<User | null> {
@@ -291,6 +296,8 @@ export class UserService {
       if (!user) {
         throw new NotFoundException("User not found");
       }
+
+      await this.connectionsService.notifyPeersUserAccountDeleted(user.id);
 
       // Cascade delete will handle all related records (statuses, connections, invite codes, device tokens)
       await this.userRepository.remove(user);

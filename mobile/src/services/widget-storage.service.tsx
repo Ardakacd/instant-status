@@ -189,6 +189,60 @@ export class WidgetStorageService {
     }
   }
 
+  /**
+   * Remove one friend from the widget snapshot (e.g. after unfriend push). No-op if not present.
+   */
+  async removeFriendFromWidget(peerUserId: string): Promise<void> {
+    try {
+      const id = String(peerUserId || "").trim();
+      if (!id) return;
+
+      let friendsData: FriendStatusWidgetItem[] = [];
+
+      if (Platform.OS === "ios" && this.storage) {
+        const existingData = this.storage.get(WIDGET_DATA_KEY);
+        if (existingData) {
+          try {
+            const dataString =
+              typeof existingData === "string"
+                ? existingData
+                : JSON.stringify(existingData);
+            friendsData = JSON.parse(dataString);
+          } catch {
+            friendsData = [];
+          }
+        }
+      } else if (Platform.OS === "android") {
+        const existingData = await AsyncStorage.getItem(WIDGET_DATA_KEY);
+        if (existingData) {
+          try {
+            friendsData = JSON.parse(existingData);
+          } catch {
+            friendsData = [];
+          }
+        }
+      } else {
+        return;
+      }
+
+      const next = friendsData.filter((f) => f.id !== id);
+      if (next.length === friendsData.length) return;
+
+      const jsonString = JSON.stringify(next);
+
+      if (Platform.OS === "ios" && this.storage) {
+        this.storage.set(WIDGET_DATA_KEY, jsonString);
+        this.markIosTimelineReloadPending();
+        this.scheduleReload();
+      } else if (Platform.OS === "android") {
+        await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
+        await this.triggerAndroidUpdate();
+      }
+    } catch (error) {
+      Sentry.captureException(error);
+    }
+  }
+
   async saveAllFriendStatuses(statuses: Status[]): Promise<void> {
     try {
       const widgetData: FriendStatusWidgetItem[] = statuses.map((status) => ({

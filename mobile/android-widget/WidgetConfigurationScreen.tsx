@@ -74,7 +74,12 @@ function WidgetConfigurationScreenContent({
       const savedSelection = await AsyncStorage.getItem(configKey);
       if (savedSelection) {
         const selectedIds: string[] = JSON.parse(savedSelection);
-        setSelectedFriendIds(new Set(selectedIds));
+        // Match iOS: empty stored selection means "all friends", not an empty widget.
+        if (selectedIds.length > 0) {
+          setSelectedFriendIds(new Set(selectedIds));
+        } else {
+          setSelectedFriendIds(new Set(parsedFriends.map((f) => f.id)));
+        }
       } else {
         // No saved selection: pre-select all friends (same as iOS "no config = all")
         setSelectedFriendIds(new Set(parsedFriends.map((f) => f.id)));
@@ -105,8 +110,8 @@ function WidgetConfigurationScreenContent({
         isPremium={isPremium}
         backgroundStyle={bg}
         isDarkMode={false}
-        widgetHeightDp={widgetInfo.width}
-        widgetWidthDp={widgetInfo.height}
+        widgetWidthDp={widgetInfo.width}
+        widgetHeightDp={widgetInfo.height}
       />
     );
   }
