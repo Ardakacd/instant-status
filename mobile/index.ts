@@ -32,10 +32,14 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
         data.option_color ? String(data.option_color) : null,
         data.note ? String(data.note) : null,
         data.expires_at ? String(data.expires_at) : null,
-        data.timestamp ? String(data.timestamp) : new Date().toISOString()
+        data.timestamp ? String(data.timestamp) : new Date().toISOString(),
+        { deferWidgetRefresh: true }
       );
       // Reconcile full list with server (delta push can miss edge cases; iOS may coalesce alerts).
-      await syncWidgetFriendsFromApiInBackground();
+      const synced = await syncWidgetFriendsFromApiInBackground();
+      if (!synced) {
+        await widgetStorageService.reloadWidget();
+      }
     } else if (type === "friend_removed" && data?.peer_user_id) {
       await widgetStorageService.removeFriendFromWidget(String(data.peer_user_id));
     } else if (type === "widget_resync_friends") {

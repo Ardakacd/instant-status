@@ -104,6 +104,10 @@ export class WidgetStorageService {
     }
   }
 
+  /**
+   * @param options.deferWidgetRefresh When true, persist only — no iOS reload / Android requestWidgetUpdate.
+   * Use before an immediate `saveAllFriendStatuses` to avoid two Android updates per FCM.
+   */
   async updateFriendStatus(
     userId: string,
     displayName: string,
@@ -113,7 +117,8 @@ export class WidgetStorageService {
     optionColor: string | null,
     note: string | null,
     expiresAt: string | null,
-    timestamp: string
+    timestamp: string,
+    options?: { deferWidgetRefresh?: boolean }
   ): Promise<void> {
     try {
       let friendsData: FriendStatusWidgetItem[] = [];
@@ -176,15 +181,20 @@ export class WidgetStorageService {
       }
 
       const jsonString = JSON.stringify(friendsData);
+      const deferRefresh = options?.deferWidgetRefresh === true;
 
       // 4. Save and Reload (debounced on iOS to batch rapid push updates)
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
-        this.markIosTimelineReloadPending();
-        this.scheduleReload();
+        if (!deferRefresh) {
+          this.markIosTimelineReloadPending();
+          this.scheduleReload();
+        }
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
-        await this.triggerAndroidUpdate();
+        if (!deferRefresh) {
+          await this.triggerAndroidUpdate();
+        }
       }
     } catch (error) {
       Sentry.captureException(error);
