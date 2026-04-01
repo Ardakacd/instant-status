@@ -6,6 +6,7 @@
     "start": "expo start",
     "android": "expo run:android",
     "prewidget": "EXPO_NO_GIT_STATUS=1 npx expo prebuild --template ./node_modules/@bacons/apple-targets/prebuild-blank.tgz --clean",
+    "generate:widget-keys": "node scripts/generate-widget-storage-keys-swift.mjs",
     "generate:logo-assets": "node scripts/generate-logo-assets.mjs",
     "scale:logo-mark": "node scripts/scale-logo-mark.mjs",
     "generate:adaptive-icon": "node scripts/generate-logo-assets.mjs",

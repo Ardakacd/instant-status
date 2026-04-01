@@ -90,7 +90,6 @@ async function renderCurrentWidget(props: WidgetTaskHandlerProps) {
 
   const widgetWidthDp  = props.widgetInfo.width;
   const widgetHeightDp = props.widgetInfo.height;
-  console.log(`[Widget] widgetWidthDp: ${widgetWidthDp}, widgetHeightDp: ${widgetHeightDp}`);
 
   const { friends, hasAnyFriends, isPremium, backgroundStyle } =
     await loadWidgetData(props.widgetInfo.widgetId);

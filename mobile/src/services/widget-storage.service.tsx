@@ -1,13 +1,15 @@
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import { ExtensionStorage } from "@bacons/apple-targets";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Status } from "../types";
 import { requestWidgetUpdate } from "react-native-android-widget";
 import Sentry from "../../sentry";
+import {
+  IS_PREMIUM_KEY,
+  WIDGET_DATA_KEY,
+} from "../../android-widget/widget-shared";
 
 const APP_GROUP_ID = "group.com.arda.instantstatus.dev";
-const WIDGET_DATA_KEY = "widget_status_data";
-const IS_PREMIUM_KEY = "is_premium";
 
 interface FriendStatusWidgetItem {
   id: string;
@@ -40,13 +42,24 @@ export class WidgetStorageService {
   private scheduleReload() {
     if (this.reloadTimeout) {
       clearTimeout(this.reloadTimeout);
+      this.reloadTimeout = null;
     }
-    this.reloadTimeout = setTimeout(() => {
+
+    const runReload = () => {
       if (Platform.OS === "ios") {
         ExtensionStorage.reloadWidget("InstantStatusWidget");
       }
       this.reloadTimeout = null;
-    }, this.DEBOUNCE_MS);
+    };
+
+    // Background / inactive: timers often never fire before suspension; App Group is
+    // already updated — reload immediately. Foreground: debounce rapid updates.
+    if (Platform.OS === "ios" && AppState.currentState !== "active") {
+      runReload();
+      return;
+    }
+
+    this.reloadTimeout = setTimeout(runReload, this.DEBOUNCE_MS);
   }
 
   /**
@@ -62,14 +75,13 @@ export class WidgetStorageService {
    */
   private async triggerAndroidUpdate() {
     try {
-      // We only tell Android: "The data for this widget class has changed."
-      // We don't provide a render function here.
-      // This forces the 'widgetTaskHandler.ts' to run for EVERY instance of the widget on the home screen.
-      // Type assertion is needed because TypeScript types require renderWidget, but the runtime API
-      // supports calling without it, which triggers the handler to be the single source of truth.
-      await requestWidgetUpdate({
+      // Omit renderWidget intentionally — the runtime supports it even though the type does not.
+      // Omitting it causes Android to invoke widgetTaskHandler for every on-screen instance,
+      // which is the single source of truth for per-widget config (selected friends, background).
+      type TriggerOnly = { widgetName: string; widgetNotFound?: () => void };
+      await (requestWidgetUpdate as unknown as (p: TriggerOnly) => Promise<void>)({
         widgetName: "InstantStatusWidget",
-      } as any);
+      });
     } catch (error) {
       Sentry.captureException(error);
     }
@@ -181,7 +193,7 @@ export class WidgetStorageService {
 
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
-        ExtensionStorage.reloadWidget("InstantStatusWidget");
+        this.scheduleReload();
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
         await this.triggerAndroidUpdate();
@@ -209,7 +221,7 @@ export class WidgetStorageService {
     try {
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(IS_PREMIUM_KEY, isPremium ? "true" : "false");
-        ExtensionStorage.reloadWidget("InstantStatusWidget");
+        this.scheduleReload();
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(IS_PREMIUM_KEY, isPremium ? "true" : "false");
         await this.triggerAndroidUpdate();

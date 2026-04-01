@@ -35,6 +35,7 @@ import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { messagingService } from "./src/services/messaging.service";
 import { deviceTokenService } from "./src/services/device-token.service";
 import { widgetStorageService } from "./src/services/widget-storage.service";
+import { statusService } from "./src/services/status.service";
 
 // Screens
 import LoginScreen from "./src/screens/LoginScreen";
@@ -530,6 +531,43 @@ function AppNavigator() {
   );
 }
 
+/**
+ * When returning from background, refetch friends' statuses and push to widget storage
+ * so the home-screen widget matches the server even if a push was missed.
+ * (reloadWidget alone would only redraw stale App Group / AsyncStorage data.)
+ */
+function WidgetFriendsForegroundSync() {
+  const { user } = useAuth();
+  const appStateRef = useRef(AppState.currentState);
+
+  useEffect(() => {
+    if (Platform.OS !== "ios" && Platform.OS !== "android") {
+      return;
+    }
+
+    const sub = AppState.addEventListener("change", async (nextAppState) => {
+      const cameToForeground =
+        appStateRef.current.match(/inactive|background/) != null &&
+        nextAppState === "active";
+
+      if (cameToForeground && user) {
+        try {
+          const statuses = await statusService.getFriendsStatus();
+          await widgetStorageService.saveAllFriendStatuses(statuses);
+        } catch (e) {
+          Sentry.captureException(e);
+        }
+      }
+
+      appStateRef.current = nextAppState;
+    });
+
+    return () => sub.remove();
+  }, [user]);
+
+  return null;
+}
+
 function AppNavigatorWithTheme() {
   const { isDark } = useTheme();
   return (
@@ -618,6 +656,7 @@ function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
+          <WidgetFriendsForegroundSync />
           <AppNavigatorWithTheme />
           <Toast config={toastConfig} topOffset={60} />
         </AuthProvider>

@@ -1,6 +1,7 @@
 import { registerRootComponent } from "expo";
 import { getMessaging, setBackgroundMessageHandler } from "@react-native-firebase/messaging";
 import { widgetStorageService } from "./src/services/widget-storage.service";
+import { syncWidgetFriendsFromApiInBackground } from "./src/services/widget-background-sync";
 import Sentry from "./sentry";
 import {
   registerWidgetTaskHandler,
@@ -17,35 +18,24 @@ import App from "./App";
  * It runs in a separate "Headless" context when the app is quit or in the background.
  */
 setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
-
   try {
-    // Only process if it's a status update
-    if (remoteMessage.data?.type === "status_update") {
-      const {
-        user_id,
-        display_name,
-        option_id,
-        option_label,
-        option_emoji,
-        option_color,
-        note,
-        expires_at,
-        timestamp
-      } = remoteMessage.data;
+    const data = remoteMessage.data as Record<string, string> | undefined;
+    const type = data?.type;
 
-      // Update the widget storage (This works for both iOS and Android widgets)
+    if (type === "status_update" && data) {
       await widgetStorageService.updateFriendStatus(
-        String(user_id || ""),
-        String(display_name || ""),
-        option_id ? String(option_id) : null,
-        option_label ? String(option_label) : null,
-        option_emoji ? String(option_emoji) : null,
-        option_color ? String(option_color) : null,
-        note ? String(note) : null,
-        expires_at ? String(expires_at) : null,
-        timestamp ? String(timestamp) : new Date().toISOString()
+        String(data.user_id || ""),
+        String(data.display_name || ""),
+        data.option_id ? String(data.option_id) : null,
+        data.option_label ? String(data.option_label) : null,
+        data.option_emoji ? String(data.option_emoji) : null,
+        data.option_color ? String(data.option_color) : null,
+        data.note ? String(data.note) : null,
+        data.expires_at ? String(data.expires_at) : null,
+        data.timestamp ? String(data.timestamp) : new Date().toISOString()
       );
-
+      // Reconcile full list with server (delta push can miss edge cases; iOS may coalesce alerts).
+      await syncWidgetFriendsFromApiInBackground();
     }
   } catch (error) {
     Sentry.captureException(error);
