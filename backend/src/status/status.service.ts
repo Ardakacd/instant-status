@@ -10,7 +10,7 @@ import { Repository, In } from "typeorm";
 import { Status } from "../entities/status.entity";
 import { StatusOption } from "../entities/status-option.entity";
 import { Connection } from "../entities/connection.entity";
-import { DeviceToken } from "../entities/device-token.entity";
+import { DeviceToken, Platform } from "../entities/device-token.entity";
 import { User } from "../entities/user.entity";
 import { StatusOptionService } from "../status-option/status-option.service";
 import * as admin from "firebase-admin";
@@ -524,7 +524,30 @@ export class StatusService {
               },
             },
           },
-        });
+      });
+
+        // iOS: separate data-only background message so RN setBackgroundMessageHandler can run
+        // even when the alert path does not deliver data to JS (common with notification+alert).
+        // Same payload as alert `data` so the handler can apply updateFriendStatus locally without
+        // relying on an authenticated API call in headless mode.
+        if (token.platform === Platform.IOS) {
+          messages.push({
+            token: token.token,
+            data: commonData,
+            apns: {
+              headers: {
+                "apns-push-type": "background",
+                "apns-priority": "5",
+              },
+              payload: {
+                aps: {
+                  "content-available": 1,
+                },
+              },
+            },
+          });
+          tokenToIdMap.set(token.token, token.id);
+        }
       }
 
       try {

@@ -5,5 +5,6 @@ import Foundation
 
 enum WidgetStorageKeys {
     static let widgetData: String = "widget_status_data"
+    static let pendingTimelineReload: String = "widget_pending_timeline_reload"
     static let isPremium: String = "is_premium"
 }

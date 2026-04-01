@@ -7,6 +7,7 @@ import Sentry from "../../sentry";
 import {
   IS_PREMIUM_KEY,
   WIDGET_DATA_KEY,
+  WIDGET_PENDING_TIMELINE_RELOAD_KEY,
 } from "../../android-widget/widget-shared";
 
 const APP_GROUP_ID = "group.com.arda.instantstatus.dev";
@@ -35,6 +36,19 @@ export class WidgetStorageService {
     }
   }
 
+  /** Lets AppDelegate reload only when debounce did not run before suspend (saves WidgetKit budget). */
+  private markIosTimelineReloadPending() {
+    if (Platform.OS === "ios" && this.storage) {
+      this.storage.set(WIDGET_PENDING_TIMELINE_RELOAD_KEY, "1");
+    }
+  }
+
+  private clearIosTimelineReloadPending() {
+    if (Platform.OS === "ios" && this.storage) {
+      this.storage.remove(WIDGET_PENDING_TIMELINE_RELOAD_KEY);
+    }
+  }
+
   /**
    * Debounce widget reload — batches rapid per-friend updates into a single reload.
    * Data is saved immediately; only the reload is delayed until updates settle.
@@ -48,6 +62,7 @@ export class WidgetStorageService {
     const runReload = () => {
       if (Platform.OS === "ios") {
         ExtensionStorage.reloadWidget("InstantStatusWidget");
+        this.clearIosTimelineReloadPending();
       }
       this.reloadTimeout = null;
     };
@@ -163,6 +178,7 @@ export class WidgetStorageService {
       // 4. Save and Reload (debounced on iOS to batch rapid push updates)
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
+        this.markIosTimelineReloadPending();
         this.scheduleReload();
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
@@ -193,6 +209,7 @@ export class WidgetStorageService {
 
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
+        this.markIosTimelineReloadPending();
         this.scheduleReload();
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
@@ -209,6 +226,7 @@ export class WidgetStorageService {
   async reloadWidget(): Promise<void> {
     if (Platform.OS === "ios") {
       ExtensionStorage.reloadWidget("InstantStatusWidget");
+      this.clearIosTimelineReloadPending();
     } else if (Platform.OS === "android") {
       await this.triggerAndroidUpdate();
     }
@@ -221,6 +239,7 @@ export class WidgetStorageService {
     try {
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(IS_PREMIUM_KEY, isPremium ? "true" : "false");
+        this.markIosTimelineReloadPending();
         this.scheduleReload();
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(IS_PREMIUM_KEY, isPremium ? "true" : "false");
@@ -373,6 +392,7 @@ export class WidgetStorageService {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
         this.storage.set(IS_PREMIUM_KEY, "true");
         ExtensionStorage.reloadWidget("InstantStatusWidget");
+        this.clearIosTimelineReloadPending();
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
         await AsyncStorage.setItem(IS_PREMIUM_KEY, "true");
@@ -397,6 +417,7 @@ export class WidgetStorageService {
         this.storage.remove(WIDGET_DATA_KEY);
         this.storage.remove(IS_PREMIUM_KEY);
         ExtensionStorage.reloadWidget("InstantStatusWidget");
+        this.clearIosTimelineReloadPending();
       } else if (Platform.OS === "android") {
         await AsyncStorage.removeItem(WIDGET_DATA_KEY);
         await AsyncStorage.removeItem(IS_PREMIUM_KEY);

@@ -6,10 +6,18 @@ const {
 const TAG_IMPORT = "instant-status-widgetkit-import";
 const TAG_METHOD = "instant-status-widget-reload-background";
 
+/** Keep in sync with `widget-storage.service.tsx` APP_GROUP_ID. */
+const IOS_APP_GROUP = "group.com.arda.instantstatus.dev";
+/** Keep in sync with `targets/widget/widgets.swift` InstantStatusWidget.kind */
+const WIDGET_KIND = "InstantStatusWidget";
+/** Keep in sync with `android-widget/widget-shared.ts` WIDGET_PENDING_TIMELINE_RELOAD_KEY */
+const PENDING_RELOAD_KEY = "widget_pending_timeline_reload";
+
 /**
- * Reload WidgetKit timelines when the app enters background so debounced JS reload
- * (setTimeout) is not lost if the runtime suspends before the timer fires.
- * Data is already written to the App Group synchronously from JS.
+ * If JS marked widget data dirty (debounce may not fire before suspend), reload that
+ * widget kind only — not reloadAllTimelines (saves WidgetKit budget).
+ *
+ * When `ExtensionStorage.reloadWidget` already ran, JS clears the pending flag.
  */
 function withWidgetReloadOnBackground(config) {
   return withAppDelegate(config, (config) => {
@@ -33,7 +41,12 @@ function withWidgetReloadOnBackground(config) {
       src: contents,
       newSrc: [
         "  public override func applicationDidEnterBackground(_ application: UIApplication) {",
-        "    WidgetCenter.shared.reloadAllTimelines()",
+        `    if let suite = UserDefaults(suiteName: "${IOS_APP_GROUP}") {`,
+        `      if suite.string(forKey: "${PENDING_RELOAD_KEY}") == "1" {`,
+        `        WidgetCenter.shared.reloadTimelines(ofKind: "${WIDGET_KIND}")`,
+        `        suite.removeObject(forKey: "${PENDING_RELOAD_KEY}")`,
+        "      }",
+        "    }",
         "    super.applicationDidEnterBackground(application)",
         "  }",
         "",

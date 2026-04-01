@@ -3,7 +3,7 @@
  * Generates targets/widget/WidgetStorageKeys.generated.swift for the iOS widget extension.
  *
  * Usage: node scripts/generate-widget-storage-keys-swift.mjs
- * Run after changing WIDGET_DATA_KEY or IS_PREMIUM_KEY in widget-shared.ts.
+ * Run after changing WIDGET_DATA_KEY, WIDGET_PENDING_TIMELINE_RELOAD_KEY, or IS_PREMIUM_KEY in widget-shared.ts.
  */
 import fs from "fs";
 import path from "path";
@@ -19,18 +19,22 @@ const src = fs.readFileSync(sharedPath, "utf8");
 const dataMatch = src.match(
   /export const WIDGET_DATA_KEY\s*=\s*["']([^"']+)["']/,
 );
+const pendingMatch = src.match(
+  /export const WIDGET_PENDING_TIMELINE_RELOAD_KEY\s*=\s*["']([^"']+)["']/,
+);
 const premiumMatch = src.match(
   /export const IS_PREMIUM_KEY\s*=\s*["']([^"']+)["']/,
 );
 
-if (!dataMatch || !premiumMatch) {
+if (!dataMatch || !pendingMatch || !premiumMatch) {
   console.error(
-    "Could not parse WIDGET_DATA_KEY / IS_PREMIUM_KEY from widget-shared.ts",
+    "Could not parse WIDGET_DATA_KEY / WIDGET_PENDING_TIMELINE_RELOAD_KEY / IS_PREMIUM_KEY from widget-shared.ts",
   );
   process.exit(1);
 }
 
 const widgetDataKey = dataMatch[1];
+const pendingTimelineReloadKey = pendingMatch[1];
 const isPremiumKey = premiumMatch[1];
 
 // Escape for Swift string literal (only " and \ matter)
@@ -45,6 +49,7 @@ import Foundation
 
 enum WidgetStorageKeys {
     static let widgetData: String = "${swiftString(widgetDataKey)}"
+    static let pendingTimelineReload: String = "${swiftString(pendingTimelineReloadKey)}"
     static let isPremium: String = "${swiftString(isPremiumKey)}"
 }
 `;

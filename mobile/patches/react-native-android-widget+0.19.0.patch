@@ -1,0 +1,30 @@
+diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/oss/CSSBackgroundDrawable.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/oss/CSSBackgroundDrawable.java
+index bb254b1..7aef482 100644
+--- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/oss/CSSBackgroundDrawable.java
++++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/oss/CSSBackgroundDrawable.java
+@@ -1457,7 +1457,7 @@ public class CSSBackgroundDrawable extends Drawable {
+         Shader compositeShader = null;
+         for (BackgroundImageLayer backgroundImageLayer : mBackgroundImageLayers) {
+             Rect bounds = getBounds();
+-            Shader currentShader = backgroundImageLayer.getShader(bounds.width(), bounds.height());
++            Shader currentShader = backgroundImageLayer.getShader(bounds);
+             if (currentShader == null) {
+                 continue;
+             }
+diff --git a/node_modules/react-native-android-widget/lib/typescript/api/request-widget-update.d.ts b/node_modules/react-native-android-widget/lib/typescript/api/request-widget-update.d.ts
+index 8a3c2e1..9f4d3b2 100644
+--- a/node_modules/react-native-android-widget/lib/typescript/api/request-widget-update.d.ts
++++ b/node_modules/react-native-android-widget/lib/typescript/api/request-widget-update.d.ts
+@@ -6,9 +6,10 @@ export interface RequestWidgetUpdateProps {
+     widgetName: string;
+     /**
+      * Callback function that will be called with {@link WidgetInfo}
+-     * It should return the JSX of the updated widget
++     * It should return the JSX of the updated widget.
++     * When omitted, the registered widget task handler is used (see registerWidgetTaskHandler).
+      */
+-    renderWidget: (props: WidgetInfo) => Promise<WidgetRepresentation> | WidgetRepresentation;
++    renderWidget?: (props: WidgetInfo) => Promise<WidgetRepresentation> | WidgetRepresentation;
+     /**
+      * Callback function that will be called if no widgets are added on the home screen
+      * It can be used to clean up background tasks that update the widget periodically

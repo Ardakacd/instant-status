@@ -157,6 +157,7 @@
         }
       ],
       "@bacons/apple-targets",
+      "./withWidgetReloadOnBackground.js",
       "./withFollyCoroutineFix.js",
       "./withNotifeeMavenRepo.js",
       [
