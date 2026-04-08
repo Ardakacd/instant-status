@@ -49,11 +49,15 @@ export class DeviceTokenService {
         platform,
       });
 
-      // Before saving, check if user has other device tokens (to detect new device)
+      // Before saving, check if user has tokens on OTHER platforms (to detect genuinely new device)
+      // We don't count the same platform — a reinstall after FCM cleanup looks like a new platform
+      // but is not a security-relevant new device.
       const existingTokensForUser = await this.deviceTokenRepository.find({
         where: { user_id: userId },
       });
-      const hasOtherDevices = existingTokensForUser.length > 0;
+      const hasOtherDevices = existingTokensForUser.some(
+        (t) => t.platform !== platform
+      );
 
       const savedToken = await this.deviceTokenRepository.save(deviceToken);
 
@@ -83,6 +87,16 @@ export class DeviceTokenService {
 
       return savedToken;
     } catch (error: any) {
+      // 23505 = unique_violation: concurrent request already inserted this (user_id, platform) row
+      if (error.code === "23505") {
+        this.logger.debug(
+          `Concurrent device token registration for user ${userId} on ${platform} — returning existing row`
+        );
+        const existing = await this.deviceTokenRepository.findOne({
+          where: { user_id: userId, platform },
+        });
+        if (existing) return existing;
+      }
       this.logger.error(
         `Error registering device token: ${error.message}`,
         error.stack

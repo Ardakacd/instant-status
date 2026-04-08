@@ -33,7 +33,7 @@ export class StatusService {
     private deviceTokenRepository: Repository<DeviceToken>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private statusOptionService: StatusOptionService
+    private statusOptionService: StatusOptionService,
   ) {
     this.firebaseAdmin = getFirebaseAdmin();
   }
@@ -43,13 +43,13 @@ export class StatusService {
     optionId: string,
     displayName: string,
     note?: string,
-    expiresAt?: Date
+    expiresAt?: Date,
   ): Promise<{ status: Status; option: StatusOption }> {
     try {
       // Validate that the option exists and user has access to it
       const option = await this.statusOptionService.getStatusOptionById(
         optionId,
-        userId
+        userId,
       );
 
       // Check if user is trying to use a custom status without premium
@@ -58,7 +58,7 @@ export class StatusService {
         const user = await this.userRepository.findOne({
           where: { id: userId },
         });
-        
+
         if (!user) {
           throw new InternalServerErrorException("User not found");
         }
@@ -69,20 +69,28 @@ export class StatusService {
         if (!isPremium && !is_in_grace_period) {
           if (user.premium_until) {
             // Had premium but expired beyond grace period — reset to default
-            const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+            const defaultOption =
+              await this.statusOptionService.getDefaultStatusOption();
             if (!defaultOption) {
-              throw new InternalServerErrorException("Default status option not found");
+              throw new InternalServerErrorException(
+                "Default status option not found",
+              );
             }
             await this.statusRepository.upsert(
-              { user_id: userId, option_id: defaultOption.id, note: null, expires_at: null },
+              {
+                user_id: userId,
+                option_id: defaultOption.id,
+                note: null,
+                expires_at: null,
+              },
               ["user_id"],
             );
             throw new BadRequestException(
-              "Your premium subscription has expired. Your status has been reset to the default. Upgrade to Pro to use custom statuses again."
+              "Your premium subscription has expired. Your status has been reset to the default. Upgrade to Pro to use custom statuses again.",
             );
           } else {
             throw new BadRequestException(
-              "Custom statuses are only available with Instant Status Pro. Upgrade to use custom statuses."
+              "Custom statuses are only available with Instant Status Pro. Upgrade to use custom statuses.",
             );
           }
         }
@@ -110,19 +118,25 @@ export class StatusService {
       });
 
       if (!reloadedStatus) {
-        throw new InternalServerErrorException("Failed to reload status after update");
+        throw new InternalServerErrorException(
+          "Failed to reload status after update",
+        );
       }
 
       // Send push notifications to visible connections (don't fail if this fails)
       // Note: Firebase/Apple handle throttling on their end if notifications are sent too rapidly
       // Display name is passed from controller to avoid extra database query
-      this.sendStatusUpdatePush(userId, option, displayName, note, expiresAt).catch(
-        (error) => {
-          this.logger.warn(
-            `Failed to send push notifications for status update: ${error.message}`
-          );
-        }
-      );
+      this.sendStatusUpdatePush(
+        userId,
+        option,
+        displayName,
+        note,
+        expiresAt,
+      ).catch((error) => {
+        this.logger.warn(
+          `Failed to send push notifications for status update: ${error.message}`,
+        );
+      });
 
       return { status: reloadedStatus, option };
     } catch (error: any) {
@@ -144,14 +158,15 @@ export class StatusService {
    * Uses lazy evaluation - only checks expiration when status is accessed.
    */
   private async checkAndCorrectExpiration(
-    status: Status | null
+    status: Status | null,
   ): Promise<Status | null> {
     if (!status) return null;
 
     const now = new Date();
     if (status.expires_at && status.expires_at <= now) {
       // Status is expired - reset to default "Available" option
-      const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+      const defaultOption =
+        await this.statusOptionService.getDefaultStatusOption();
       if (defaultOption) {
         status.option_id = defaultOption.id;
         status.expires_at = null;
@@ -166,16 +181,16 @@ export class StatusService {
               option_id: defaultOption.id,
               expires_at: null,
               note: null,
-            }
+            },
           )
           .catch((error) => {
             this.logger.warn(
-              `Failed to persist expired status correction: ${error.message}`
+              `Failed to persist expired status correction: ${error.message}`,
             );
           });
       } else {
         this.logger.warn(
-          "Cannot correct expired status: default status option not found"
+          "Cannot correct expired status: default status option not found",
         );
       }
     }
@@ -189,16 +204,17 @@ export class StatusService {
    * More efficient than checking individually.
    */
   private async checkAndCorrectExpiredStatuses(
-    userIds: string[]
+    userIds: string[],
   ): Promise<void> {
     if (userIds.length === 0) return;
 
     try {
       // Get default "Available" option
-      const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+      const defaultOption =
+        await this.statusOptionService.getDefaultStatusOption();
       if (!defaultOption) {
         this.logger.warn(
-          "Default status option not found, skipping expired status correction"
+          "Default status option not found, skipping expired status correction",
         );
         return;
       }
@@ -218,7 +234,7 @@ export class StatusService {
         .execute();
     } catch (error: any) {
       this.logger.warn(
-        `Failed to bulk correct expired statuses: ${error.message}`
+        `Failed to bulk correct expired statuses: ${error.message}`,
       );
       // Don't throw - this is a background correction
     }
@@ -236,7 +252,7 @@ export class StatusService {
     } catch (error: any) {
       this.logger.error(
         `Error getting user status: ${error.message}`,
-        error.stack
+        error.stack,
       );
       throw new InternalServerErrorException("Failed to get user status");
     }
@@ -299,11 +315,12 @@ export class StatusService {
       const statusMap = new Map(
         statuses
           .filter((status) => status.user !== null)
-          .map((status) => [status.user_id, status])
+          .map((status) => [status.user_id, status]),
       );
 
       // Get default option for fallback
-      const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+      const defaultOption =
+        await this.statusOptionService.getDefaultStatusOption();
 
       // Return status for each friend connection
       // If visibility is false, return default status
@@ -355,7 +372,7 @@ export class StatusService {
         // If option is null (shouldn't happen with eager loading, but handle gracefully)
         if (!status.option) {
           this.logger.warn(
-            `Status for user ${redactUid(status.user_id)} has invalid option_id: ${status.option_id}`
+            `Status for user ${redactUid(status.user_id)} has invalid option_id: ${status.option_id}`,
           );
         }
 
@@ -372,13 +389,13 @@ export class StatusService {
                 color: status.option.color,
               }
             : defaultOption
-            ? {
-                id: defaultOption.id,
-                label: defaultOption.label,
-                emoji: defaultOption.emoji,
-                color: defaultOption.color,
-              }
-            : null,
+              ? {
+                  id: defaultOption.id,
+                  label: defaultOption.label,
+                  emoji: defaultOption.emoji,
+                  color: defaultOption.color,
+                }
+              : null,
           note: status.note,
           expires_at: status.expires_at?.toISOString() ?? null,
           updated_at: status.updated_at.toISOString(),
@@ -387,7 +404,7 @@ export class StatusService {
     } catch (error: any) {
       this.logger.error(
         `Error getting friends status: ${error.message}`,
-        error.stack
+        error.stack,
       );
       throw new InternalServerErrorException("Failed to get friends status");
     }
@@ -398,10 +415,9 @@ export class StatusService {
     option: StatusOption,
     displayName: string,
     note?: string,
-    expiresAt?: Date
+    expiresAt?: Date,
   ) {
     try {
-
       // Find all connections where this user is involved
       // We'll filter by visibility (a_shows_status && b_shows_status) after fetching
       const connections = await this.connectionRepository.find({
@@ -417,11 +433,11 @@ export class StatusService {
 
       // Filter to only connections where BOTH sides allow visibility
       const visibleConnections = connections.filter(
-        (conn) => conn.a_shows_status && conn.b_shows_status
+        (conn) => conn.a_shows_status && conn.b_shows_status,
       );
 
       const connectionUserIds = visibleConnections.map((conn) =>
-        conn.user_id === userId ? conn.friend_id : conn.user_id
+        conn.user_id === userId ? conn.friend_id : conn.user_id,
       );
 
       // Only send notifications to friends, not to the user themselves
@@ -511,7 +527,7 @@ export class StatusService {
               },
             },
           },
-      });
+        });
 
         // iOS: separate data-only background message so RN setBackgroundMessageHandler can run
         // even when the alert path does not deliver data to JS (common with notification+alert).
@@ -533,7 +549,6 @@ export class StatusService {
               },
             },
           });
-          tokenToIdMap.set(token.token, token.id);
         }
       }
 
@@ -550,15 +565,11 @@ export class StatusService {
           `Error sending push notifications: ${error.message}`,
           error.stack,
         );
-        // Log detailed error info for third-party-auth-error
-        if (error.code === "messaging/third-party-auth-error" || error.message?.includes("authentication credential")) {
-          this.logger.error(`FCM auth error: ${error.code} - ${error.message}`);
-        }
       }
     } catch (error: any) {
       this.logger.error(
         `Error preparing status update push: ${error.message}`,
-        error.stack
+        error.stack,
       );
     }
   }

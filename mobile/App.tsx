@@ -321,8 +321,11 @@ function AppNavigator() {
           // iOS: system dialog is one-shot, so we gate it behind our modal.
           // Android 13+: POST_NOTIFICATIONS requires explicit request; same modal flow applies.
           setShowNotificationModal(true);
-        } else if (hasPerm && isMounted) {
-          const token = await messagingService.getToken();
+        } else if (isMounted) {
+          // hasPerm=true  → normal registration path
+          // hasAskedBefore=true + hasPerm=false → user may have re-granted via system settings;
+          //   attempt a token fetch and register if it succeeds. Fails silently if still denied.
+          const token = await messagingService.getToken().catch(() => null);
           if (token && user && isMounted) {
             await deviceTokenService.registerToken(token);
           }
@@ -352,15 +355,15 @@ function AppNavigator() {
       handleNotificationNavigation,
     );
     const unsubForeground = messagingService.onMessage(async (msg) => {
-      if (msg.data?.type === "status_update" && isMounted) {
-        // Show in-app Toast and update widget
-        const optionLabel = msg.data.option_label;
-        Toast.show({
-          type: "info",
-          text1: `${msg.data.display_name} is ${optionLabel.toLowerCase()}`,
-          text2: msg.data.note,
-        });
-        if (isMounted) {
+      try {
+        if (msg.data?.type === "status_update" && isMounted) {
+          // Show in-app Toast and update widget
+          const optionLabel = msg.data.option_label;
+          Toast.show({
+            type: "info",
+            text1: `${msg.data.display_name} is ${optionLabel.toLowerCase()}`,
+            text2: msg.data.note,
+          });
           await widgetStorageService.updateFriendStatus(
             msg.data.user_id,
             msg.data.display_name,
@@ -372,19 +375,21 @@ function AppNavigator() {
             msg.data.expires_at,
             msg.data.timestamp,
           );
+        } else if (msg.data?.type === "friend_removed" && msg.data.peer_user_id && isMounted) {
+          await widgetStorageService.removeFriendFromWidget(msg.data.peer_user_id);
+        } else if (msg.data?.type === "widget_resync_friends" && isMounted) {
+          const synced = await syncWidgetFriendsFromApiInBackground();
+          if (!synced) {
+            await widgetStorageService.reloadWidget();
+          }
+        } else if (msg.data?.type === "friend_added" && isMounted) {
+          const synced = await syncWidgetFriendsFromApiInBackground();
+          if (!synced) {
+            await widgetStorageService.reloadWidget();
+          }
         }
-      } else if (msg.data?.type === "friend_removed" && msg.data.peer_user_id && isMounted) {
-        await widgetStorageService.removeFriendFromWidget(msg.data.peer_user_id);
-      } else if (msg.data?.type === "widget_resync_friends" && isMounted) {
-        const synced = await syncWidgetFriendsFromApiInBackground();
-        if (!synced) {
-          await widgetStorageService.reloadWidget();
-        }
-      } else if (msg.data?.type === "friend_added" && isMounted) {
-        const synced = await syncWidgetFriendsFromApiInBackground();
-        if (!synced) {
-          await widgetStorageService.reloadWidget();
-        }
+      } catch (error) {
+        Sentry.captureException(error);
       }
     });
 

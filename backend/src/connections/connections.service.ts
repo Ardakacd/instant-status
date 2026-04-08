@@ -521,13 +521,20 @@ export class ConnectionsService {
       });
     }
 
-    await sendEachAndCleanup(
-      this.firebaseAdmin,
-      messages,
-      tokenToIdMap,
-      this.deviceTokenRepository,
-      this.logger,
-    );
+    try {
+      await sendEachAndCleanup(
+        this.firebaseAdmin,
+        messages,
+        tokenToIdMap,
+        this.deviceTokenRepository,
+        this.logger,
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `sendFriendRemovedSilentPush failed for recipient ${recipientUserId}: ${error.message}`,
+        error.stack
+      );
+    }
   }
 
   /**
@@ -567,13 +574,20 @@ export class ConnectionsService {
       });
     }
 
-    await sendEachAndCleanup(
-      this.firebaseAdmin,
-      messages,
-      tokenToIdMap,
-      this.deviceTokenRepository,
-      this.logger,
-    );
+    try {
+      await sendEachAndCleanup(
+        this.firebaseAdmin,
+        messages,
+        tokenToIdMap,
+        this.deviceTokenRepository,
+        this.logger,
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `sendWidgetFriendsResyncSilentPush failed for user ${targetUserId}: ${error.message}`,
+        error.stack
+      );
+    }
   }
 
   private async sendFriendAddedPush(

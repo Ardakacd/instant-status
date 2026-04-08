@@ -22,9 +22,9 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
     const data = remoteMessage.data as Record<string, string> | undefined;
     const type = data?.type;
 
-    if (type === "status_update" && data) {
+    if (type === "status_update" && data?.user_id) {
       await widgetStorageService.updateFriendStatus(
-        String(data.user_id || ""),
+        String(data.user_id),
         String(data.display_name || ""),
         data.option_id ? String(data.option_id) : null,
         data.option_label ? String(data.option_label) : null,

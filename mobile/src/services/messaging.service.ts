@@ -41,6 +41,12 @@ export class MessagingService {
           const firebaseEnabled =
             authStatus === AuthorizationStatus.AUTHORIZED ||
             authStatus === AuthorizationStatus.PROVISIONAL;
+          if (!firebaseEnabled) {
+            Sentry.captureMessage(
+              "Android POST_NOTIFICATIONS granted but Firebase requestPermission returned non-authorized status",
+              "warning"
+            );
+          }
           return firebaseEnabled;
         }
         return false;
@@ -57,7 +63,8 @@ export class MessagingService {
 
         return enabled;
       }
-    } catch {
+    } catch (error) {
+      Sentry.captureException(error);
       return false;
     }
   }

@@ -7,10 +7,11 @@ import { StructuredLogger } from "../common/logger/structured-logger";
 // Do NOT include messaging/third-party-auth-error here — that error means the APNs
 // server credentials are misconfigured, not that the token is bad. Deleting the token
 // for that error would silently prevent future notifications after credentials are fixed.
+// Do NOT include messaging/invalid-argument — it is too broad and can fire for malformed
+// message payloads (not just bad tokens), which would delete valid tokens incorrectly.
 const INVALID_TOKEN_CODES = [
   "messaging/invalid-registration-token",
   "messaging/registration-token-not-registered",
-  "messaging/invalid-argument",
 ];
 
 /**
