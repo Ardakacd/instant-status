@@ -10,12 +10,11 @@ import {
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { WidgetConfigurationScreenProps } from "react-native-android-widget";
-import { WidgetPreview } from "react-native-android-widget";
+import { WidgetPreview, requestWidgetUpdate } from "react-native-android-widget";
 import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM } from "../src/design";
 import {
   InstantStatusWidget,
   type FriendStatusWidgetItem,
-  type WidgetLayoutSize,
   type WidgetBackgroundStyle,
   WIDGET_BACKGROUND_OPTIONS,
 } from "./InstantStatusWidget";
@@ -174,6 +173,13 @@ function WidgetConfigurationScreenContent({
           widgetWidthDp={widgetWidthDp}
         />
       );
+
+      // Trigger widgetTaskHandler for all instances so dark mode and
+      // other widget instances also pick up the new background immediately.
+      type TriggerOnly = { widgetName: string };
+      (requestWidgetUpdate as unknown as (p: TriggerOnly) => Promise<void>)({
+        widgetName: "InstantStatusWidget",
+      }).catch(() => {});
 
       setResult("ok");
     } catch (error) {
