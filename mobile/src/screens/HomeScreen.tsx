@@ -24,6 +24,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import Sentry from "../../sentry";
 import { useIsPremium } from "../hooks/useIsPremium";
+import { useAuth } from "../contexts/AuthContext";
 import { presentPaywall } from "../services/purchases.service";
 import { Colors, Borders, Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
@@ -38,6 +39,7 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { isPremium, loading: premiumLoading } = useIsPremium();
+  const { refreshUser } = useAuth();
   const [myStatus, setMyStatus] = useState<Status | null>(null);
   const [friendsStatus, setFriendsStatus] = useState<Status[]>([]);
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
@@ -72,8 +74,8 @@ export default function HomeScreen() {
     try {
       const success = await presentPaywall();
       if (success) {
-        // User purchased/restored - they can now access Manage Status
-        // The useIsPremium hook will automatically update, so we can navigate
+        // User purchased/restored - re-sync backend premium status before navigating
+        await refreshUser();
         navigation.navigate("ManageStatus" as never);
       }
     } catch (error: any) {

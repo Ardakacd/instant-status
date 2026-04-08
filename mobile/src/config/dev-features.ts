@@ -7,4 +7,4 @@
  * `true` = app treats you as non‑premium (paywalls, manage custom status, etc.).
  * Set back to `false` when testing real subscription state; production ignores this (`__DEV__` only).
  */
-export const DEV_ALWAYS_SHOW_PAYWALL = true;
+export const DEV_ALWAYS_SHOW_PAYWALL = false;

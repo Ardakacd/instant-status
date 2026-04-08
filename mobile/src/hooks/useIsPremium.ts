@@ -3,6 +3,7 @@ import Purchases, { CustomerInfo } from "react-native-purchases";
 import { useAuth } from "../contexts/AuthContext";
 import { widgetStorageService } from "../services/widget-storage.service";
 import { DEV_ALWAYS_SHOW_PAYWALL } from "../config/dev-features";
+import Sentry from "../../sentry";
 
 export function useIsPremium() {
   const { user, loading: authLoading, refreshUser } = useAuth();
@@ -57,7 +58,7 @@ export function useIsPremium() {
 
     Purchases.getCustomerInfo()
       .then(updateDisplayFields)
-      .catch(() => {});
+      .catch((error) => { Sentry.captureException(error); });
 
     // When RevenueCat detects a subscription change, resync with backend
     const listener = (info: CustomerInfo) => {

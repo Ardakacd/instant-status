@@ -59,11 +59,11 @@ export async function getOfferings() {
     }
     return offerings;
   } catch (error: any) {
-    Sentry.captureException(error);
-    // Re-throw our own controlled errors as-is
+    // Re-throw our own controlled errors as-is — don't report expected states to Sentry
     if (error.message?.includes("No subscription plans")) {
       throw error;
     }
+    Sentry.captureException(error);
     throw new Error("Failed to load subscription options. Please try again.");
   }
 }

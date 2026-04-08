@@ -74,7 +74,21 @@ export default function ManageStatusScreen() {
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
+    if (!isPremium) {
+      try {
+        const purchased = await presentPaywall();
+        if (!purchased) {
+          return;
+        }
+      } catch (error: any) {
+        Toast.show({
+          type: "error",
+          text1: error.message || "Failed to open subscription options. Please try again.",
+        });
+        return;
+      }
+    }
     setLabel("");
     setEmoji("😎");
     setColor("#3B82F6");

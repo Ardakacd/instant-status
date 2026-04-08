@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   TouchableOpacity,
@@ -47,6 +47,7 @@ export default function SubscriptionManagementScreen() {
   const [currentPackageId, setCurrentPackageId] = useState<string | null>(null);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [planChangeModalVisible, setPlanChangeModalVisible] = useState(false);
   const [planChangeInfo, setPlanChangeInfo] = useState<{
     fromPlan: string;
@@ -57,6 +58,9 @@ export default function SubscriptionManagementScreen() {
 
   useEffect(() => {
     loadSubscriptionData();
+    return () => {
+      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+    };
   }, []);
 
   const loadSubscriptionData = async () => {
@@ -148,7 +152,7 @@ export default function SubscriptionManagementScreen() {
         // arrives within seconds; we refresh immediately and again after a
         // short delay to catch any slight webhook delivery latency.
         refreshUser();
-        setTimeout(() => refreshUser(), 3000);
+        refreshTimeoutRef.current = setTimeout(() => refreshUser(), 3000);
 
         // Reload data to reflect changes
         await loadSubscriptionData();
@@ -194,13 +198,22 @@ export default function SubscriptionManagementScreen() {
   const handleRestorePurchases = async () => {
     try {
       setRestoring(true);
-      await restorePurchases();
-      Toast.show({
-        type: "success",
-        text1: "Purchases restored successfully",
-      });
-      // Reload data
+      const customerInfo = await restorePurchases();
+      const isActive = !!customerInfo.entitlements.active["Instant Status Premium"];
+      if (isActive) {
+        Toast.show({
+          type: "success",
+          text1: "Purchases restored successfully",
+        });
+      } else {
+        Toast.show({
+          type: "info",
+          text1: "No active purchases found",
+        });
+      }
+      // Reload data and re-sync backend premium status
       await loadSubscriptionData();
+      refreshUser();
     } catch (error: any) {
       Toast.show({
         type: "error",

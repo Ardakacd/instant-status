@@ -134,8 +134,13 @@ export class WebhooksService implements OnModuleInit {
         case "INITIAL_PURCHASE":
         case "RENEWAL":
         case "UNCANCELLATION":
-        case "NON_RENEWING_PURCHASE":
         case "SUBSCRIPTION_EXTENDED": {
+          if (!expiration_at_ms) {
+            this.logger.warn(
+              `${type} missing expiration_at_ms for ${redactUid(app_user_id)} — skipping to avoid silent lifetime grant`
+            );
+            break;
+          }
           const identifier = await this.resolveUserIdentifier(event.event);
           if (!identifier) {
             this.logger.warn(`No user found for ${type} (app_user_id: ${redactUid(app_user_id)})`);
@@ -146,7 +151,24 @@ export class WebhooksService implements OnModuleInit {
             premiumUntil
           );
           this.logger.log(
-            `Updated user ${redactUid(identifier)} premium_until: ${premiumUntil === LIFETIME_PREMIUM_UNTIL ? "lifetime" : premiumUntil.toISOString()}`
+            `Updated user ${redactUid(identifier)} premium_until: ${premiumUntil.toISOString()}`
+          );
+          break;
+        }
+
+        case "NON_RENEWING_PURCHASE": {
+          // One-time purchase — no expiration date, grant lifetime premium
+          const identifier = await this.resolveUserIdentifier(event.event);
+          if (!identifier) {
+            this.logger.warn(`No user found for NON_RENEWING_PURCHASE (app_user_id: ${redactUid(app_user_id)})`);
+            break;
+          }
+          await this.userService.updatePremiumExpirationByRevenueCatId(
+            identifier,
+            LIFETIME_PREMIUM_UNTIL
+          );
+          this.logger.log(
+            `Updated user ${redactUid(identifier)} premium_until: lifetime (NON_RENEWING_PURCHASE)`
           );
           break;
         }
@@ -154,6 +176,12 @@ export class WebhooksService implements OnModuleInit {
         case "PRODUCT_CHANGE": {
           // Plan change may move premium_until earlier (downgrade) or later (upgrade).
           // forceUpdate bypasses the newDate > existingDate guard so downgrades apply.
+          if (!expiration_at_ms) {
+            this.logger.warn(
+              `PRODUCT_CHANGE missing expiration_at_ms for ${redactUid(app_user_id)} — skipping to avoid silent lifetime grant`
+            );
+            break;
+          }
           const identifier = await this.resolveUserIdentifier(event.event);
           if (!identifier) {
             this.logger.warn(`No user found for PRODUCT_CHANGE (app_user_id: ${redactUid(app_user_id)})`);
@@ -165,7 +193,7 @@ export class WebhooksService implements OnModuleInit {
             true // forceUpdate
           );
           this.logger.log(
-            `PRODUCT_CHANGE: updated user ${redactUid(identifier)} premium_until: ${premiumUntil === LIFETIME_PREMIUM_UNTIL ? "lifetime" : premiumUntil.toISOString()}`
+            `PRODUCT_CHANGE: updated user ${redactUid(identifier)} premium_until: ${premiumUntil.toISOString()}`
           );
           break;
         }
@@ -193,7 +221,7 @@ export class WebhooksService implements OnModuleInit {
             new Date(expiration_at_ms)
           );
           this.logger.log(
-            `Updated user ${redactUid(identifier)} cancellation (active until: ${premiumUntil.toISOString()})`
+            `Updated user ${redactUid(identifier)} cancellation (active until: ${new Date(expiration_at_ms).toISOString()})`
           );
           break;
         }
