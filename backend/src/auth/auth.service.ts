@@ -134,11 +134,14 @@ export class AuthService {
     // Fail-safe: if the claim is absent, treat as unverified rather than accidentally granting access
     const emailVerified = decodedToken.email_verified ?? false;
 
-    // For new password users with unverified email, send verification (non-blocking)
+    // For new password users with unverified email, send verification once (non-blocking).
+    // Only on first sync (onboarding=true) — returning unverified users use the
+    // dedicated /auth/send-email-verification endpoint which is rate-limited.
     const signInProvider = (decodedToken as any).firebase?.sign_in_provider;
     if (
       signInProvider === "password" &&
       !emailVerified &&
+      onboarding &&
       user.email
     ) {
       this.sendEmailVerification(user.firebase_uid).catch((err) =>
@@ -171,9 +174,10 @@ export class AuthService {
     email?: string | null,
     isNewLogin: boolean = false,
   ) {
+    let isFirstLogin = false;
     try {
       let user = await this.userService.findByFirebaseUid(uid);
-      const isFirstLogin = !user;
+      isFirstLogin = !user;
 
       if (!user) {
         // User doesn't exist with this Firebase UID
@@ -238,7 +242,13 @@ export class AuthService {
           if (existingUser) {
             if (existingUser.firebase_uid === uid) {
               // A concurrent request for the same user already created the record.
-              // Simply return it — no conflict.
+              // Still update login timestamps before returning.
+              if (isNewLogin) {
+                const now = new Date();
+                const updateData: Partial<typeof existingUser> = { last_login_at: now };
+                if (isFirstLogin) updateData.first_login_at = now;
+                await this.userService.update(existingUser.id, updateData);
+              }
               return existingUser;
             }
 
@@ -355,8 +365,14 @@ export class AuthService {
    * which emails exist and which auth providers they use.
    */
   async sendPasswordResetEmail(email: string): Promise<void> {
-    // 800 ms covers the typical email-send latency so all paths finish in ~800 ms.
-    const baseline = new Promise<void>((resolve) => setTimeout(resolve, 800));
+    const BASELINE_MS = 800;
+    const startedAt = Date.now();
+    const waitBaseline = () => {
+      const remaining = BASELINE_MS - (Date.now() - startedAt);
+      return remaining > 0
+        ? new Promise<void>((resolve) => setTimeout(resolve, remaining))
+        : Promise.resolve();
+    };
 
     try {
       const user = await this.userService.findByEmail(email);
@@ -364,7 +380,7 @@ export class AuthService {
         this.logger.log(
           `Password reset requested for non-existent email: ${redactEmail(email)}`,
         );
-        await baseline;
+        await waitBaseline();
         return;
       }
 
@@ -376,7 +392,7 @@ export class AuthService {
           this.logger.warn(
             `Password reset requested for email not in Firebase: ${redactEmail(email)}`,
           );
-          await baseline;
+          await waitBaseline();
           return;
         }
         throw firebaseError;
@@ -390,7 +406,7 @@ export class AuthService {
         this.logger.warn(
           `Password reset requested for social login user: ${redactEmail(email)}`,
         );
-        await baseline;
+        await waitBaseline();
         return;
       }
 
@@ -406,7 +422,7 @@ export class AuthService {
       // Run the email send and the baseline delay concurrently — the response
       // is held until both complete, so legitimate requests also take ≥ 800 ms.
       await Promise.all([
-        baseline,
+        waitBaseline(),
         this.emailService.sendPasswordResetEmail(email, resetLink),
       ]);
     } catch (error: any) {
@@ -415,7 +431,7 @@ export class AuthService {
         error.stack,
       );
       // Absorb the error and wait out the baseline to maintain constant timing
-      await baseline;
+      await waitBaseline();
     }
   }
 }

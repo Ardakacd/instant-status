@@ -71,9 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Transient server error (5xx, unexpected 4xx) — don't log the user out.
+      // A brief outage would otherwise silently sign out every user who opens the app.
       Sentry.captureException(error);
       setNoInternet(false);
-      await authService.logout();
+      setAuthError("Something went wrong. Please try again.");
     }
   }
 

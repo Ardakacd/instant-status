@@ -338,11 +338,11 @@ export class AuthService {
       // Send email verification via backend (uses Postmark)
       await api.post("/auth/send-email-verification");
     } catch (error: any) {
-      if (error.message) {
-        throw new Error(error.message);
-      } else {
-        throw new Error("Failed to send verification email");
-      }
+      // Preserve statusCode so callers (e.g. EmailVerificationScreen) can detect 429
+      const err = new Error(error.message || "Failed to send verification email") as any;
+      if (error.response?.status) err.statusCode = error.response.status;
+      else if (error.statusCode) err.statusCode = error.statusCode;
+      throw err;
     }
   }
 
@@ -455,7 +455,9 @@ export class AuthService {
     }
 
     await api.delete("/auth/account");
-    await this.logout(false); // Skip device token backend unregister (cascade already deleted)
+    // Account is deleted server-side — local cleanup is best-effort.
+    // Don't let a signOut failure block the AuthContext from clearing state.
+    await this.logout(false).catch(() => {});
   }
 }
 
