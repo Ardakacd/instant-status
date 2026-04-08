@@ -116,8 +116,9 @@ function WidgetConfigurationScreenContent({
     );
   }
 
-  // Keyed on backgroundStyle so WidgetPreview re-renders when the bg chip changes
-  const previewKey = `${backgroundStyle}-${selectedFriendIds.size}`;
+  // Keyed on backgroundStyle + exact selected IDs so WidgetPreview re-renders on any selection change,
+  // including swaps that keep the same count.
+  const previewKey = `${backgroundStyle}-${[...selectedFriendIds].sort().join(",")}`;
   const previewRenderWidget = useCallback(
     () => {
       const selectedFriends = friends.filter((f) => selectedFriendIds.has(f.id));
@@ -155,6 +156,8 @@ function WidgetConfigurationScreenContent({
       await AsyncStorage.setItem(configKey, JSON.stringify(selectedIds));
       if (isPremium) {
         await AsyncStorage.setItem(bgConfigKey, backgroundStyle);
+      } else {
+        await AsyncStorage.removeItem(bgConfigKey);
       }
 
       const selectedFriends = friends.filter((f) =>

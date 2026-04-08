@@ -219,12 +219,21 @@ struct Provider: AppIntentTimelineProvider {
         }
         hasAnyFriends = true
     } else {
+        // Apply the same selectedFriends filter that timeline() uses so the gallery
+        // preview matches the live widget.
+        var filtered: [FriendStatusWidgetItem]
+        if let selectedFriends = configuration.selectedFriends, !selectedFriends.isEmpty {
+            let selectedIDs = selectedFriends.map { $0.id }
+            filtered = selectedIDs.compactMap { id in allFriends.first(where: { $0.id == id }) }
+        } else {
+            filtered = allFriends
+        }
         let limit: Int
         switch family {
         case .accessoryCircular, .accessoryInline, .accessoryRectangular: limit = 16
         default: limit = 4
         }
-        friendsToShow = Array(allFriends.prefix(limit))
+        friendsToShow = Array(filtered.prefix(limit))
         hasAnyFriends = !allFriends.isEmpty
     }
     let isPremium = FriendDataService.shared.fetchIsPremium()

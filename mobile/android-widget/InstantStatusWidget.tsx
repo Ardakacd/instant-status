@@ -629,12 +629,14 @@ export function InstantStatusWidget({
     );
   }
 
-  // Split friends into columns — same pattern for both 2-col and 3-col.
-  const col1End = Math.ceil(displayFriends.length / cols);
-  const col2End = col1End + Math.ceil((displayFriends.length - col1End) / (cols - 1 || 1));
-  const col1 = displayFriends.slice(0, col1End);
-  const col2 = isTwoCol || isLargeGrid ? displayFriends.slice(col1End, isTwoCol ? undefined : col2End) : [];
-  const col3 = isLargeGrid ? displayFriends.slice(col2End) : [];
+  // Split friends into columns — distribute as evenly as possible so no column
+  // is more than 1 item taller than any other (same as Math.ceil spreading).
+  const n = displayFriends.length;
+  const col1Count = Math.ceil(n / cols);
+  const col2Count = isTwoCol ? n - col1Count : Math.ceil((n - col1Count) / 2);
+  const col1 = displayFriends.slice(0, col1Count);
+  const col2 = isTwoCol || isLargeGrid ? displayFriends.slice(col1Count, col1Count + col2Count) : [];
+  const col3 = isLargeGrid ? displayFriends.slice(col1Count + col2Count) : [];
 
   return (
     <OverlapWidget

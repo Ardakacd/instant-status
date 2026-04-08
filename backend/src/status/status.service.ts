@@ -344,7 +344,7 @@ export class StatusService {
               : null,
             note: null,
             expires_at: null,
-            updated_at: new Date().toISOString(),
+            updated_at: new Date(0).toISOString(),
           };
         }
 
@@ -364,7 +364,7 @@ export class StatusService {
               : null,
             note: null,
             expires_at: null,
-            updated_at: new Date().toISOString(),
+            updated_at: new Date(0).toISOString(),
           };
         }
 

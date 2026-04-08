@@ -1,4 +1,4 @@
-import { AppState, Platform } from "react-native";
+import { Platform } from "react-native";
 import { ExtensionStorage } from "@bacons/apple-targets";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Status } from "../types";
@@ -11,8 +11,14 @@ import {
 } from "../../android-widget/widget-shared";
 
 /** Must match App Group in Apple Developer, app entitlements, and AppGroup.generated.swift (prebuild). */
-const APP_GROUP_ID =
-  process.env.EXPO_PUBLIC_IOS_APP_GROUP ?? "group.com.arda.instantstatus.dev";
+const APP_GROUP_ID = process.env.EXPO_PUBLIC_IOS_APP_GROUP;
+if (!APP_GROUP_ID) {
+  // Fail loudly — a missing env var means the RN app would write to a different App Group
+  // than the widget reads from, causing the widget to silently show no data in production.
+  console.error(
+    "[WidgetStorageService] EXPO_PUBLIC_IOS_APP_GROUP is not set. Widget data will not be shared with the iOS widget extension."
+  );
+}
 
 interface FriendStatusWidgetItem {
   id: string;
@@ -33,7 +39,7 @@ export class WidgetStorageService {
   private readonly DEBOUNCE_MS = 1500; // Debounce per-friend updates
 
   constructor() {
-    if (Platform.OS === "ios") {
+    if (Platform.OS === "ios" && APP_GROUP_ID) {
       this.storage = new ExtensionStorage(APP_GROUP_ID);
     }
   }
@@ -69,13 +75,9 @@ export class WidgetStorageService {
       this.reloadTimeout = null;
     };
 
-    // Background / inactive: timers often never fire before suspension; App Group is
-    // already updated — reload immediately. Foreground: debounce rapid updates.
-    if (Platform.OS === "ios" && AppState.currentState !== "active") {
-      runReload();
-      return;
-    }
-
+    // Always debounce — including when backgrounded — to batch burst FCM pushes and
+    // avoid draining the WidgetKit daily reload budget. The pending flag ensures
+    // AppDelegate triggers a reload on next foreground if the timer fires after suspension.
     this.reloadTimeout = setTimeout(runReload, this.DEBOUNCE_MS);
   }
 

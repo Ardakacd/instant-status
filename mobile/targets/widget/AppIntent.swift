@@ -185,6 +185,7 @@ struct FriendDataService {
         do {
             return try decoder.decode([FriendStatusWidgetItem].self, from: jsonData)
         } catch {
+            NSLog("[InstantStatusWidget] fetchAllFriends decode error: %@", String(describing: error))
             return []
         }
     }

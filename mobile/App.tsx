@@ -375,6 +375,8 @@ function AppNavigator() {
             msg.data.expires_at,
             msg.data.timestamp,
           );
+          // Reconcile with server truth as a fire-and-forget (same as background handler).
+          syncWidgetFriendsFromApiInBackground().catch(() => {});
         } else if (msg.data?.type === "friend_removed" && msg.data.peer_user_id && isMounted) {
           await widgetStorageService.removeFriendFromWidget(msg.data.peer_user_id);
         } else if (msg.data?.type === "widget_resync_friends" && isMounted) {

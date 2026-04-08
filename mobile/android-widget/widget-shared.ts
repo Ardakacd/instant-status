@@ -6,7 +6,6 @@ export const WIDGET_DATA_KEY = "widget_status_data";
 export const WIDGET_PENDING_TIMELINE_RELOAD_KEY = "widget_pending_timeline_reload";
 export const WIDGET_CONFIG_KEY_PREFIX = "widget_config_";
 export const WIDGET_CONFIG_BACKGROUND_PREFIX = "widget_config_background_";
-export const WIDGET_SIZE_CONFIG_KEY_PREFIX = "widget_size_config_";
 export const IS_PREMIUM_KEY = "is_premium";
 
 export const WIDGET_COL_OPTIONS = [1, 2, 3] as const;
