@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "teammateMode": "tmux",
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx expo *)",
+      "Bash(npx tsc *)",
+      "Bash(npx jest *)",
+      "Bash(curl *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git log *)",
+      "Bash(cd *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(chmod *)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(backend/.env)",
+      "Read(backend/.env.*)",
+      "Read(mobile/.env)",
+      "Read(mobile/.env.*)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(backend/.env)",
+      "Edit(backend/.env.*)",
+      "Edit(mobile/.env)",
+      "Edit(mobile/.env.*)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(backend/.env)",
+      "Write(backend/.env.*)",
+      "Write(mobile/.env)",
+      "Write(mobile/.env.*)",
+      "Read(**/secrets/**)",
+      "Edit(**/secrets/**)",
+      "Write(**/secrets/**)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/*.p12)",
+      "Read(**/*.keystore)",
+      "Bash(git push --force*)",
+      "Bash(rm -rf *)",
+      "Bash(chmod 777 *)",
+      "Bash(sudo *)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true
+  }
+}

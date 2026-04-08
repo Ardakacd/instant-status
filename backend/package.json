@@ -7,7 +7,7 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "nest start --watch",
+    "start:dev": "NODE_ENV=development nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
@@ -17,7 +17,8 @@
     "typeorm": "typeorm-ts-node-commonjs",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/config/data-source.ts",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/config/data-source.ts",
-    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/config/data-source.ts"
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/config/data-source.ts",
+    "seed:test": "ts-node -r tsconfig-paths/register scripts/seed-test-data.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
@@ -53,6 +54,20 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3"
+  },
+  "jest": {
+    "moduleFileExtensions": ["js", "json", "ts"],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1"
+    },
+    "collectCoverageFrom": ["**/*.(t|j)s"],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node"
   },
   "type": "commonjs"
 }
