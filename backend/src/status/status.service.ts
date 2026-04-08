@@ -17,7 +17,7 @@ import * as admin from "firebase-admin";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
 import { redactUid } from "../utils/redact";
 import { sendEachAndCleanup } from "../utils/fcm";
-import { PREMIUM_GRACE_PERIOD_MS } from "../utils/premium";
+import { isUserPremium, computePremiumGraceFlags } from "../utils/premium";
 
 @Injectable()
 export class StatusService {
@@ -59,45 +59,28 @@ export class StatusService {
           where: { id: userId },
         });
         
-        if (user) {
-          // Check if premium is expired (beyond 3-day grace period, same as status-option and connections)
+        if (!user) {
+          throw new InternalServerErrorException("User not found");
+        }
+
+        const isPremium = isUserPremium(user);
+        const { is_in_grace_period } = computePremiumGraceFlags(user);
+
+        if (!isPremium && !is_in_grace_period) {
           if (user.premium_until) {
-            const now = new Date();
-            const expirationDate = new Date(user.premium_until);
-            // If more than 3 days past expiration, reset to default
-            if (now >= new Date(expirationDate.getTime() + PREMIUM_GRACE_PERIOD_MS)) {
-              // Reset to default "Available" status
-              const defaultOption = await this.statusOptionService.getDefaultStatusOption();
-              if (!defaultOption) {
-                throw new InternalServerErrorException("Default status option not found");
-              }
-              
-              // Update status to default
-              const updateData = {
-                user_id: userId,
-                option_id: defaultOption.id,
-                note: null,
-                expires_at: null,
-              };
-              
-              await this.statusRepository.upsert(updateData, ["user_id"]);
-              
-              // Reload status
-              const reloadedStatus = await this.statusRepository.findOne({
-                where: { user_id: userId },
-                relations: ["option"],
-              });
-              
-              if (!reloadedStatus) {
-                throw new InternalServerErrorException("Failed to reload status after reset");
-              }
-              
-              throw new BadRequestException(
-                "Your premium subscription has expired. Your status has been reset to the default. Upgrade to Pro to use custom statuses again."
-              );
+            // Had premium but expired beyond grace period — reset to default
+            const defaultOption = await this.statusOptionService.getDefaultStatusOption();
+            if (!defaultOption) {
+              throw new InternalServerErrorException("Default status option not found");
             }
+            await this.statusRepository.upsert(
+              { user_id: userId, option_id: defaultOption.id, note: null, expires_at: null },
+              ["user_id"],
+            );
+            throw new BadRequestException(
+              "Your premium subscription has expired. Your status has been reset to the default. Upgrade to Pro to use custom statuses again."
+            );
           } else {
-            // User is not premium and trying to use custom status
             throw new BadRequestException(
               "Custom statuses are only available with Instant Status Pro. Upgrade to use custom statuses."
             );
@@ -297,6 +280,10 @@ export class StatusService {
         .filter((fc): fc is NonNullable<typeof fc> => fc !== null);
 
       const friendIds = friendConnections.map((fc) => fc.friendId);
+
+      if (friendIds.length === 0) {
+        return [];
+      }
 
       // Check and correct expired statuses in bulk before fetching
       await this.checkAndCorrectExpiredStatuses(friendIds);

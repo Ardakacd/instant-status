@@ -13,7 +13,7 @@ import { StatusOption } from "../entities/status-option.entity";
 import { Status } from "../entities/status.entity";
 import { UserService } from "../user/user.service";
 import { MAX_CUSTOM_STATUS_OPTIONS } from "./status-option.constants";
-import { PREMIUM_GRACE_PERIOD_MS } from "../utils/premium";
+import { isUserPremium, computePremiumGraceFlags } from "../utils/premium";
 
 @Injectable()
 export class StatusOptionService {
@@ -100,11 +100,8 @@ export class StatusOptionService {
   private async hasPremiumAccess(userId: string): Promise<boolean> {
     const user = await this.userService.findById(userId);
     if (!user) return false;
-    if (!user.premium_until) return false;
-
-    const now = new Date();
-    const expirationDate = new Date(user.premium_until);
-    return now < new Date(expirationDate.getTime() + PREMIUM_GRACE_PERIOD_MS);
+    const { is_in_grace_period } = computePremiumGraceFlags(user);
+    return isUserPremium(user) || is_in_grace_period;
   }
 
   /**

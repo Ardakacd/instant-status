@@ -33,7 +33,7 @@ interface StatusChangeModalProps {
   visible: boolean;
   selectedOption: StatusOption;
   onClose: () => void;
-  onConfirm: (optionId: string, note?: string, expiresAt?: Date) => void;
+  onConfirm: (optionId: string, note?: string, expiresAt?: Date) => Promise<void>;
   loading?: boolean;
 }
 
@@ -125,20 +125,21 @@ export default function StatusChangeModal({
     }
   };
 
-  const handleConfirm = () => {
-    // Haptics for status change (medium strength for action)
+  const handleConfirm = async () => {
     hapticAction();
-
-    // All statuses can have expiration times
-    onConfirm(
-      selectedOption.id,
-      note.trim() || undefined,
-      expiresAt || undefined,
-    );
-    // Reset form
-    setNote("");
-    setExpiresAt(null);
-    setShowCustomPicker(false);
+    try {
+      await onConfirm(
+        selectedOption.id,
+        note.trim() || undefined,
+        expiresAt || undefined,
+      );
+      // Reset form only on success so note/expiry survive an API error
+      setNote("");
+      setExpiresAt(null);
+      setShowCustomPicker(false);
+    } catch {
+      // Error is handled by the caller — do not reset form state
+    }
   };
 
   const formatDateTimeDisplay = (date: Date): string => {

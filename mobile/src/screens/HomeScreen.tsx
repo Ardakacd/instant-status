@@ -300,7 +300,8 @@ export default function HomeScreen() {
   const loadFriendsStatus = async () => {
     const statuses = await statusService.getFriendsStatus();
     setFriendsStatus(statuses);
-    await widgetStorageService.saveAllFriendStatuses(statuses);
+    // Best-effort — widget storage failure should not surface as a "failed to load friends" error
+    widgetStorageService.saveAllFriendStatuses(statuses).catch(() => {});
   };
 
   const handleStatusButtonPress = (option: StatusOption) => {
