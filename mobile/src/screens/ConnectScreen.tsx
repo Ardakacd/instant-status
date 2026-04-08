@@ -50,6 +50,8 @@ export default function ConnectScreen({ navigation, route }: Props) {
   useEffect(() => {
     const userId = route.params?.userId;
     if (userId && user) {
+      // Clear params immediately to prevent re-triggering on user reference changes
+      navigation.setParams({ userId: undefined });
       if (userId === user.id) {
         Toast.show({
           type: "info",
@@ -177,6 +179,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
         navigation.navigate("Main", { screen: "Friends" });
       }, 1500);
     } catch (error: any) {
+      navigation.setParams({ userId: undefined });
       Toast.show({
         type: "error",
         text1: error.message || "Failed to connect via link. Check your connection and try again.",

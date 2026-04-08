@@ -81,7 +81,7 @@ export class ConnectionsService {
    * Get the friend limit for a user based on their premium status
    */
   getFriendLimit(user: User): number {
-    return isUserPremium(user) ? 24 : 6;
+    return isUserPremium(user) || this.isInGracePeriod(user) ? 24 : 6;
   }
 
   /**
@@ -391,20 +391,16 @@ export class ConnectionsService {
       ]);
 
       const limitA = this.getFriendLimit(userA);
-      const isPremiumA = this.isUserPremium(userA);
-
       if (friendCountA >= limitA) {
-        const errorMsg = isPremiumA
+        const errorMsg = limitA === 24
           ? "You've reached the limit of 24 friends."
           : "You've reached the limit of 6 friends. Upgrade to Pro for up to 24!";
         throw new BadRequestException(errorMsg);
       }
 
       const limitB = this.getFriendLimit(userB);
-      const isPremiumB = this.isUserPremium(userB);
-
       if (friendCountB >= limitB) {
-        const errorMsg = isPremiumB
+        const errorMsg = limitB === 24
           ? "This person has reached the limit of 24 friends and cannot add more friends right now."
           : "This person has reached the limit of 6 friends and cannot add more friends right now.";
         throw new BadRequestException(errorMsg);
@@ -434,6 +430,9 @@ export class ConnectionsService {
 
       return savedConnection;
     } catch (err: any) {
+      if (err instanceof BadRequestException || err instanceof NotFoundException) {
+        throw err;
+      }
       // Handle unique constraint violation (race condition)
       // Another request created the connection between our check and save
       if (err.code === "23505") {
@@ -520,23 +519,6 @@ export class ConnectionsService {
           },
         },
       });
-
-      if (token.platform === Platform.IOS) {
-        messages.push({
-          token: token.token,
-          data: commonData,
-          apns: {
-            headers: {
-              "apns-push-type": "background",
-              "apns-priority": "5",
-            },
-            payload: {
-              aps: { "content-available": 1 },
-            },
-          },
-        });
-        tokenToIdMap.set(token.token, token.id);
-      }
     }
 
     await sendEachAndCleanup(
@@ -583,23 +565,6 @@ export class ConnectionsService {
           },
         },
       });
-
-      if (token.platform === Platform.IOS) {
-        messages.push({
-          token: token.token,
-          data: commonData,
-          apns: {
-            headers: {
-              "apns-push-type": "background",
-              "apns-priority": "5",
-            },
-            payload: {
-              aps: { "content-available": 1 },
-            },
-          },
-        });
-        tokenToIdMap.set(token.token, token.id);
-      }
     }
 
     await sendEachAndCleanup(
