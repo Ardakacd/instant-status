@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { WidgetConfigurationScreenProps } from "react-native-android-widget";
+import { WidgetPreview } from "react-native-android-widget";
 import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM } from "../src/design";
 import {
   InstantStatusWidget,
@@ -116,6 +117,27 @@ function WidgetConfigurationScreenContent({
     );
   }
 
+  // Keyed on backgroundStyle so WidgetPreview re-renders when the bg chip changes
+  const previewKey = `${backgroundStyle}-${selectedFriendIds.size}`;
+  const previewRenderWidget = useCallback(
+    () => {
+      const selectedFriends = friends.filter((f) => selectedFriendIds.has(f.id));
+      return (
+        <InstantStatusWidget
+          friends={selectedFriends}
+          hasAnyFriends={friends.length > 0}
+          isPremium={isPremium}
+          backgroundStyle={backgroundStyle}
+          isDarkMode={false}
+          widgetWidthDp={widgetInfo.width}
+          widgetHeightDp={widgetInfo.height}
+        />
+      );
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [backgroundStyle, selectedFriendIds, friends, isPremium]
+  );
+
   function toggleFriendSelection(friendId: string) {
     const newSelection = new Set(selectedFriendIds);
     if (newSelection.has(friendId)) {
@@ -209,6 +231,19 @@ function WidgetConfigurationScreenContent({
         <Text style={styles.subtitle}>
           Choose which friends to show in the widget
         </Text>
+      </View>
+
+      {/* Live widget preview */}
+      <View style={styles.previewSection}>
+        <Text style={[styles.sectionLabel, { alignSelf: "flex-start" }]}>Preview</Text>
+        <View style={styles.previewContainer}>
+          <WidgetPreview
+            key={previewKey}
+            renderWidget={previewRenderWidget}
+            width={widgetInfo.width}
+            height={widgetInfo.height}
+          />
+        </View>
       </View>
 
       {isPremium && (
@@ -332,6 +367,17 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: Colors.text.secondary,
+  },
+  previewSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.text.secondary + "40",
+    alignItems: "center",
+  },
+  previewContainer: {
+    borderRadius: Borders.radius.medium,
+    overflow: "hidden",
   },
   backgroundSection: {
     paddingHorizontal: Spacing.lg,
