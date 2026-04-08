@@ -327,10 +327,12 @@ export default function HomeScreen() {
       setModalVisible(false);
       setSelectedOption(null);
     } catch (error: any) {
+      Sentry.captureException(error);
       Toast.show({
         type: "error",
         text1: error.message || "Check your connection and try again.",
       });
+      throw error;
     } finally {
       setLoading(false);
     }

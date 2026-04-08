@@ -19,19 +19,19 @@ const uuidSchema = z.string().uuid();
 
 const CreateStatusOptionDtoSchema = z
   .object({
-    label: z.string().min(1).max(25),
-    emoji: z.string().min(1).max(10),
+    label: z.string().trim().min(1).max(25),
+    emoji: z.string().trim().min(1).max(10),
     color: z.string().regex(colorRegex),
-    sort_order: z.number().int().optional(),
+    sort_order: z.number().int().min(1000).max(2147482647).optional(),
   })
   .strict(); // Reject unknown fields
 
 const UpdateStatusOptionDtoSchema = z
   .object({
-    label: z.string().min(1).max(25).optional(),
-    emoji: z.string().min(1).max(10).optional(),
+    label: z.string().trim().min(1).max(25).optional(),
+    emoji: z.string().trim().min(1).max(10).optional(),
     color: z.string().regex(colorRegex).optional(),
-    sort_order: z.number().int().optional(),
+    sort_order: z.number().int().min(1000).max(2147482647).optional(),
   })
   .strict(); // Reject unknown fields
 

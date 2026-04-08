@@ -117,7 +117,7 @@ export class StatusOptionService {
     sortOrder?: number
   ): Promise<StatusOption> {
     try {
-      // Check premium access (including grace period)
+      // Check premium access outside transaction — avoids holding a DB lock during the user lookup
       const hasAccess = await this.hasPremiumAccess(userId);
       if (!hasAccess) {
         throw new BadRequestException(
@@ -125,36 +125,41 @@ export class StatusOptionService {
         );
       }
 
-      // Check if user has reached the maximum limit of custom status options
-      const customOptionsCount = await this.statusOptionRepository.count({
-        where: { user_id: userId },
+      // Wrap count check + insert in a transaction to prevent race conditions where two
+      // concurrent requests both pass the < MAX guard and both insert, exceeding the limit.
+      return await this.dataSource.transaction(async (manager) => {
+        const repo = manager.getRepository(StatusOption);
+
+        const customOptionsCount = await repo.count({
+          where: { user_id: userId },
+        });
+
+        if (customOptionsCount >= MAX_CUSTOM_STATUS_OPTIONS) {
+          throw new BadRequestException(
+            `Maximum limit of ${MAX_CUSTOM_STATUS_OPTIONS} custom status options reached. Please delete an existing custom status option before creating a new one.`
+          );
+        }
+
+        // Get the highest sort_order for this user's custom statuses
+        // Custom statuses start from 1000 to avoid conflicts with system statuses (0-1)
+        const CUSTOM_STATUS_START_ORDER = 1000;
+        const maxSortOrder =
+          (await repo
+            .createQueryBuilder("option")
+            .select("MAX(option.sort_order)", "max")
+            .where("option.user_id = :userId", { userId })
+            .getRawOne())?.max ?? CUSTOM_STATUS_START_ORDER - 1;
+
+        const option = repo.create({
+          user_id: userId,
+          label: label.trim(),
+          emoji: emoji.trim(),
+          color: color.toUpperCase(),
+          sort_order: sortOrder ?? Math.max(maxSortOrder + 1, CUSTOM_STATUS_START_ORDER),
+        });
+
+        return await repo.save(option);
       });
-
-      if (customOptionsCount >= MAX_CUSTOM_STATUS_OPTIONS) {
-        throw new BadRequestException(
-          `Maximum limit of ${MAX_CUSTOM_STATUS_OPTIONS} custom status options reached. Please delete an existing custom status option before creating a new one.`
-        );
-      }
-
-      // Get the highest sort_order for this user's custom statuses
-      // Custom statuses start from 1000 to avoid conflicts with system statuses (0-1)
-      const CUSTOM_STATUS_START_ORDER = 1000;
-      const maxSortOrder =
-        (await this.statusOptionRepository
-          .createQueryBuilder("option")
-          .select("MAX(option.sort_order)", "max")
-          .where("option.user_id = :userId", { userId })
-          .getRawOne())?.max ?? CUSTOM_STATUS_START_ORDER - 1;
-
-      const option = this.statusOptionRepository.create({
-        user_id: userId,
-        label: label.trim(),
-        emoji: emoji.trim(),
-        color: color.toUpperCase(),
-        sort_order: sortOrder ?? Math.max(maxSortOrder + 1, CUSTOM_STATUS_START_ORDER),
-      });
-
-      return await this.statusOptionRepository.save(option);
     } catch (error: any) {
       if (
         error instanceof BadRequestException ||
@@ -229,7 +234,26 @@ export class StatusOptionService {
         option.sort_order = updates.sort_order;
       }
 
-      return await this.statusOptionRepository.save(option);
+      try {
+        return await this.statusOptionRepository.save(option);
+      } catch (saveError: any) {
+        // sort_order unique constraint violation — another option already occupies this value.
+        // Retry once with the next available sort_order for this user.
+        if (saveError.code === "23505" && updates.sort_order !== undefined) {
+          const CUSTOM_STATUS_START_ORDER = 1000;
+          const maxRow = await this.statusOptionRepository
+            .createQueryBuilder("o")
+            .select("MAX(o.sort_order)", "max")
+            .where("o.user_id = :userId", { userId })
+            .getRawOne();
+          option.sort_order = Math.max(
+            (maxRow?.max ?? CUSTOM_STATUS_START_ORDER - 1) + 1,
+            CUSTOM_STATUS_START_ORDER,
+          );
+          return await this.statusOptionRepository.save(option);
+        }
+        throw saveError;
+      }
     } catch (error: any) {
       if (
         error instanceof BadRequestException ||
@@ -289,7 +313,7 @@ export class StatusOptionService {
         if (statusesUsingOption.length > 0) {
           // Get default option within the transaction
           const defaultOption = await statusOptionRepository.findOne({
-            where: { user_id: IsNull(), label: "Available" },
+            where: { is_default: true, user_id: IsNull() },
             order: { sort_order: "ASC" },
           });
           
@@ -338,7 +362,7 @@ export class StatusOptionService {
   async getDefaultStatusOption(): Promise<StatusOption | null> {
     try {
       return await this.statusOptionRepository.findOne({
-        where: { user_id: IsNull(), label: "Available" },
+        where: { is_default: true, user_id: IsNull() },
         order: { sort_order: "ASC" },
       });
     } catch (error: any) {

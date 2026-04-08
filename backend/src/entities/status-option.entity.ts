@@ -16,7 +16,7 @@ import { User } from "./user.entity";
  * - If user_id is a UUID: Custom status created by that specific user
  */
 @Entity("status_options")
-@Index(["user_id", "sort_order"]) // Index for efficient querying
+@Index(["user_id", "sort_order"], { unique: true }) // Unique index to prevent sort_order collisions per user
 export class StatusOption {
   @PrimaryGeneratedColumn("uuid")
   id: string;
@@ -39,6 +39,13 @@ export class StatusOption {
 
   @Column({ type: "int", default: 0 })
   sort_order: number;
+
+  /**
+   * True only for the canonical default system option (Available).
+   * Used for fallback lookups instead of the mutable label string.
+   */
+  @Column({ type: "boolean", default: false })
+  is_default: boolean;
 
   @ManyToOne(() => User, { onDelete: "CASCADE", nullable: true })
   @JoinColumn({ name: "user_id" })

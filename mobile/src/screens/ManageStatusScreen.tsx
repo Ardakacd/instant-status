@@ -66,9 +66,7 @@ export default function ManageStatusScreen() {
       setStatusOptions(options);
     } catch (error: any) {
       Sentry.captureException(error);
-      setGlobalError(
-        error.message || "Failed to load status options. Please try again.",
-      );
+      setGlobalError(error.message || "Failed to load status options. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -155,10 +153,8 @@ export default function ManageStatusScreen() {
               });
               loadStatusOptions();
             } catch (error: any) {
-              setGlobalError(
-                error.message ||
-                  "Failed to delete status option. Please try again.",
-              );
+              Sentry.captureException(error);
+              setGlobalError(error.message || "Failed to delete status option. Please try again.");
             }
           },
         },
@@ -228,9 +224,8 @@ export default function ManageStatusScreen() {
       setGlobalError("");
       loadStatusOptions();
     } catch (error: any) {
-      setGlobalError(
-        error.message || "Failed to create status option. Please try again.",
-      );
+      Sentry.captureException(error);
+      setGlobalError(error.message || "Failed to create status option. Please try again.");
       createModalScrollRef.current?.scrollTo({
         y: 0,
         animated: true,
@@ -272,9 +267,8 @@ export default function ManageStatusScreen() {
       setGlobalError("");
       loadStatusOptions();
     } catch (error: any) {
-      setGlobalError(
-        error.message || "Failed to update status option. Please try again.",
-      );
+      Sentry.captureException(error);
+      setGlobalError(error.message || "Failed to update status option. Please try again.");
       editModalScrollRef.current?.scrollTo({
         y: 0,
         animated: true,
@@ -543,6 +537,7 @@ export default function ManageStatusScreen() {
               <TouchableOpacity
                 onPress={() => {
                   setEditModalVisible(false);
+                  setSaving(false);
                   setGlobalError("");
                   setLabelError("");
                   setEmojiError("");

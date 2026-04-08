@@ -46,6 +46,7 @@ export default function StatusChangeModal({
 }: StatusChangeModalProps) {
   const [note, setNote] = useState("");
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<"30min" | "1hour" | "2hours" | "tonight" | null>(null);
   const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [customDate, setCustomDate] = useState(new Date());
   const [androidPickerMode, setAndroidPickerMode] = useState<"date" | "time">(
@@ -75,19 +76,9 @@ export default function StatusChangeModal({
     }
   };
 
-  const isEndOfDay = (date: Date): boolean => {
-    const endOfDayDate = getPresetDate("endOfDay");
-    return (
-      date.getDate() === endOfDayDate.getDate() &&
-      date.getMonth() === endOfDayDate.getMonth() &&
-      date.getFullYear() === endOfDayDate.getFullYear() &&
-      date.getHours() === 23 &&
-      date.getMinutes() === 59
-    );
-  };
-
   const handlePresetSelect = (preset: string) => {
     setExpiresAt(getPresetDate(preset));
+    setSelectedPreset(preset === "endOfDay" ? "tonight" : preset as "30min" | "1hour" | "2hours");
     setShowCustomPicker(false);
     setAndroidPickerMode("date"); // Reset Android picker mode
   };
@@ -112,6 +103,7 @@ export default function StatusChangeModal({
           combinedDate.setMinutes(selectedDate.getMinutes());
           setCustomDate(combinedDate);
           setExpiresAt(combinedDate);
+          setSelectedPreset(null); // Custom date/time — deselect preset chip
           setShowCustomPicker(false);
           setAndroidPickerMode("date"); // Reset for next time
         }
@@ -122,6 +114,7 @@ export default function StatusChangeModal({
     if (selectedDate) {
       setCustomDate(selectedDate);
       setExpiresAt(selectedDate);
+      setSelectedPreset(null); // Custom date/time — deselect preset chip
     }
   };
 
@@ -136,6 +129,7 @@ export default function StatusChangeModal({
       // Reset form only on success so note/expiry survive an API error
       setNote("");
       setExpiresAt(null);
+      setSelectedPreset(null);
       setShowCustomPicker(false);
     } catch {
       // Error is handled by the caller — do not reset form state
@@ -155,6 +149,7 @@ export default function StatusChangeModal({
   const handleClose = () => {
     setNote("");
     setExpiresAt(null);
+    setSelectedPreset(null);
     setShowCustomPicker(false);
     setAndroidPickerMode("date"); // Reset Android picker mode
     onClose();
@@ -162,6 +157,7 @@ export default function StatusChangeModal({
 
   const handleClearExpiresAt = () => {
     setExpiresAt(null);
+    setSelectedPreset(null);
     setCustomDate(new Date()); // Reset to current date
   };
 
@@ -268,10 +264,10 @@ export default function StatusChangeModal({
                       {/* Presets */}
                       <View style={styles.presetsContainer}>
                         {[
-                          { key: "30min", label: "30 min", isActive: expiresAt ? Math.abs(expiresAt.getTime() - getPresetDate("30min").getTime()) < 60000 : false },
-                          { key: "1hour", label: "1 hour", isActive: expiresAt ? Math.abs(expiresAt.getTime() - getPresetDate("1hour").getTime()) < 60000 : false },
-                          { key: "2hours", label: "2 hours", isActive: expiresAt ? Math.abs(expiresAt.getTime() - getPresetDate("2hours").getTime()) < 60000 : false },
-                          { key: "endOfDay", label: "Until Tonight", isActive: expiresAt ? isEndOfDay(expiresAt) : false },
+                          { key: "30min", label: "30 min", isActive: selectedPreset === "30min" },
+                          { key: "1hour", label: "1 hour", isActive: selectedPreset === "1hour" },
+                          { key: "2hours", label: "2 hours", isActive: selectedPreset === "2hours" },
+                          { key: "endOfDay", label: "Until Tonight", isActive: selectedPreset === "tonight" },
                         ].map(({ key, label, isActive }) => (
                           <TouchableOpacity
                             key={key}

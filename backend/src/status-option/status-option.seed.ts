@@ -28,6 +28,7 @@ export async function seedDefaultStatusOptions(
       emoji: "✅",
       color: "#10B981",
       sort_order: 0,
+      is_default: true,
     },
     {
       user_id: null,
@@ -35,6 +36,7 @@ export async function seedDefaultStatusOptions(
       emoji: "🔴",
       color: "#F59E0B",
       sort_order: 1,
+      is_default: false,
     },
   ];
 
