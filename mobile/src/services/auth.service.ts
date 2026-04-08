@@ -242,12 +242,23 @@ export class AuthService {
         throw new Error("Apple Sign In is not available on this device");
       }
 
-      // Request Apple Sign In (email only)
+      // Request Apple Sign In — FULL_NAME is only provided on first sign-in,
+      // so it must be requested here or it's permanently unavailable.
       const appleCredential = await AppleAuthentication.signInAsync({
-        requestedScopes: [AppleAuthentication.AppleAuthenticationScope.EMAIL],
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        ],
       });
 
-      const { identityToken } = appleCredential;
+      const { identityToken, fullName } = appleCredential;
+
+      // Store the Apple-provided name for the onboarding flow.
+      // Apple only provides name on the first sign-in — capture it now or lose it forever.
+      if (fullName?.givenName || fullName?.familyName) {
+        await AsyncStorage.setItem("apple_given_name", fullName.givenName ?? "");
+        await AsyncStorage.setItem("apple_family_name", fullName.familyName ?? "");
+      }
 
       if (!identityToken) {
         throw new Error("Apple Sign In failed - no identity token received");
@@ -307,8 +318,10 @@ export class AuthService {
       // Update password
       await updatePassword(currentUser, newPassword);
     } catch (error: any) {
-
       // Map Firebase errors to user-friendly messages
+      if (error.code === "auth/requires-recent-login") {
+        throw new Error("For security, please log out and log back in before changing your password.");
+      }
       if (error.code === "auth/invalid-credential") {
         throw new Error("Current password is incorrect.");
       }

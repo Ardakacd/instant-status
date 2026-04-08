@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { User } from "../types";
 import { authService } from "../services/auth.service";
 import Sentry from "../../sentry";
@@ -82,9 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   refreshUserRef.current = refreshUser;
 
   /** Re-sync to get fresh emailVerified; same as refreshUser. */
-  async function checkEmailVerification() {
+  const checkEmailVerification = useCallback(async () => {
     await refreshUserRef.current();
-  }
+  }, []);
 
   // Register session-dead handler: interceptor broadcasts instead of calling authService (breaks circular dep)
   useEffect(() => {
@@ -156,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Sentry.setUser(null);
 
     // authService.logout() sets setLoggingOut internally (closes micro race)
-    authService.logout().catch(() => {});
+    authService.logout().catch((error) => { Sentry.captureException(error); });
   }
 
   async function deleteAccount() {

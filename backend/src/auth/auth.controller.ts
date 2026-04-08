@@ -5,26 +5,21 @@ import {
   Body,
   UseGuards,
   Request,
-  NotFoundException,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
-import { UserService } from "../user/user.service";
 import { z } from "zod";
 import { AuthGuard, AllowUnverifiedEmail } from "./auth.guard";
 
 const VerifyTokenDtoSchema = z
   .object({
-    idToken: z.string(),
+    idToken: z.string().max(4096),
   })
   .strict(); // Reject unknown fields
 
 @Controller("auth")
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-    private userService: UserService,
-  ) {}
+  constructor(private authService: AuthService) {}
 
   @Post("sync")
   @Throttle({ default: { limit: 50, ttl: 60000 } }) // 50 req/min per IP – app startup safe
@@ -38,17 +33,13 @@ export class AuthController {
   @AllowUnverifiedEmail() // Must work before the user has verified their email
   @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 req/min – prevent abuse
   async sendEmailVerification(@Request() req) {
-    const user = await this.userService.findById(req.user.id);
-    if (!user) {
-      throw new NotFoundException("User not found");
-    }
-
-    await this.authService.sendEmailVerification(user.firebase_uid);
+    await this.authService.sendEmailVerification(req.user.firebase_uid);
     return { message: "Verification email sent successfully" };
   }
 
   @Delete("account")
   @UseGuards(AuthGuard)
+  @AllowUnverifiedEmail() // Unverified users must be able to delete their own account
   @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3/min – destructive operation
   async deleteAccount(@Request() req: any) {
     return this.authService.hardDeleteUser(req.user);

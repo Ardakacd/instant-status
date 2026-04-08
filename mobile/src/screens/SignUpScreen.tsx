@@ -84,6 +84,7 @@ export default function SignUpScreen({ navigation }: Props) {
       return;
     }
 
+    clearAuthError();
     setLoading(true);
     setGlobalError("");
     try {
@@ -98,17 +99,16 @@ export default function SignUpScreen({ navigation }: Props) {
   };
 
   const handleGoogleSignIn = async () => {
+    clearAuthError();
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
     } catch (error: any) {
-      if (!error.message?.includes("cancelled")) {
-        Toast.show({
-          type: "error",
-          text1:
-            error.message || "Failed to sign in with Google. Please try again.",
-        });
-      }
+      Toast.show({
+        type: "error",
+        text1:
+          error.message || "Failed to sign in with Google. Please try again.",
+      });
     } finally {
       setGoogleLoading(false);
     }

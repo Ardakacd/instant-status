@@ -135,14 +135,19 @@ export class AuthService {
     const emailVerified = decodedToken.email_verified ?? false;
 
     // For new password users with unverified email, send verification once (non-blocking).
-    // Only on first sync (onboarding=true) — returning unverified users use the
-    // dedicated /auth/send-email-verification endpoint which is rate-limited.
+    // Guard with a 5-minute window on created_at so this only fires for genuinely new
+    // signups — not for returning users who skipped onboarding and have an unverified email,
+    // which would bypass the 3/min rate limit on the dedicated endpoint.
     const signInProvider = (decodedToken as any).firebase?.sign_in_provider;
+    const isNewSignup =
+      user.created_at &&
+      Date.now() - new Date(user.created_at).getTime() < 5 * 60 * 1000;
     if (
       signInProvider === "password" &&
       !emailVerified &&
       onboarding &&
-      user.email
+      user.email &&
+      isNewSignup
     ) {
       this.sendEmailVerification(user.firebase_uid).catch((err) =>
         this.logger.warn(`Failed to send verification email: ${err.message}`),
