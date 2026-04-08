@@ -297,10 +297,11 @@ export class UserService {
         throw new NotFoundException("User not found");
       }
 
-      await this.connectionsService.notifyPeersUserAccountDeleted(user.id);
-
-      // Cascade delete will handle all related records (statuses, connections, invite codes, device tokens)
+      // Delete first — cascade removes all related records (statuses, connections, invite codes, device tokens).
+      // Notify peers after the delete succeeds so we don't send false deletion notifications
+      // if the DB remove fails.
       await this.userRepository.remove(user);
+      await this.connectionsService.notifyPeersUserAccountDeleted(id);
       this.logger.log(`User ${id} deleted successfully`);
     } catch (error: any) {
       // Re-throw NotFoundException as-is

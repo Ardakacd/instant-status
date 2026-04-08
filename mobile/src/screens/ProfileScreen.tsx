@@ -149,6 +149,7 @@ export default function ProfileScreen() {
     } catch (error: any) {
       Toast.show({ type: "error", text1: error.message || "Failed to update" });
       setFirstName(user?.first_name || "");
+      setEditingFirstName(false);
     } finally {
       setSaving(false);
     }
@@ -174,6 +175,7 @@ export default function ProfileScreen() {
     } catch (error: any) {
       Toast.show({ type: "error", text1: error.message || "Failed to update" });
       setLastName(user?.last_name || "");
+      setEditingLastName(false);
     } finally {
       setSaving(false);
     }
@@ -308,9 +310,9 @@ export default function ProfileScreen() {
     setDeletingAccount(true);
     try {
       await deleteAccount();
+      // On success the component unmounts — no state update needed
     } catch (error: any) {
       Toast.show({ type: "error", text1: error.message || "Failed to delete" });
-    } finally {
       setDeletingAccount(false);
     }
   };
@@ -394,7 +396,7 @@ export default function ProfileScreen() {
                       <Ionicons name="checkmark" size={22} color={colors.interaction.primary} />
                     )}
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => { setFirstName(user?.first_name || ""); setEditingFirstName(false); }} style={styles.iconBtn}>
+                  <TouchableOpacity disabled={saving} onPress={() => { setFirstName(user?.first_name || ""); setEditingFirstName(false); }} style={styles.iconBtn}>
                     <Ionicons name="close" size={22} color={colors.text.secondary} />
                   </TouchableOpacity>
                 </View>
@@ -428,7 +430,7 @@ export default function ProfileScreen() {
                       <Ionicons name="checkmark" size={22} color={colors.interaction.primary} />
                     )}
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => { setLastName(user?.last_name || ""); setEditingLastName(false); }} style={styles.iconBtn}>
+                  <TouchableOpacity disabled={saving} onPress={() => { setLastName(user?.last_name || ""); setEditingLastName(false); }} style={styles.iconBtn}>
                     <Ionicons name="close" size={22} color={colors.text.secondary} />
                   </TouchableOpacity>
                 </View>

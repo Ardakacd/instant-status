@@ -6,7 +6,6 @@ import {
   Body,
   UseGuards,
   Request,
-  NotFoundException,
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { UserService } from "./user.service";
@@ -30,12 +29,8 @@ export class UserController {
   @UseGuards(AuthGuard)
   @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 reads/min
   async getMe(@Request() req) {
-    // User comes from AuthGuard, so it's guaranteed to exist
-    const user = await this.userService.findById(req.user.id);
-
-    if (!user) {
-      throw new NotFoundException("User not found");
-    }
+    // User is already loaded and verified by AuthGuard — no extra DB query needed
+    const user = req.user;
 
     // premium_until is source of truth; is_premium is computed for API compat
     const isPremium = isUserPremium(user);

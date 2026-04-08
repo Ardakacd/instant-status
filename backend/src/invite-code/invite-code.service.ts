@@ -225,23 +225,27 @@ export class InviteCodeService {
         throw new NotFoundException("User not found");
       }
 
-      // Check if connection already exists before attempting to create
-      const existingConnection = await this.connectionsService.findConnection(
-        userId,
-        targetUserId
-      );
+      // Use a transaction with pessimistic lock to prevent concurrent duplicate connections.
+      // Without locking, two simultaneous requests can both pass the "already connected" check
+      // and both attempt to insert, causing one to fail with an opaque ISE.
+      const connection = await this.dataSource.transaction(async (manager) => {
+        const [a, b] = [userId, targetUserId].sort();
+        const existing = await manager
+          .createQueryBuilder()
+          .setLock("pessimistic_write")
+          .from("connections", "c")
+          .where("c.user_id = :a AND c.friend_id = :b", { a, b })
+          .getExists();
 
-      if (existingConnection) {
-        throw new BadRequestException(
-          "You are already connected with this user"
-        );
-      }
+        if (existing) {
+          throw new BadRequestException(
+            "You are already connected with this user"
+          );
+        }
 
-      // Create connection directly (shareable links are multi-use)
-      const connection = await this.connectionsService.createFromInvite(
-        userId,
-        targetUserId
-      );
+        // Create connection directly (shareable links are multi-use)
+        return this.connectionsService.createFromInvite(userId, targetUserId, manager);
+      });
 
       this.logger.log(
         `User ${redactUid(userId)} successfully connected to user ${redactUid(targetUserId)} via shareable link`

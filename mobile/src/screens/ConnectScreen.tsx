@@ -61,7 +61,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
         handleConnectByLink(userId);
       }
     }
-  }, [route.params?.userId, user]);
+  }, [route.params?.userId, user?.id]);
 
   const loadMyInviteCode = async () => {
     setInviteCodeError(false);
@@ -119,6 +119,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
         message: `Join me on Instant Status!\n\nMy invite code:\n${myInviteCode}`,
       });
     } catch {
+      Toast.show({ type: "error", text1: "Failed to share invite code. Please try again." });
     }
   };
 
@@ -156,6 +157,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
       const shareMessage = `${shareableLink}\n\nConnect with me on Instant Status!`;
       await Share.share({ message: shareMessage });
     } catch {
+      Toast.show({ type: "error", text1: "Failed to share link. Please try again." });
     }
   };
 
@@ -173,7 +175,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
       const result = await inviteService.connectByLink(targetUserId);
       Toast.show({
         type: "success",
-        text1: `Successfully connected with ${result.owner.first_name} ${result.owner.last_name || ""}!`,
+        text1: `Successfully connected with ${[result.owner.first_name, result.owner.last_name].filter(Boolean).join(" ")}!`,
       });
       navigateTimeoutRef.current = setTimeout(() => {
         navigation.navigate("Main", { screen: "Friends" });
