@@ -18,6 +18,7 @@ import { isUserPremium, computePremiumGraceFlags } from "../utils/premium";
 @Injectable()
 export class StatusOptionService {
   private readonly logger = new StructuredLogger(StatusOptionService.name);
+  private cachedDefaultOption: StatusOption | null | undefined = undefined; // undefined = not yet loaded
 
   constructor(
     @InjectRepository(StatusOption)
@@ -360,11 +361,15 @@ export class StatusOptionService {
    * Used when creating new users
    */
   async getDefaultStatusOption(): Promise<StatusOption | null> {
+    if (this.cachedDefaultOption !== undefined) {
+      return this.cachedDefaultOption;
+    }
     try {
-      return await this.statusOptionRepository.findOne({
+      this.cachedDefaultOption = await this.statusOptionRepository.findOne({
         where: { is_default: true, user_id: IsNull() },
         order: { sort_order: "ASC" },
       });
+      return this.cachedDefaultOption;
     } catch (error: any) {
       this.logger.error(
         `Error getting default status option: ${error.message}`,

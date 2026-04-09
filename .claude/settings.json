@@ -6,6 +6,12 @@
   "teammateMode": "tmux",
   "permissions": {
     "allow": [
+      "Edit(mobile/**)",
+      "Edit(backend/**)",
+      "Write(mobile/**)",
+      "Write(backend/**)",
+      "Read(mobile/**)",
+      "Read(backend/**)",
       "Bash(npm run *)",
       "Bash(npx expo *)",
       "Bash(npx tsc *)",
