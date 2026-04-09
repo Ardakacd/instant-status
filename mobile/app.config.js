@@ -18,6 +18,6 @@ module.exports = {
       ...(appJson.expo.extra || {}),
       iosAppGroup,
     },
-    plugins: ["./withIosAppGroup.js", ...(appJson.expo.plugins || [])],
+    plugins: ["./withIosAppGroup.js", "./withWidgetExpiryScheduler.js", ...(appJson.expo.plugins || [])],
   },
 };

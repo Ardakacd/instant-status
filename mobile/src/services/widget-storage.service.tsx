@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Status } from "../types";
 import { requestWidgetUpdate } from "react-native-android-widget";
 import Sentry from "../../sentry";
+import { WidgetExpiryScheduler } from "../native/WidgetExpiryScheduler";
 import {
   IS_PREMIUM_KEY,
   WIDGET_DATA_KEY,
@@ -41,6 +42,20 @@ export class WidgetStorageService {
   constructor() {
     if (Platform.OS === "ios" && APP_GROUP_ID) {
       this.storage = new ExtensionStorage(APP_GROUP_ID);
+    }
+  }
+
+  /**
+   * Android-only: schedule a WorkManager one-shot task that triggers a widget
+   * update when a friend's status expires. Survives app process death unlike setTimeout.
+   * Calling again for the same userId replaces the existing task (WorkManager REPLACE policy).
+   * Passing null expiresAt cancels any pending task for that user.
+   */
+  private scheduleExpiryReload(userId: string, expiresAt: string | null) {
+    if (expiresAt) {
+      WidgetExpiryScheduler.schedule(userId, expiresAt);
+    } else {
+      WidgetExpiryScheduler.cancel(userId);
     }
   }
 
@@ -197,6 +212,9 @@ export class WidgetStorageService {
         if (!deferRefresh) {
           await this.triggerAndroidUpdate();
         }
+        // Schedule a widget reload when this friend's status expires so the widget
+        // doesn't show stale data if no FCM push arrives at expiry time.
+        this.scheduleExpiryReload(userId, expiresAt);
       }
     } catch (error) {
       Sentry.captureException(error);
@@ -251,6 +269,7 @@ export class WidgetStorageService {
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
         await this.triggerAndroidUpdate();
+        WidgetExpiryScheduler.cancel(id);
       }
     } catch (error) {
       Sentry.captureException(error);
@@ -280,8 +299,28 @@ export class WidgetStorageService {
         this.markIosTimelineReloadPending();
         this.scheduleReload();
       } else if (Platform.OS === "android") {
+        // Cancel workers for friends that dropped off the list before overwriting.
+        const existingRaw = await AsyncStorage.getItem(WIDGET_DATA_KEY);
+        if (existingRaw) {
+          try {
+            const existing: FriendStatusWidgetItem[] = JSON.parse(existingRaw);
+            const newIds = new Set(widgetData.map((w) => w.id));
+            for (const prev of existing) {
+              if (!newIds.has(prev.id)) {
+                WidgetExpiryScheduler.cancel(prev.id);
+              }
+            }
+          } catch {
+            // malformed storage — skip cancel, proceed with write
+          }
+        }
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
         await this.triggerAndroidUpdate();
+        // Reschedule expiry reloads from the latest snapshot so they reflect
+        // the current expires_at values, not stale ones from earlier delta pushes.
+        for (const item of widgetData) {
+          this.scheduleExpiryReload(item.id, item.expiresAt);
+        }
       }
     } catch (error) {
       Sentry.captureException(error);
