@@ -48,6 +48,10 @@ import { ProcessedWebhook } from "./entities/processed-webhook.entity";
       entities: [User, Status, StatusOption, Connection, InviteCode, DeviceToken, ProcessedWebhook],
       synchronize: process.env.NODE_ENV !== "production",
       logging: process.env.NODE_ENV === "development",
+      extra: {
+        max: 10,
+        idleTimeoutMillis: 30000,
+      },
     }),
     AuthModule,
     UserModule,
