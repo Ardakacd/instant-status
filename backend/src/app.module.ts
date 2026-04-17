@@ -19,6 +19,7 @@ import { Connection } from "./entities/connection.entity";
 import { InviteCode } from "./entities/invite-code.entity";
 import { DeviceToken } from "./entities/device-token.entity";
 import { ProcessedWebhook } from "./entities/processed-webhook.entity";
+import { HealthController } from "./health.controller";
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { ProcessedWebhook } from "./entities/processed-webhook.entity";
     DeviceTokenModule,
     RedirectModule,
   ],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_GUARD,
