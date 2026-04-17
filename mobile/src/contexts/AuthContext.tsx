@@ -50,9 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(result.user);
       setOnboarding(result.onboarding);
-      setEmailVerified(result.emailVerified);
+      const verified = __DEV__ ? true : result.emailVerified;
+      setEmailVerified(verified);
       setAuthError(
-        result.emailVerified ? null : "Please verify your email address to continue."
+        verified ? null : "Please verify your email address to continue."
       );
       setNoInternet(false);
 

@@ -26,7 +26,7 @@ function writeKotlinFiles(config) {
     "android",
     (mod) => {
       const pkg = mod.modRequest.projectRoot;
-      const androidPackage = mod.android?.package ?? "com.arda.instantstatus.dev";
+      const androidPackage = mod.android?.package ?? "com.arda.instantstatusapp";
       const packagePath = androidPackage.replace(/\./g, "/");
       const srcDir = path.join(
         pkg,

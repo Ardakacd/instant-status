@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "FPQ5Q94QY6.com.arda.instantstatus.dev",
+        "appID": "FPQ5Q94QY6.com.arda.instantstatusapp",
         "paths": [
           "/verify",
           "/verify/*",

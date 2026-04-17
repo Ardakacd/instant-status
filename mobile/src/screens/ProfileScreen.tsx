@@ -109,7 +109,7 @@ export default function ProfileScreen() {
     if (Platform.OS === "android") {
       const packageName =
         Constants.expoConfig?.android?.package ||
-        "com.arda.instantstatus.dev";
+        "com.arda.instantstatusapp";
       try {
         const intentUri = `intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;data=package:${packageName};end`;
         const canOpen = await Linking.canOpenURL(intentUri);

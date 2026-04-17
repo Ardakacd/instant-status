@@ -5,7 +5,7 @@ module.exports = (config) => ({
   type: "widget",
   displayName: "Instant Status Widget",
   icon: "../../assets/logo.png",
-  bundleIdentifier: "com.arda.instantstatus.dev.widget",
+  bundleIdentifier: "com.arda.instantstatusapp.widget",
   entitlements: {
     "com.apple.security.application-groups": [resolveFromEnv()],
   },

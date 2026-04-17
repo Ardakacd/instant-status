@@ -3,5 +3,5 @@
 import Foundation
 
 enum AppGroupConstants {
-    static let id: String = "group.com.arda.instantstatus.dev"
+    static let id: String = "group.com.arda.instantstatusapp"
 }

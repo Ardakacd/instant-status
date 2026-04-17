@@ -3,17 +3,19 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>70279102156-1hdnc7rnv4mlumb4ldifsdm1at2ejka1.apps.googleusercontent.com</string>
+	<string>70279102156-u25u3kigcp4gscisb80cr6f6vnca1rad.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.70279102156-1hdnc7rnv4mlumb4ldifsdm1at2ejka1</string>
+	<string>com.googleusercontent.apps.70279102156-u25u3kigcp4gscisb80cr6f6vnca1rad</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>70279102156-0glse6khpuhvnne9dpi7ps6j037f8r79.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
-	<string>AIzaSyDPPG_-9OO8PoCt4XoKQEX6hi_8l5j-p54</string>
+	<string>AIzaSyDULo03beaEFzGmqgUXSGaLM-yJKt4dDLw</string>
 	<key>GCM_SENDER_ID</key>
 	<string>70279102156</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.arda.instantstatus.dev</string>
+	<string>com.arda.instantstatusapp</string>
 	<key>PROJECT_ID</key>
 	<string>instant-status-8d123</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:70279102156:ios:f853180cf62d5e6a9c4c69</string>
+	<string>1:70279102156:ios:eb711ccb71aa877e9c4c69</string>
 </dict>
 </plist>

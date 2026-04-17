@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "appleTeamId": "FPQ5Q94QY6",
-      "bundleIdentifier": "com.arda.instantstatus.dev",
+      "bundleIdentifier": "com.arda.instantstatusapp",
       "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -29,7 +29,7 @@
       "entitlements": {
         "aps-environment": "development",
         "com.apple.security.application-groups": [
-          "group.com.arda.instantstatus.dev"
+          "group.com.arda.instantstatusapp"
         ]
       },
       "associatedDomains": [
@@ -37,7 +37,7 @@
       ]
     },
     "android": {
-      "package": "com.arda.instantstatus.dev",
+      "package": "com.arda.instantstatusapp",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
