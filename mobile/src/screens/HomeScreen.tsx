@@ -475,7 +475,10 @@ export default function HomeScreen() {
               ) : isPremium ? (
                 <Ionicons name="settings-outline" size={20} color={colors.text.secondary} />
               ) : (
-                <Ionicons name="lock-closed-outline" size={20} color={colors.text.secondary} />
+                <View style={styles.premiumBadge}>
+                  <Ionicons name="diamond-outline" size={14} color={colors.interaction.accent} />
+                  <Text style={[styles.premiumBadgeText, { color: colors.interaction.accent }]}>PRO</Text>
+                </View>
               )}
             </TouchableOpacity>
           </View>
@@ -911,6 +914,20 @@ const styles = StyleSheet.create({
   },
   manageButton: {
     padding: Spacing.xs,
+  },
+  premiumBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 100,
+  },
+  premiumBadgeText: {
+    fontSize: 11,
+    fontFamily: Typography.fontFamily.semiBold,
+    letterSpacing: 0.5,
   },
   statusButtonsContainer: {
     flexDirection: "row",
