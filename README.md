@@ -1,64 +1,39 @@
 # Instant Status
 
-A mobile app that allows users to share their availability status (FREE / BUSY / DND / SLEEP) with trusted contacts instantly.
+Real-time status sharing app. Friends see each other's current status via mobile app and home screen widgets.
 
 ## Project Structure
 
 ```
 instant-status/
-├── backend/          # NestJS backend API
-└── mobile/           # React Native + Expo mobile app
+├── backend/          # NestJS API (deployed on Railway)
+├── mobile/           # React Native (Expo) mobile app
+│   └── public/       # Firebase Hosting (website, privacy, terms)
 ```
 
 ## Quick Start
 
 ### Backend
 
-1. Navigate to backend directory:
-
 ```bash
 cd backend
-```
-
-2. Install dependencies:
-
-```bash
 npm install
-```
-
-3. Set up environment variables (see `backend/.env.example`)
-
-4. Set up PostgreSQL and Redis
-
-5. Start the server:
-
-```bash
+# Set up .env.development with DB and Firebase credentials
 npm run start:dev
 ```
 
-### Mobile App
+Requires PostgreSQL running locally.
 
-1. Navigate to mobile directory:
+### Mobile
 
 ```bash
 cd mobile
-```
-
-2. Install dependencies:
-
-```bash
 npm install
-```
-
-3. Configure environment variables (see `mobile/README.md`)
-
-4. Set up Firebase project
-
-5. Start the app:
-
-```bash
+# Set up Firebase project and environment variables
 npm start
 ```
+
+See `mobile/README.md` for environment variable details.
 
 ## Tech Stack
 
@@ -67,7 +42,6 @@ npm start
 - NestJS (TypeScript)
 - PostgreSQL + TypeORM
 - Firebase Admin SDK
-- Postmark (Email service)
 - Zod validation
 
 ### Mobile
@@ -76,25 +50,27 @@ npm start
 - TypeScript
 - Firebase Auth (Email/Password, Google, Apple Sign-In)
 - Firebase Cloud Messaging
+- RevenueCat (subscriptions)
 - React Navigation
-- iOS Widgets
+- Android widgets (`react-native-android-widget`)
+- iOS widgets (SwiftUI via `@bacons/apple-targets`)
+
+### Hosting
+
+- Backend: Railway
+- Website: Firebase Hosting
+- Mobile builds: EAS Build
 
 ## Features
 
-✅ Email/password, Google, and Apple authentication  
-✅ Email verification  
-✅ Password reset  
-✅ Status management (AVAILABLE, BUSY, DND, FOCUS, SOCIAL, COMMUTE)  
-✅ Friend connections via invite codes and shareable links  
-✅ Real-time status updates via push notifications  
-✅ Status expiration support  
-✅ iOS home screen widgets  
-✅ Welcome emails and security alerts  
-✅ Clean, minimal UI
-
-## API Documentation
-
-See `backend/README.md` for detailed API endpoint documentation.
+- Email/password, Google, and Apple authentication
+- Custom status options with emoji, label, and color
+- Friend connections via invite codes and shareable links
+- Real-time status updates via push notifications
+- Status expiration and notes
+- Android and iOS home screen widgets
+- Premium subscriptions via RevenueCat
+- Landing page, privacy policy, and terms of service
 
 ## License
 
