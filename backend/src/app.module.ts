@@ -47,7 +47,7 @@ import { HealthController } from "./health.controller";
       password: process.env.DB_PASSWORD || "postgres",
       database: process.env.DB_NAME || "instant_status",
       entities: [User, Status, StatusOption, Connection, InviteCode, DeviceToken, ProcessedWebhook],
-      synchronize: process.env.NODE_ENV !== "production",
+      synchronize: process.env.NODE_ENV !== "production" || process.env.DB_SYNC === "true",
       logging: process.env.NODE_ENV === "development",
       extra: {
         max: 10,
