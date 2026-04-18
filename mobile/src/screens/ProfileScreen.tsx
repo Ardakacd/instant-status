@@ -318,11 +318,11 @@ export default function ProfileScreen() {
   };
 
   const openPrivacyPolicy = () => {
-    WebBrowser.openBrowserAsync("https://example.com/privacy-policy");
+    WebBrowser.openBrowserAsync("https://instantstatus.app/privacy");
   };
 
   const openTermsOfUse = () => {
-    WebBrowser.openBrowserAsync("https://example.com/terms-of-use");
+    WebBrowser.openBrowserAsync("https://instantstatus.app/terms");
   };
 
   const handleUpgradeToPremium = async () => {
