@@ -37,7 +37,7 @@ export class StatusOptionService {
       emoji?: string;
       color?: string;
       sort_order?: number;
-    }
+    },
   ): Promise<StatusOption> {
     const response = await api.patch(`/status-options/${id}`, data);
     return response.data;
@@ -49,4 +49,3 @@ export class StatusOptionService {
 }
 
 export const statusOptionService = new StatusOptionService();
-

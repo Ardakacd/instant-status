@@ -17,6 +17,11 @@ export async function seedDefaultStatusOptions(
   });
 
   if (existingCount > 0) {
+    // Ensure the "Available" option has is_default = true (backfill for older DBs)
+    await statusOptionRepository.update(
+      { label: "Available", user_id: IsNull(), is_default: false },
+      { is_default: true },
+    );
     logger.log("Default status options already exist, skipping seed");
     return;
   }

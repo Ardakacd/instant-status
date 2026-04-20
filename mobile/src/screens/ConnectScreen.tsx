@@ -241,7 +241,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
             <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text variant="primary" style={[styles.headerTitle, { fontSize: fs(18) }]}>
-            Connect Friends
+            Add Friends
           </Text>
           <View style={styles.backButton} />
         </View>
@@ -293,7 +293,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
               disabled={redeemingCode || !inviteCode.trim()}
               fullWidth
             >
-              Connect
+              Add
             </Button>
           </View>
         </View>

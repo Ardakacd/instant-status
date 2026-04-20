@@ -61,6 +61,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "70279102156-cc86p7efbtq9v33muu6tkfcnabd9ljpq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.arda.instantstatusapp",
+            "certificate_hash": "ce8c8a5721bc19a92eefe00f2761fed8a5ba0935"
+          }
+        },
+        {
+          "client_id": "70279102156-qfo4pcoj0b9rubbkqeb5vg43es5qpcpu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.arda.instantstatusapp",
+            "certificate_hash": "8f37ef267f5fd6ae168ed22ba4601224f3f6202e"
+          }
+        },
+        {
+          "client_id": "70279102156-v5lphe0ms81anmnjg0bu01ck2sghe43o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.arda.instantstatusapp",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
           "client_id": "70279102156-aa9dqgogs3kn4cv8p05ilm6j8g5vicqg.apps.googleusercontent.com",
           "client_type": 3
         }

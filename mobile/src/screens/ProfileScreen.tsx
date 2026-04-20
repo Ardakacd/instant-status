@@ -340,11 +340,6 @@ export default function ProfileScreen() {
   const displayName =
     [user?.first_name, user?.last_name].filter(Boolean).join(" ") || "Profile";
 
-  const initials = [user?.first_name, user?.last_name]
-    .filter(Boolean)
-    .map((n) => n![0].toUpperCase())
-    .join("")
-    .slice(0, 2) || "?";
 
   return (
     <View style={[styles.container, { backgroundColor: colors.canvas.background }]}>
@@ -362,10 +357,7 @@ export default function ProfileScreen() {
       >
         {/* Profile Header */}
         <View style={styles.header}>
-          <View style={styles.avatarCircle}>
-            <Text style={[styles.avatarText, { fontSize: fs(22) }]}>{initials}</Text>
-          </View>
-          <Text variant="primary" style={[styles.displayName, { fontSize: fs(20) }]}>
+          <Text variant="primary" style={[styles.displayName, { fontSize: fs(24) }]}>
             {displayName}
           </Text>
           <Text variant="secondary" style={styles.email}>
@@ -756,41 +748,25 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   header: {
-    alignItems: "center",
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xl,
-  },
-  avatarCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: Colors.interaction.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  avatarText: {
-    fontFamily: Typography.fontFamily.semiBold,
-    color: "#FFFFFF",
-    textAlign: "center",
-    includeFontPadding: false,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   displayName: {
-    fontSize: 20,
+    fontSize: 24,
     fontFamily: Typography.fontFamily.semiBold,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   email: {
     fontSize: 14,
   },
   section: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
   },
   sectionTitle: {
     fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
     letterSpacing: 0.8,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs + 2,
   },
   card: {
     borderRadius: Borders.radius.medium,

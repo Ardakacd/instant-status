@@ -45,23 +45,21 @@ import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
 export default function HomeScreen() {
-  const { width: screenWidth, horizontalPadding, fs } = useResponsive();
-  const availableStatusWidth =
-    screenWidth - horizontalPadding * 2 - Spacing.md * 2;
-  const statusCols = Math.min(
-    2,
-    Math.max(
-      1,
-      Math.floor((availableStatusWidth + Spacing.md) / (140 + Spacing.md)),
-    ),
-  );
-  const statusButtonWidth =
-    (availableStatusWidth - Spacing.md * (statusCols - 1)) / statusCols;
+  const { horizontalPadding, fs } = useResponsive();
   const colors = useColors();
   const navigation = useNavigation();
   const route = useRoute();
   const { isPremium, loading: premiumLoading } = useIsPremium();
-  const { refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 5) return "Good night";
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+  const userName = user?.first_name || "there";
   const [myStatus, setMyStatus] = useState<Status | null>(null);
   const [friendsStatus, setFriendsStatus] = useState<Status[]>([]);
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
@@ -87,55 +85,6 @@ export default function HomeScreen() {
 
   const FRIEND_LAYOUT_STORAGE_KEY = "home_friend_layout_mode";
 
-  // ── SEED DATA (remove before release) ──
-  const SCREENSHOT_MODE = true;
-  const SEED_STATUS_OPTIONS: StatusOption[] = [
-    { id: "s1", user_id: null, label: "Available", emoji: "🟢", color: "#10B981", sort_order: 0 },
-    { id: "s2", user_id: null, label: "Busy", emoji: "🔴", color: "#EF4444", sort_order: 1 },
-    { id: "s3", user_id: null, label: "Do Not Disturb", emoji: "⛔", color: "#DC2626", sort_order: 2 },
-    { id: "s4", user_id: null, label: "Focus", emoji: "🎯", color: "#8B5CF6", sort_order: 3 },
-    { id: "s5", user_id: null, label: "Commuting", emoji: "🚗", color: "#F59E0B", sort_order: 4 },
-    { id: "s6", user_id: null, label: "At the Gym", emoji: "💪", color: "#EC4899", sort_order: 5 },
-    { id: "s7", user_id: null, label: "Sleeping", emoji: "😴", color: "#6366F1", sort_order: 6 },
-    { id: "s8", user_id: null, label: "Eating", emoji: "🍕", color: "#F97316", sort_order: 7 },
-    { id: "s9", user_id: null, label: "Gaming", emoji: "🎮", color: "#14B8A6", sort_order: 8 },
-    { id: "s10", user_id: null, label: "Studying", emoji: "📚", color: "#0EA5E9", sort_order: 9 },
-  ];
-  const now = new Date();
-  const inOneHour = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
-  const inThreeHours = new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString();
-  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-  const SEED_MY_STATUS: Status = {
-    user_id: "me", first_name: "Me", last_name: null, avatar_url: null,
-    option: SEED_STATUS_OPTIONS[0], note: "Working on the app", expires_at: inThreeHours, updated_at: now.toISOString(),
-  };
-  const SEED_FRIENDS: Status[] = [
-    { user_id: "f1", first_name: "Christopher Alexander", last_name: "Worthington-Davies", avatar_url: null, option: SEED_STATUS_OPTIONS[2], note: "Currently in back-to-back meetings with the product team discussing Q3 roadmap priorities and won't be available until late afternoon, please send me a message instead of calling", expires_at: tomorrow, updated_at: now.toISOString() },
-    { user_id: "f2", first_name: "James", last_name: "Chen", avatar_url: null, option: SEED_STATUS_OPTIONS[0], note: null, expires_at: null, updated_at: now.toISOString() },
-    { user_id: "f3", first_name: "Sofia", last_name: "Rodriguez", avatar_url: null, option: SEED_STATUS_OPTIONS[3], note: "Deep work session", expires_at: inThreeHours, updated_at: now.toISOString() },
-    { user_id: "f4", first_name: "Liam", last_name: "O'Brien", avatar_url: null, option: SEED_STATUS_OPTIONS[6], note: null, expires_at: tomorrow, updated_at: now.toISOString() },
-    { user_id: "f5", first_name: "Aisha", last_name: "Patel", avatar_url: null, option: SEED_STATUS_OPTIONS[4], note: "On the train", expires_at: inOneHour, updated_at: now.toISOString() },
-    { user_id: "f6", first_name: "Noah", last_name: "Kim", avatar_url: null, option: SEED_STATUS_OPTIONS[8], note: "Playing Valorant", expires_at: null, updated_at: now.toISOString() },
-    { user_id: "f7", first_name: "Olivia", last_name: "Taylor", avatar_url: null, option: SEED_STATUS_OPTIONS[5], note: "Leg day", expires_at: inOneHour, updated_at: now.toISOString() },
-    { user_id: "f8", first_name: "Ethan", last_name: "Nakamura", avatar_url: null, option: SEED_STATUS_OPTIONS[2], note: "Exam prep, don't call", expires_at: inThreeHours, updated_at: now.toISOString() },
-    { user_id: "f9", first_name: "Mia", last_name: "Johansson", avatar_url: null, option: SEED_STATUS_OPTIONS[0], note: "Coffee?", expires_at: null, updated_at: now.toISOString() },
-    { user_id: "f10", first_name: "Alexander", last_name: "Kowalski", avatar_url: null, option: SEED_STATUS_OPTIONS[7], note: "Lunch break", expires_at: inOneHour, updated_at: now.toISOString() },
-    { user_id: "f11", first_name: "Zara", last_name: "Ahmed", avatar_url: null, option: SEED_STATUS_OPTIONS[9], note: "Finals week", expires_at: tomorrow, updated_at: now.toISOString() },
-    { user_id: "f12", first_name: "Lucas", last_name: "Fernandez", avatar_url: null, option: SEED_STATUS_OPTIONS[1], note: "Client call", expires_at: inOneHour, updated_at: now.toISOString() },
-    { user_id: "f13", first_name: "Chloe", last_name: "Dubois", avatar_url: null, option: SEED_STATUS_OPTIONS[3], note: null, expires_at: inThreeHours, updated_at: now.toISOString() },
-    { user_id: "f14", first_name: "Daniel", last_name: "Ivanov", avatar_url: null, option: SEED_STATUS_OPTIONS[0], note: "Ask me anything", expires_at: null, updated_at: now.toISOString() },
-    { user_id: "f15", first_name: "Isabella", last_name: "Santos", avatar_url: null, option: SEED_STATUS_OPTIONS[4], note: "Driving home", expires_at: inOneHour, updated_at: now.toISOString() },
-    { user_id: "f16", first_name: "Ryan", last_name: "McCarthy", avatar_url: null, option: SEED_STATUS_OPTIONS[6], note: null, expires_at: tomorrow, updated_at: now.toISOString() },
-    { user_id: "f17", first_name: "Aria", last_name: "Sharma", avatar_url: null, option: SEED_STATUS_OPTIONS[5], note: "Morning run", expires_at: inOneHour, updated_at: now.toISOString() },
-    { user_id: "f18", first_name: "Jack", last_name: "Williams", avatar_url: null, option: SEED_STATUS_OPTIONS[8], note: null, expires_at: null, updated_at: now.toISOString() },
-    { user_id: "f19", first_name: "Luna", last_name: "Nguyen", avatar_url: null, option: SEED_STATUS_OPTIONS[2], note: "Recording podcast", expires_at: inThreeHours, updated_at: now.toISOString() },
-    { user_id: "f20", first_name: "Oscar", last_name: "Berg", avatar_url: null, option: SEED_STATUS_OPTIONS[7], note: "Sushi time", expires_at: inOneHour, updated_at: now.toISOString() },
-    { user_id: "f21", first_name: "Hannah", last_name: "Lee", avatar_url: null, option: SEED_STATUS_OPTIONS[0], note: null, expires_at: null, updated_at: now.toISOString() },
-    { user_id: "f22", first_name: "Marcus", last_name: "Brown", avatar_url: null, option: SEED_STATUS_OPTIONS[9], note: "Library", expires_at: inThreeHours, updated_at: now.toISOString() },
-    { user_id: "f23", first_name: "Freya", last_name: "Andersen", avatar_url: null, option: SEED_STATUS_OPTIONS[1], note: "Sprint planning", expires_at: inOneHour, updated_at: now.toISOString() },
-    { user_id: "f24", first_name: "Kai", last_name: "Tanaka", avatar_url: null, option: SEED_STATUS_OPTIONS[3], note: "Writing code", expires_at: inThreeHours, updated_at: now.toISOString() },
-  ];
-  // ── END SEED DATA ──
 
   // Enable LayoutAnimation on Android
   if (
@@ -145,9 +94,9 @@ export default function HomeScreen() {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
 
-  const displayStatusOptions = SCREENSHOT_MODE ? SEED_STATUS_OPTIONS : statusOptions;
-  const displayMyStatus = SCREENSHOT_MODE ? SEED_MY_STATUS : myStatus;
-  const displayFriendsStatus = SCREENSHOT_MODE ? SEED_FRIENDS : friendsStatus;
+  const displayStatusOptions = statusOptions;
+  const displayMyStatus = myStatus;
+  const displayFriendsStatus = friendsStatus;
   const currentOptionId = displayMyStatus?.option?.id || null;
 
   const handleManageStatusPress = async () => {
@@ -513,25 +462,14 @@ export default function HomeScreen() {
           style={[
             styles.refreshHintBanner,
             { backgroundColor: colors.tint.mint },
-            {
-              transform: [{ translateY: slideAnim }],
-            },
+            { transform: [{ translateY: slideAnim }] },
           ]}
         >
           <View style={styles.refreshHintContent}>
-            <Ionicons
-              name="arrow-down"
-              size={20}
-              color={colors.interaction.primary}
-            />
-            <Text variant="primary" style={styles.refreshHintText}>
-              Pull down to refresh
-            </Text>
+            <Ionicons name="arrow-down" size={20} color={colors.interaction.primary} />
+            <Text variant="primary" style={styles.refreshHintText}>Pull down to refresh</Text>
           </View>
-          <TouchableOpacity
-            onPress={dismissRefreshHint}
-            style={styles.refreshHintClose}
-          >
+          <TouchableOpacity onPress={dismissRefreshHint} style={styles.refreshHintClose}>
             <Ionicons name="close" size={20} color={colors.text.secondary} />
           </TouchableOpacity>
         </Animated.View>
@@ -542,9 +480,7 @@ export default function HomeScreen() {
         contentContainerStyle={[
           styles.scrollContent,
           {
-            flexGrow: 1,
             paddingTop: Spacing.md + (showRefreshHint ? 56 : 0),
-            paddingHorizontal: horizontalPadding,
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -558,164 +494,150 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* My Status Card */}
-        <View
-          style={[styles.statusCard, { backgroundColor: colors.canvas.card }]}
-        >
-          <View style={styles.cardTitleContainer}>
-            <Text style={styles.cardTitle}>YOUR STATUS</Text>
-            <TouchableOpacity
-              style={styles.manageButton}
-              onPress={handleManageStatusPress}
-              disabled={premiumLoading}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              {premiumLoading ? (
-                <ActivityIndicator
-                  size="small"
-                  color={colors.interaction.primary}
-                />
-              ) : isPremium ? (
-                <Ionicons
-                  name="settings-outline"
-                  size={20}
-                  color={colors.text.secondary}
-                />
-              ) : (
-                <View style={styles.premiumBadge}>
-                  <Ionicons
-                    name="diamond-outline"
-                    size={14}
-                    color={colors.interaction.accent}
-                  />
-                  <Text
-                    style={[
-                      styles.premiumBadgeText,
-                      { color: colors.interaction.accent },
-                    ]}
-                  >
-                    PRO
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
+        {/* Greeting Header */}
+        <View style={[styles.greetingContainer, { paddingHorizontal: horizontalPadding }]}>
+          <View>
+            <Text variant="secondary" style={styles.greetingText}>{getGreeting()},</Text>
+            <Text variant="primary" style={styles.greetingName}>{userName}</Text>
           </View>
-          <View style={styles.statusButtonsContainer}>
-            {displayStatusOptions.map((option) => {
-              const isActive = currentOptionId === option.id;
-              return (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[
-                    styles.statusButton,
-                    {
-                      width: statusButtonWidth,
-                      height: fs(100),
-                      backgroundColor: colors.canvas.subtle,
-                    },
-                    isActive && styles.statusButtonActive,
-                    isActive && {
-                      backgroundColor: option.color,
-                      borderColor: colors.canvas.background,
-                    },
-                  ]}
-                  onPress={() => handleStatusButtonPress(option)}
-                  disabled={loading}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.statusIcon,
-                      { fontSize: fs(22), lineHeight: fs(26) },
-                    ]}
-                  >
-                    {option.emoji}
-                  </Text>
-                  <Text
-                    numberOfLines={2}
-                    style={[
-                      styles.statusButtonText,
-                      { fontSize: fs(14), color: colors.text.secondary },
-                      isActive && { color: colors.canvas.background },
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  {isActive && (
-                    <View
-                      style={[
-                        styles.activeIndicator,
-                        { backgroundColor: colors.canvas.background },
-                      ]}
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          {displayMyStatus?.option && (
-            <View
-              style={[
-                styles.statusHero,
-                { backgroundColor: displayMyStatus.option.color + "18" },
-              ]}
-            >
-              <View style={styles.statusHeroLeft}>
-                <Text style={styles.statusHeroEmoji}>
-                  {displayMyStatus.option.emoji}
-                </Text>
-                <Text
-                  variant="primary"
-                  style={styles.statusHeroLabel}
-                  numberOfLines={1}
-                >
-                  {displayMyStatus.option.label}
-                </Text>
+          <TouchableOpacity
+            style={styles.manageButton}
+            onPress={handleManageStatusPress}
+            disabled={premiumLoading}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            {premiumLoading ? (
+              <ActivityIndicator size="small" color={colors.interaction.primary} />
+            ) : isPremium ? (
+              <Ionicons name="settings-outline" size={22} color={colors.text.secondary} />
+            ) : (
+              <View style={styles.premiumBadge}>
+                <Ionicons name="diamond-outline" size={14} color={colors.interaction.accent} />
+                <Text style={[styles.premiumBadgeText, { color: colors.interaction.accent }]}>PRO</Text>
               </View>
-              <View style={styles.statusHeroRight}>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Active Status Hero */}
+        <View style={{ paddingHorizontal: horizontalPadding }}>
+          {displayMyStatus?.option ? (
+            <TouchableOpacity
+              style={[
+                styles.heroCard,
+                { backgroundColor: displayMyStatus.option.color + "12" },
+              ]}
+              onPress={() => handleStatusButtonPress(displayMyStatus.option!)}
+              activeOpacity={0.8}
+            >
+              <View
+                style={[styles.heroAccent, { backgroundColor: displayMyStatus.option.color }]}
+              />
+              <View style={styles.heroEmojiBox}>
+                <Text style={styles.heroEmoji}>{displayMyStatus.option.emoji}</Text>
+              </View>
+              <View style={styles.heroTextBlock}>
+                <View style={styles.heroTopRow}>
+                  <Text variant="primary" style={styles.heroLabel} numberOfLines={1}>
+                    {displayMyStatus.option.label}
+                  </Text>
+                  {displayMyStatus.expires_at &&
+                    formatExpirationTime(displayMyStatus.expires_at) && (
+                      <View style={styles.heroExpiryRow}>
+                        <Ionicons name="time-outline" size={11} color="#F59E0B" />
+                        <Text style={styles.heroExpiryText}>
+                          {formatExpirationTime(displayMyStatus.expires_at)}
+                        </Text>
+                      </View>
+                    )}
+                </View>
                 {displayMyStatus.note && (
-                  <Text
-                    variant="secondary"
-                    style={styles.statusHeroNote}
-                    numberOfLines={1}
-                  >
+                  <Text variant="secondary" style={styles.heroNote} numberOfLines={1}>
                     {displayMyStatus.note}
                   </Text>
                 )}
-                {displayMyStatus.expires_at &&
-                  formatExpirationTime(displayMyStatus.expires_at) && (
-                    <View style={styles.statusHeroExpiry}>
-                      <Ionicons name="time-outline" size={11} color="#F59E0B" />
-                      <Text style={styles.statusHeroExpiryText}>
-                        {formatExpirationTime(displayMyStatus.expires_at)}
-                      </Text>
-                    </View>
-                  )}
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.heroCardEmpty, { backgroundColor: colors.canvas.card }]}>
+              <Text style={styles.heroEmptyEmoji}>👋</Text>
+              <View style={styles.heroEmptyTextBlock}>
+                <Text variant="primary" style={styles.heroEmptyTitle}>
+                  What are you up to?
+                </Text>
+                <Text variant="secondary" style={styles.heroEmptyText}>
+                  Pick a status below
+                </Text>
               </View>
             </View>
           )}
         </View>
 
+        {/* Status Picker — Horizontal Scroll */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.statusScroll}
+          contentContainerStyle={[
+            styles.statusScrollContent,
+            { paddingHorizontal: horizontalPadding },
+          ]}
+        >
+          {displayStatusOptions.map((option) => {
+            const isActive = currentOptionId === option.id;
+            return (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.statusPill,
+                  { backgroundColor: colors.canvas.card },
+                  isActive && { backgroundColor: option.color },
+                ]}
+                onPress={() => handleStatusButtonPress(option)}
+                disabled={loading}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.statusPillEmoji}>{option.emoji}</Text>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.statusPillLabel,
+                    { color: colors.text.primary },
+                    isActive && { color: "#FFFFFF" },
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
         {/* Friends Section */}
-        <View style={styles.friendsSection}>
+        <View style={[styles.friendsSection, { paddingHorizontal: horizontalPadding }]}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>FRIENDS</Text>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>FRIENDS</Text>
+              {displayFriendsStatus.length > 0 && (
+                <View style={[styles.friendCountBadge, { backgroundColor: colors.canvas.card }]}>
+                  <Text style={[styles.friendCountText, { color: colors.text.secondary }]}>
+                    {displayFriendsStatus.length}
+                  </Text>
+                </View>
+              )}
+            </View>
             <View style={styles.headerRight}>
               {displayFriendsStatus.length > 0 && (
                 <View
                   style={[
                     styles.layoutToggle,
-                    {
-                      backgroundColor: colors.canvas.card,
-                      borderColor: colors.text.secondary + "40",
-                    },
+                    { backgroundColor: colors.canvas.card, borderColor: colors.text.secondary + "40" },
                   ]}
                 >
                   <TouchableOpacity
                     style={[
                       styles.layoutToggleButton,
-                      friendLayoutMode === "large" &&
-                        styles.layoutToggleButtonActive,
+                      friendLayoutMode === "large" && styles.layoutToggleButtonActive,
                     ]}
                     onPress={() => setFriendLayoutModeAndPersist("large")}
                     activeOpacity={0.8}
@@ -723,18 +645,13 @@ export default function HomeScreen() {
                     <Ionicons
                       name="list"
                       size={16}
-                      color={
-                        friendLayoutMode === "large"
-                          ? "#FFFFFF"
-                          : colors.text.secondary
-                      }
+                      color={friendLayoutMode === "large" ? "#FFFFFF" : colors.text.secondary}
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
                       styles.layoutToggleButton,
-                      friendLayoutMode === "compact" &&
-                        styles.layoutToggleButtonActive,
+                      friendLayoutMode === "compact" && styles.layoutToggleButtonActive,
                     ]}
                     onPress={() => setFriendLayoutModeAndPersist("compact")}
                     activeOpacity={0.8}
@@ -742,76 +659,47 @@ export default function HomeScreen() {
                     <Ionicons
                       name="grid"
                       size={14}
-                      color={
-                        friendLayoutMode === "compact"
-                          ? "#FFFFFF"
-                          : colors.text.secondary
-                      }
+                      color={friendLayoutMode === "compact" ? "#FFFFFF" : colors.text.secondary}
                     />
                   </TouchableOpacity>
                 </View>
               )}
               <TouchableOpacity
                 style={styles.connectButton}
-                onPress={() =>
-                  (navigation.getParent() as any)?.navigate("Connect")
-                }
+                onPress={() => (navigation.getParent() as any)?.navigate("Connect")}
                 activeOpacity={0.7}
               >
-                <Ionicons
-                  name="person-add"
-                  size={16}
-                  color={colors.interaction.primary}
-                />
-                <Text style={styles.connectButtonText}>Connect</Text>
+                <Ionicons name="person-add" size={16} color={colors.interaction.primary} />
+                <Text style={styles.connectButtonText}>Add</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {refreshing && displayFriendsStatus.length === 0 ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator
-                size="small"
-                color={colors.interaction.primary}
-              />
+              <ActivityIndicator size="small" color={colors.interaction.primary} />
             </View>
           ) : displayFriendsStatus.length === 0 ? (
             <View style={styles.emptyState}>
-              <View
-                style={[
-                  styles.emptyIconCircle,
-                  { backgroundColor: colors.canvas.subtle },
-                ]}
-              >
-                <Ionicons
-                  name="people-outline"
-                  size={fs(32)}
-                  color={colors.text.secondary}
-                />
+              <View style={[styles.emptyIconCircle, { backgroundColor: colors.canvas.subtle }]}>
+                <Ionicons name="people-outline" size={fs(32)} color={colors.text.secondary} />
               </View>
-              <Text variant="primary" style={styles.emptyTitle}>
-                No friends yet
-              </Text>
+              <Text variant="primary" style={styles.emptyTitle}>No friends yet</Text>
               <Text variant="secondary" style={styles.emptyText}>
                 Add friends to see their status
               </Text>
               <Button
                 variant="primary"
-                onPress={() =>
-                  (navigation.getParent() as any)?.navigate("Connect")
-                }
+                onPress={() => (navigation.getParent() as any)?.navigate("Connect")}
                 style={styles.emptyConnectButton}
               >
-                Connect
+                Add Friends
               </Button>
             </View>
           ) : friendLayoutMode === "compact" ? (
             <View style={styles.friendsGrid}>
               {displayFriendsStatus.map((status) => {
-                const displayName = getDisplayName(
-                  status.first_name,
-                  status.last_name,
-                );
+                const firstName = status.first_name || "User";
                 return (
                   <TouchableOpacity
                     key={status.user_id}
@@ -820,47 +708,22 @@ export default function HomeScreen() {
                       { backgroundColor: colors.canvas.card },
                     ]}
                     activeOpacity={0.7}
-                    onPress={() => {
-                      setSelectedFriend(status);
-                      setFriendModalVisible(true);
-                    }}
+                    onPress={() => { setSelectedFriend(status); setFriendModalVisible(true); }}
                   >
-                    <Text style={styles.compactEmoji}>
-                      {status.option?.emoji || "🟢"}
-                    </Text>
-                    <View style={styles.friendNameRowCompact}>
-                      <Text
-                        variant="primary"
-                        style={styles.friendNameCompact}
-                        numberOfLines={1}
-                      >
-                        {displayName}
-                      </Text>
-                      {getConnectionForFriend(status.user_id)
-                        ?.user_shows_status === false && (
-                        <Ionicons
-                          name="eye-off-outline"
-                          size={11}
-                          color={colors.text.secondary}
-                        />
-                      )}
-                    </View>
-                    <Text
-                      variant="secondary"
-                      style={styles.friendStatusCompact}
-                      numberOfLines={1}
+                    <View
+                      style={[
+                        styles.compactEmojiCircle,
+                        { backgroundColor: (status.option?.color || Colors.interaction.primary) + "18" },
+                      ]}
                     >
+                      <Text style={styles.compactEmoji}>{status.option?.emoji || "🟢"}</Text>
+                    </View>
+                    <Text variant="primary" style={styles.friendNameCompact} numberOfLines={1}>
+                      {firstName}
+                    </Text>
+                    <Text variant="secondary" style={styles.friendStatusCompact} numberOfLines={1}>
                       {status.option?.label || "Available"}
                     </Text>
-                    {status.note && (
-                      <Text
-                        variant="secondary"
-                        style={styles.compactNoteText}
-                        numberOfLines={1}
-                      >
-                        {status.note}
-                      </Text>
-                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -868,84 +731,43 @@ export default function HomeScreen() {
           ) : (
             <View style={styles.friendsList}>
               {displayFriendsStatus.map((status) => {
-                const displayName = getDisplayName(
-                  status.first_name,
-                  status.last_name,
-                );
-                const statusColor =
-                  status.option?.color || Colors.interaction.primary;
+                const displayName = getDisplayName(status.first_name, status.last_name);
                 return (
                   <TouchableOpacity
                     key={status.user_id}
-                    style={[
-                      styles.friendCard,
-                      { backgroundColor: colors.canvas.card },
-                    ]}
+                    style={[styles.friendCard, { backgroundColor: colors.canvas.card }]}
                     activeOpacity={0.7}
-                    onPress={() => {
-                      setSelectedFriend(status);
-                      setFriendModalVisible(true);
-                    }}
+                    onPress={() => { setSelectedFriend(status); setFriendModalVisible(true); }}
                   >
-                    <View
-                      style={[
-                        styles.friendAccent,
-                        { backgroundColor: statusColor },
-                      ]}
-                    />
+                    <Text style={styles.friendEmoji}>{status.option?.emoji || "🟢"}</Text>
                     <View style={styles.friendInfo}>
                       <View style={styles.friendRow}>
-                        <View style={styles.friendNameRow}>
-                          <Text
-                            variant="primary"
-                            style={[styles.friendName, { fontSize: fs(15) }]}
-                            numberOfLines={1}
-                          >
-                            {displayName}
-                          </Text>
-                          {getConnectionForFriend(status.user_id)
-                            ?.user_shows_status === false && (
-                            <Ionicons
-                              name="eye-off-outline"
-                              size={13}
-                              color={colors.text.secondary}
-                            />
-                          )}
-                        </View>
-                        {status.expires_at &&
-                          formatExpirationTime(status.expires_at) && (
-                            <View style={styles.expiryPill}>
-                              <Ionicons
-                                name="time-outline"
-                                size={10}
-                                color="#F59E0B"
-                              />
-                              <Text style={styles.expiryPillText}>
-                                {formatExpirationTime(status.expires_at)}
-                              </Text>
-                            </View>
-                          )}
+                        <Text
+                          variant="primary"
+                          style={[styles.friendName, { fontSize: fs(15) }]}
+                          numberOfLines={1}
+                        >
+                          {displayName}
+                        </Text>
+                        {getConnectionForFriend(status.user_id)?.user_shows_status === false && (
+                          <Ionicons name="eye-off-outline" size={13} color={colors.text.secondary} />
+                        )}
                       </View>
                       <View style={styles.friendBottomRow}>
-                        <View style={styles.friendStatusInline}>
-                          <Text style={styles.friendStatusEmoji}>
-                            {status.option?.emoji || "🟢"}
-                          </Text>
-                          <Text
-                            variant="secondary"
-                            style={styles.friendStatusLabel}
-                            numberOfLines={1}
-                          >
-                            {status.option?.label || "Available"}
-                          </Text>
-                        </View>
+                        <Text variant="secondary" style={styles.friendStatusLabel} numberOfLines={1}>
+                          {status.option?.label || "Available"}
+                        </Text>
                         {status.note && (
-                          <Text
-                            variant="secondary"
-                            style={styles.friendNoteText}
-                            numberOfLines={1}
-                          >
-                            {status.note}
+                          <>
+                            <Text variant="secondary" style={styles.friendDotSep}>·</Text>
+                            <Text variant="secondary" style={styles.friendNoteText} numberOfLines={1}>
+                              {status.note}
+                            </Text>
+                          </>
+                        )}
+                        {status.expires_at && formatExpirationTime(status.expires_at) && (
+                          <Text style={styles.friendExpiryText}>
+                            {formatExpirationTime(status.expires_at)}
                           </Text>
                         )}
                       </View>
@@ -954,6 +776,26 @@ export default function HomeScreen() {
                 );
               })}
             </View>
+          )}
+
+          {/* Invite Card — shown when user has some friends but < 5 */}
+          {displayFriendsStatus.length > 0 && displayFriendsStatus.length < 5 && (
+            <TouchableOpacity
+              style={[styles.inviteCard, { backgroundColor: colors.tint.mint }]}
+              onPress={() => (navigation.getParent() as any)?.navigate("Connect")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.inviteIconCircle, { backgroundColor: colors.interaction.primary + "20" }]}>
+                <Ionicons name="people" size={20} color={colors.interaction.primary} />
+              </View>
+              <View style={styles.inviteContent}>
+                <Text variant="primary" style={styles.inviteTitle}>Better with friends</Text>
+                <Text variant="secondary" style={styles.inviteSubtitle}>
+                  Share your invite link to connect
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.interaction.primary} />
+            </TouchableOpacity>
           )}
         </View>
       </ScrollView>
@@ -1211,27 +1053,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
-  statusCard: {
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderRadius: Borders.radius.medium,
-    padding: Spacing.md,
-  },
-  cardTitleContainer: {
+
+  // ── Greeting ──
+  greetingContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
-  cardTitle: {
-    fontSize: 13,
+  greetingText: {
+    fontSize: 14,
+    fontFamily: Typography.fontFamily.medium,
+  },
+  greetingName: {
+    fontSize: 26,
     fontFamily: Typography.fontFamily.semiBold,
-    letterSpacing: 0.8,
-    flexShrink: 1,
-    minWidth: 0,
+    marginTop: 2,
   },
   manageButton: {
     padding: Spacing.xs,
@@ -1250,58 +1089,145 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.semiBold,
     letterSpacing: 0.5,
   },
-  statusButtonsContainer: {
+
+  // ── Hero Card ──
+  heroCard: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "center",
+    borderRadius: Borders.radius.medium,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingLeft: Spacing.md + 4,
+    marginBottom: Spacing.sm,
+    overflow: "hidden",
     gap: Spacing.md,
   },
-  statusButton: {
-    height: 100,
-    borderRadius: Borders.radius.medium,
-    padding: Spacing.md,
+  heroAccent: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderRadius: 2,
+  },
+  heroEmojiBox: {
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "transparent",
-    position: "relative",
   },
-  statusButtonActive: {},
-  statusIcon: {
-    fontSize: 22,
-    lineHeight: 26,
-    includeFontPadding: false,
-    marginBottom: Spacing.sm,
+  heroEmoji: {
+    fontSize: 28,
+    lineHeight: 34,
   },
-  statusButtonText: {
-    fontSize: 14,
+  heroTextBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  heroLabel: {
+    fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
-    textAlign: "center",
+    flexShrink: 1,
   },
-  activeIndicator: {
-    position: "absolute",
-    top: Spacing.sm,
-    right: Spacing.sm,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  heroNote: {
+    fontSize: 13,
+    fontStyle: "italic",
   },
+  heroExpiryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginLeft: "auto",
+    flexShrink: 0,
+  },
+  heroExpiryText: {
+    fontSize: 11,
+    fontFamily: Typography.fontFamily.medium,
+    color: "#F59E0B",
+  },
+  heroCardEmpty: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: Borders.radius.medium,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    gap: Spacing.md,
+  },
+  heroEmptyEmoji: {
+    fontSize: 28,
+    lineHeight: 34,
+  },
+  heroEmptyTextBlock: {
+    flex: 1,
+    gap: 2,
+  },
+  heroEmptyTitle: {
+    fontSize: 16,
+    fontFamily: Typography.fontFamily.semiBold,
+  },
+  heroEmptyText: {
+    fontSize: 13,
+  },
+
+  // ── Status Picker ──
+  statusScroll: {
+    marginTop: Spacing.xs,
+  },
+  statusScrollContent: {
+    gap: Spacing.sm,
+  },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+  },
+  statusPillEmoji: {
+    fontSize: 14,
+  },
+  statusPillLabel: {
+    fontSize: 13,
+    fontFamily: Typography.fontFamily.medium,
+  },
+
+  // ── Friends Section ──
   friendsSection: {
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: Spacing.md,
-    paddingBottom: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.sm,
   },
   sectionTitle: {
     fontSize: 13,
     fontFamily: Typography.fontFamily.semiBold,
     letterSpacing: 0.8,
-    flexShrink: 1,
-    minWidth: 0,
+  },
+  friendCountBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 100,
+  },
+  friendCountText: {
+    fontSize: 12,
+    fontFamily: Typography.fontFamily.medium,
   },
   headerRight: {
     flexDirection: "row",
@@ -1319,7 +1245,7 @@ const styles = StyleSheet.create({
   connectButtonText: {
     fontSize: 14,
     fontFamily: Typography.fontFamily.medium,
-    color: Colors.interaction.primary, // stays mint
+    color: Colors.interaction.primary,
   },
   loadingContainer: {
     padding: Spacing.xxl,
@@ -1368,192 +1294,128 @@ const styles = StyleSheet.create({
   layoutToggleButtonActive: {
     backgroundColor: Colors.interaction.primary,
   },
+
+  // ── Large Friend Cards ──
   friendsList: {
-    gap: Spacing.sm,
-  },
-  friendsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    rowGap: Spacing.sm,
-  },
-  friendCardCompact: {
-    borderRadius: Borders.radius.medium,
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-    paddingTop: 14,
-    alignItems: "center",
-    width: "48.5%",
-  },
-  compactEmoji: {
-    fontSize: 28,
-    lineHeight: 34,
-    marginBottom: Spacing.xs,
-  },
-  friendNameRowCompact: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 3,
-    marginBottom: 2,
-  },
-  friendNameCompact: {
-    fontSize: 13,
-    fontFamily: Typography.fontFamily.semiBold,
-    textAlign: "center",
-    flexShrink: 1,
-  },
-  friendStatusCompact: {
-    fontSize: 12,
-    textAlign: "center",
+    gap: 2,
   },
   friendCard: {
     flexDirection: "row",
     alignItems: "center",
     borderRadius: Borders.radius.medium,
-    overflow: "hidden",
     paddingVertical: Spacing.sm + 2,
     paddingHorizontal: Spacing.md,
-    paddingLeft: Spacing.md + 4,
+    gap: Spacing.sm + 2,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: Spacing.sm,
-    position: "relative",
-  },
-  avatarText: {
-    fontSize: 17,
-    fontFamily: Typography.fontFamily.semiBold,
+  friendEmoji: {
+    fontSize: 22,
+    lineHeight: 28,
   },
   friendInfo: {
     flex: 1,
     minWidth: 0,
-    gap: 3,
+    gap: 2,
   },
   friendRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     gap: Spacing.sm,
   },
-  friendNameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    flex: 1,
-    minWidth: 0,
-  },
   friendName: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Typography.fontFamily.semiBold,
     flexShrink: 1,
   },
   friendBottomRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: Spacing.sm,
-  },
-  friendStatusInline: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    flexShrink: 0,
-  },
-  friendStatusEmoji: {
-    fontSize: 13,
+    gap: 0,
   },
   friendStatusLabel: {
     fontSize: 13,
     flexShrink: 0,
+  },
+  friendDotSep: {
+    fontSize: 13,
+    marginHorizontal: 6,
   },
   friendNoteText: {
     fontSize: 13,
     fontStyle: "italic",
     flex: 1,
     minWidth: 0,
-    textAlign: "right",
   },
-  friendAccent: {
-    position: "absolute",
-    left: 0,
-    top: Spacing.sm,
-    bottom: Spacing.sm,
-    width: 3,
-    borderRadius: 2,
-  },
-  expiryPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 100,
-    flexShrink: 0,
-  },
-  expiryPillText: {
+  friendExpiryText: {
     fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
-    color: "#B45309",
-  },
-  compactNoteText: {
-    fontSize: 11,
-    fontStyle: "italic",
-    textAlign: "center",
-    marginTop: 2,
-  },
-  statusHero: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Borders.radius.small,
-    gap: Spacing.sm,
-  },
-  statusHeroLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
+    color: "#F59E0B",
+    marginLeft: "auto",
     flexShrink: 0,
   },
-  statusHeroEmoji: {
-    fontSize: 18,
+
+  // ── Compact Friend Cards ──
+  friendsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
   },
-  statusHeroLabel: {
+  friendCardCompact: {
+    borderRadius: Borders.radius.medium,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.sm + 2,
+    paddingTop: Spacing.md,
+    alignItems: "center",
+    width: "31%",
+  },
+  compactEmojiCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.sm,
+  },
+  compactEmoji: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  friendNameCompact: {
+    fontSize: 13,
+    fontFamily: Typography.fontFamily.semiBold,
+    textAlign: "center",
+    marginBottom: 2,
+  },
+  friendStatusCompact: {
+    fontSize: 11,
+    textAlign: "center",
+  },
+
+  // ── Invite Card ──
+  inviteCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: Borders.radius.medium,
+    padding: Spacing.md,
+    marginTop: Spacing.lg,
+    gap: Spacing.md,
+  },
+  inviteIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inviteContent: {
+    flex: 1,
+    gap: 2,
+  },
+  inviteTitle: {
     fontSize: 15,
     fontFamily: Typography.fontFamily.semiBold,
   },
-  statusHeroRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    flex: 1,
-    justifyContent: "flex-end",
-    minWidth: 0,
-  },
-  statusHeroNote: {
+  inviteSubtitle: {
     fontSize: 13,
-    fontStyle: "italic",
-    flexShrink: 1,
-    minWidth: 0,
-  },
-  statusHeroExpiry: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    flexShrink: 0,
-  },
-  statusHeroExpiryText: {
-    fontSize: 12,
-    fontFamily: Typography.fontFamily.medium,
-    color: "#F59E0B",
   },
   friendModalOverlay: {
     flex: 1,
