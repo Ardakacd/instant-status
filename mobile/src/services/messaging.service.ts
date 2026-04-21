@@ -34,20 +34,26 @@ export class MessagingService {
           PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
         );
         const granted = status === PermissionsAndroid.RESULTS.GRANTED;
-        
+
         if (granted) {
-          // Also request Firebase messaging permission for token generation
-          const authStatus = await requestPermission(this.messagingInstance);
-          const firebaseEnabled =
-            authStatus === AuthorizationStatus.AUTHORIZED ||
-            authStatus === AuthorizationStatus.PROVISIONAL;
-          if (!firebaseEnabled) {
-            Sentry.captureMessage(
-              "Android POST_NOTIFICATIONS granted but Firebase requestPermission returned non-authorized status",
-              "warning"
-            );
+          // Keep Firebase in sync; do not gate success on AuthorizationStatus — on Android 13+
+          // POST_NOTIFICATIONS is the real requirement, and RN Firebase's status often does not
+          // match iOS-style AUTHORIZED (see invertase/react-native-firebase #6511 / #7177).
+          try {
+            const authStatus = await requestPermission(this.messagingInstance);
+            const firebaseOk =
+              authStatus === AuthorizationStatus.AUTHORIZED ||
+              authStatus === AuthorizationStatus.PROVISIONAL;
+            if (!firebaseOk) {
+              Sentry.captureMessage(
+                "Android POST_NOTIFICATIONS granted but Firebase requestPermission returned non-authorized status",
+                "warning"
+              );
+            }
+          } catch (e) {
+            Sentry.captureException(e);
           }
-          return firebaseEnabled;
+          return true;
         }
         return false;
       } else {
@@ -77,18 +83,11 @@ export class MessagingService {
     try {
       // Android 13+ (API 33+) requires explicit POST_NOTIFICATIONS check
       if (Platform.OS === "android" && Platform.Version >= 33) {
-        const status = await PermissionsAndroid.check(
+        const postNotificationsGranted = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
         );
-        if (!status) {
-          return false;
-        }
-        // Also check Firebase messaging permission
-        const authStatus = await hasPermission(this.messagingInstance);
-        return (
-          authStatus === AuthorizationStatus.AUTHORIZED ||
-          authStatus === AuthorizationStatus.PROVISIONAL
-        );
+        // Source of truth on Android 13+ — Firebase hasPermission is unreliable vs iOS enums.
+        return postNotificationsGranted;
       } else {
         // iOS or older Android - use Firebase messaging permission
         const authStatus = await hasPermission(this.messagingInstance);
@@ -116,6 +115,21 @@ export class MessagingService {
   }
 
   /**
+   * Token to send to the backend. In __DEV__, drops the cached FCM token first so a Metro
+   * reload (`r`) does not re-register a stale native token that FCM rejects on send.
+   */
+  async getTokenForRegistration(): Promise<string | null> {
+    if (__DEV__) {
+      try {
+        await deleteToken(this.messagingInstance);
+      } catch {
+        // No token yet or already cleared — ok
+      }
+    }
+    return this.getToken();
+  }
+
+  /**
    * Get FCM token
    */
   async getToken(): Promise<string | null> {
@@ -124,8 +138,15 @@ export class MessagingService {
         await this.registerDeviceForRemoteMessages();
       }
       return await getToken(this.messagingInstance);
-    } catch (error) {
-      Sentry.captureException(error);
+    } catch (error: any) {
+      Sentry.captureException(error, {
+        tags: { area: "fcm_get_token" },
+        extra: {
+          message: error?.message,
+          code: error?.code,
+          nativeErrorMessage: error?.nativeErrorMessage,
+        },
+      });
       return null;
     }
   }

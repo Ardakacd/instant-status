@@ -10,13 +10,14 @@ export function useIsPremium() {
   const [willRenew, setWillRenew] = useState<boolean | null>(null);
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
   const [managementURL, setManagementURL] = useState<string | null>(null);
+  const [rcHasEntitlement, setRcHasEntitlement] = useState(false);
 
   const devForcePaywall = __DEV__ && DEV_ALWAYS_SHOW_PAYWALL;
 
   const isSubscriptionActiveRaw = user?.is_premium ?? false;
   const isInGracePeriodRaw = user?.is_in_grace_period ?? false;
   /** Matches API feature gating (active subscription or 3-day grace). */
-  const hasPremiumAccessRaw = isSubscriptionActiveRaw || isInGracePeriodRaw;
+  const hasPremiumAccessRaw = isSubscriptionActiveRaw || isInGracePeriodRaw || rcHasEntitlement;
 
   const isSubscriptionActive = devForcePaywall ? false : isSubscriptionActiveRaw;
   const isInGracePeriod = devForcePaywall ? false : isInGracePeriodRaw;
@@ -41,6 +42,7 @@ export function useIsPremium() {
 
     const updateDisplayFields = (info: CustomerInfo) => {
       const entitlement = info.entitlements.active["Instant Status Premium"];
+      setRcHasEntitlement(!!entitlement);
       if (entitlement) {
         setWillRenew(entitlement.willRenew ?? true);
         setExpirationDate(

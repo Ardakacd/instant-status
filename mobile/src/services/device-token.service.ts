@@ -11,15 +11,27 @@ export class DeviceTokenService {
    * Updates stored ID if token refreshes (same user, new token)
    */
   async registerToken(token: string): Promise<void> {
-    const response = await api.post("/device-token", {
-      token,
-      platform: Platform.OS === "ios" ? "iOS" : "Android",
-    });
+    try {
+      const response = await api.post("/device-token", {
+        token,
+        platform: Platform.OS === "ios" ? "iOS" : "Android",
+      });
 
-    // Store the device token ID for later deletion
-    // This will overwrite any previous ID (handles token refresh case)
-    if (response.data?.id) {
-      await AsyncStorage.setItem(DEVICE_TOKEN_ID_KEY, response.data.id);
+      // Store the device token ID for later deletion
+      // This will overwrite any previous ID (handles token refresh case)
+      if (response.data?.id) {
+        await AsyncStorage.setItem(DEVICE_TOKEN_ID_KEY, response.data.id);
+      }
+    } catch (error: any) {
+      Sentry.captureException(error, {
+        tags: { feature: "device_token_registration" },
+        extra: {
+          status: error?.response?.status,
+          body: error?.response?.data,
+          platform: Platform.OS,
+        },
+      });
+      throw error;
     }
   }
 
@@ -47,7 +59,9 @@ export class DeviceTokenService {
         await AsyncStorage.removeItem(DEVICE_TOKEN_ID_KEY);
       }
     } catch (error: any) {
-      Sentry.captureException(error);
+      Sentry.captureException(error, {
+        tags: { feature: "device_token_unregistration" },
+      });
       // Don't fail logout if backend deletion fails
       // The token will be invalidated on Firebase side anyway
       // Still try to clear stored ID

@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(result.user);
       setOnboarding(result.onboarding);
-      const verified = __DEV__ ? true : result.emailVerified;
+      const verified = result.emailVerified;
       setEmailVerified(verified);
       setAuthError(
         verified ? null : "Please verify your email address to continue."
@@ -161,12 +161,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function deleteAccount() {
+    setLoading(true);
     await authService.deleteAccount();
     setUser(null);
     setOnboarding(false);
     setEmailVerified(true);
     setAuthError(null);
     setNoInternet(false);
+    setLoading(false);
     Sentry.setUser(null);
   }
 

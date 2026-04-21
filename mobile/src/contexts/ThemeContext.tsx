@@ -24,14 +24,12 @@ const THEME_STORAGE_KEY = 'app_theme_mode';
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(THEME_STORAGE_KEY).then((stored) => {
       if (stored === 'light' || stored === 'dark' || stored === 'system') {
         setThemeModeState(stored);
       }
-      setLoaded(true);
     });
   }, []);
 
@@ -44,7 +42,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     themeMode === 'dark' || (themeMode === 'system' && systemScheme === 'dark');
   const colors = isDark ? darkColors : lightColors;
 
-  if (!loaded) return null;
+  // Never return null here — that caused a gray flash between native splash and app UI.
 
   return (
     <ThemeContext.Provider value={{ colors, themeMode, setThemeMode, isDark }}>
