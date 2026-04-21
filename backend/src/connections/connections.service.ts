@@ -24,6 +24,29 @@ function normalizePair(userId: string, friendId: string): [string, string] {
   return userId < friendId ? [userId, friendId] : [friendId, userId];
 }
 
+/** User-facing copy for friend-cap errors (keep aligned across checkFriendLimit + createFromInvite). */
+const FRIEND_CAP = { free: 6, premium: 24 } as const;
+
+function msgYouAtPremiumCap(): string {
+  return `You're at your Pro limit of ${FRIEND_CAP.premium} friends. Remove someone if you want to add another.`;
+}
+
+function msgYouAtFreeCap(): string {
+  return `You're at the free limit of ${FRIEND_CAP.free} friends. Remove someone to add another, or upgrade to Pro for up to ${FRIEND_CAP.premium}.`;
+}
+
+function msgYouGrandfatheredFree(currentCount: number): string {
+  return `You can keep all ${currentCount} friends. On the free plan you can only add new friends when you have ${FRIEND_CAP.free} or fewer. Upgrade to Pro, or remove friends until you're at ${FRIEND_CAP.free}.`;
+}
+
+function msgTheyAtPremiumCap(): string {
+  return `They can't accept new friends right now - they're at their Pro limit (${FRIEND_CAP.premium}). Ask them to remove someone first.`;
+}
+
+function msgTheyAtFreeCap(): string {
+  return `They can't accept new friends right now - they're at the free limit (${FRIEND_CAP.free}). They can remove someone or upgrade to Pro to add you.`;
+}
+
 @Injectable()
 export class ConnectionsService {
   private readonly logger = new StructuredLogger(ConnectionsService.name);
@@ -81,7 +104,9 @@ export class ConnectionsService {
    * Get the friend limit for a user based on their premium status
    */
   getFriendLimit(user: User): number {
-    return isUserPremium(user) || this.isInGracePeriod(user) ? 24 : 6;
+    return isUserPremium(user) || this.isInGracePeriod(user)
+      ? FRIEND_CAP.premium
+      : FRIEND_CAP.free;
   }
 
   /**
@@ -146,9 +171,9 @@ export class ConnectionsService {
       const currentCount = await this.getFriendCount(userId);
       const isPremium = this.isUserPremium(user);
       const isInGrace = this.isInGracePeriod(user);
-      const freeLimit = 6;
-      const premiumLimit = 24;
-      
+      const freeLimit = FRIEND_CAP.free;
+      const premiumLimit = FRIEND_CAP.premium;
+
       // If user is premium (or in grace period), they can add up to 24
       if (isPremium || isInGrace) {
         const limit = premiumLimit;
@@ -158,7 +183,7 @@ export class ConnectionsService {
             currentCount,
             limit,
             freeLimit,
-            errorMessage: "You've reached the limit of 24 friends.",
+            errorMessage: msgYouAtPremiumCap(),
           };
         }
         return {
@@ -178,7 +203,7 @@ export class ConnectionsService {
           limit: freeLimit, // Their effective limit for adding new friends
           freeLimit,
           isGrandfathered: true,
-          errorMessage: `You've reached the free limit of ${freeLimit} friends. You can keep your existing ${currentCount} friends, but cannot add new ones until you upgrade to Pro or remove friends down to ${freeLimit}.`,
+          errorMessage: msgYouGrandfatheredFree(currentCount),
         };
       }
 
@@ -189,7 +214,7 @@ export class ConnectionsService {
           currentCount,
           limit: freeLimit,
           freeLimit,
-          errorMessage: `You've reached the limit of ${freeLimit} friends. Upgrade to Pro for up to 24!`,
+          errorMessage: msgYouAtFreeCap(),
         };
       }
 
@@ -370,7 +395,7 @@ export class ConnectionsService {
       });
 
       if (existing) {
-        return existing;
+        throw new BadRequestException("You are already friends with this user");
       }
 
       // Check friend limits for BOTH users before creating connection.
@@ -392,17 +417,15 @@ export class ConnectionsService {
 
       const limitA = this.getFriendLimit(userA);
       if (friendCountA >= limitA) {
-        const errorMsg = limitA === 24
-          ? "You've reached the limit of 24 friends."
-          : "You've reached the limit of 6 friends. Upgrade to Pro for up to 24!";
+        const errorMsg =
+          limitA === FRIEND_CAP.premium ? msgYouAtPremiumCap() : msgYouAtFreeCap();
         throw new BadRequestException(errorMsg);
       }
 
       const limitB = this.getFriendLimit(userB);
       if (friendCountB >= limitB) {
-        const errorMsg = limitB === 24
-          ? "This person has reached the limit of 24 friends and cannot add more friends right now."
-          : "This person has reached the limit of 6 friends and cannot add more friends right now.";
+        const errorMsg =
+          limitB === FRIEND_CAP.premium ? msgTheyAtPremiumCap() : msgTheyAtFreeCap();
         throw new BadRequestException(errorMsg);
       }
 

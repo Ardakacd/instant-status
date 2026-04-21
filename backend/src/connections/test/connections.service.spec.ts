@@ -511,32 +511,26 @@ describe("ConnectionsService", () => {
       );
     });
 
-    it("returns the existing connection without re-creating it", async () => {
+    it("throws BadRequestException when a connection already exists", async () => {
       const existing = makeConnection();
       connRepo.findOne.mockResolvedValue(existing);
 
-      const result = await service.createFromInvite(USER_A_ID, USER_B_ID);
-
-      expect(result).toBe(existing);
+      await expect(service.createFromInvite(USER_A_ID, USER_B_ID)).rejects.toThrow(
+        "You are already friends with this user",
+      );
       expect(connRepo.save).not.toHaveBeenCalled();
     });
 
-    it("throws InternalServerErrorException (wrapping NotFoundException) when one of the users does not exist", async () => {
-      // NOTE: createFromInvite's catch block does not re-throw NotFoundException — it
-      // catches all non-23505 errors and wraps them as InternalServerErrorException.
-      // This is the actual production behavior for the user-not-found path.
+    it("throws NotFoundException when one of the users does not exist", async () => {
       connRepo.findOne.mockResolvedValue(null);
       userRepo.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
 
       await expect(service.createFromInvite(USER_A_ID, USER_C_ID)).rejects.toThrow(
-        InternalServerErrorException,
+        NotFoundException,
       );
     });
 
-    it("throws InternalServerErrorException (wrapping BadRequestException) when requester has reached free limit of 6 friends", async () => {
-      // NOTE: BadRequestException thrown inside createFromInvite is caught by the
-      // outer try/catch which does not special-case it — it gets wrapped as
-      // InternalServerErrorException. This is the current production behavior.
+    it("throws BadRequestException when requester has reached free limit of 6 friends", async () => {
       const userA = makeUser({ id: USER_A_ID, premium_until: null }); // free
       const userB = makeUser({ id: USER_B_ID, premium_until: null });
       connRepo.findOne.mockResolvedValue(null);
@@ -546,12 +540,11 @@ describe("ConnectionsService", () => {
         .mockResolvedValueOnce(0);
 
       await expect(service.createFromInvite(USER_A_ID, USER_B_ID)).rejects.toThrow(
-        InternalServerErrorException,
+        /free limit of 6 friends/i,
       );
     });
 
-    it("throws InternalServerErrorException (wrapping BadRequestException) when friend has reached their limit", async () => {
-      // NOTE: same catch-block behavior as above — BadRequestException is wrapped.
+    it("throws BadRequestException when friend has reached their limit", async () => {
       const userA = makeUser({ id: USER_A_ID, premium_until: null });
       const userB = makeUser({ id: USER_B_ID, premium_until: null }); // free
       connRepo.findOne.mockResolvedValue(null);
@@ -561,7 +554,7 @@ describe("ConnectionsService", () => {
         .mockResolvedValueOnce(6); // userB has 6 friends — at limit
 
       await expect(service.createFromInvite(USER_A_ID, USER_B_ID)).rejects.toThrow(
-        InternalServerErrorException,
+        /They can't accept new friends/i,
       );
     });
 
@@ -583,8 +576,7 @@ describe("ConnectionsService", () => {
       expect(result).toBe(savedConn);
     });
 
-    it("throws InternalServerErrorException (wrapping BadRequestException) when premium user hits 24 friend limit", async () => {
-      // NOTE: same catch-block wrapping behavior — BadRequestException becomes InternalServerErrorException.
+    it("throws BadRequestException when premium user hits 24 friend limit", async () => {
       const premiumA = makeUser({ id: USER_A_ID, premium_until: new Date(Date.now() + 1_000_000_000) });
       const freeB = makeUser({ id: USER_B_ID, premium_until: null });
       connRepo.findOne.mockResolvedValue(null);
@@ -594,7 +586,7 @@ describe("ConnectionsService", () => {
         .mockResolvedValueOnce(0);
 
       await expect(service.createFromInvite(USER_A_ID, USER_B_ID)).rejects.toThrow(
-        InternalServerErrorException,
+        /Pro limit of 24 friends/i,
       );
     });
 
