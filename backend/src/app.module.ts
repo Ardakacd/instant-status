@@ -25,8 +25,11 @@ import { HealthController } from "./health.controller";
   imports: [
     ThrottlerModule.forRoot({
       throttlers: [
-        { name: "default", ttl: 60000, limit: 100 },
-        { name: "extended", ttl: 3600000, limit: 100 },
+        { name: "default", ttl: 60000, limit: 300 },
+        // Second window applies to EVERY route unless @SkipThrottle / route @Throttle overrides it.
+        // 100/hr total per IP was easy to exhaust while testing (friends + connections + me + sync…);
+        // not a "ban" — the hour bucket must expire. Stricter per-route limits still apply (e.g. auth forgot-password).
+        { name: "extended", ttl: 3600000, limit: 10000 },
       ],
       getTracker: (req) => {
         return `ip-${req.ip}`;

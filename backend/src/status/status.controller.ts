@@ -121,7 +121,7 @@ export class StatusController {
   }
 
   @Get("friends")
-  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 reads/min
+  @Throttle({ default: { limit: 120, ttl: 60000 } }) // 120 reads/min (widget + home + push can stack)
   async getFriendsStatus(@Request() req) {
     return this.statusService.getFriendsStatus(req.user.id);
   }
