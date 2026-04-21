@@ -21,8 +21,8 @@ import {
   TextInputProps as RNTextInputProps,
   StyleSheet,
 } from 'react-native';
-import { Borders, Spacing, Typography, lightColors } from '../../design/tokens';
-import { useResponsive, useColors, useTheme } from '../../design';
+import { Borders, Spacing, Typography } from '../../design/tokens';
+import { useResponsive, useColors } from '../../design';
 
 export interface TextInputProps extends RNTextInputProps {
   error?: boolean;
@@ -38,12 +38,6 @@ export const TextInput: React.FC<TextInputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const { fs } = useResponsive();
   const colors = useColors();
-  const { isDark } = useTheme();
-
-  // Android + dark theme: obscured password glyphs often render as dark pixels; on a dark
-  // canvas background they disappear. Use a light input surface so typed characters stay visible.
-  const androidPasswordDarkSurface =
-    Platform.OS === 'android' && !!secureTextEntry && isDark;
 
   const borderColor = error
     ? colors.interaction.error
@@ -55,17 +49,11 @@ export const TextInput: React.FC<TextInputProps> = ({
 
   const textColor = !editable
     ? colors.interaction.disabled
-    : androidPasswordDarkSurface
-    ? lightColors.text.primary
     : colors.text.primary;
 
-  const backgroundColor = androidPasswordDarkSurface
-    ? lightColors.canvas.background
-    : colors.canvas.background;
+  const backgroundColor = colors.canvas.background;
 
-  const placeholderTextColor = androidPasswordDarkSurface
-    ? lightColors.text.secondary
-    : colors.text.secondary;
+  const placeholderTextColor = colors.text.secondary;
 
   return (
     <RNTextInput
@@ -81,7 +69,7 @@ export const TextInput: React.FC<TextInputProps> = ({
       ]}
       placeholderTextColor={placeholderTextColor}
       selectionColor={colors.interaction.primary}
-      cursorColor={androidPasswordDarkSurface ? lightColors.text.primary : colors.interaction.primary}
+      cursorColor={colors.interaction.primary}
       underlineColorAndroid="transparent"
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
