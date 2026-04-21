@@ -1,5 +1,5 @@
 import Sentry, { navigationIntegration } from "./sentry";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   AppState,
@@ -17,6 +17,8 @@ import * as Font from "expo-font";
 import notifee from "@notifee/react-native";
 import Purchases, { LOG_LEVEL } from "react-native-purchases";
 import {
+  DarkTheme,
+  DefaultTheme,
   NavigationContainer,
   NavigationContainerRef,
 } from "@react-navigation/native";
@@ -26,7 +28,11 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Typography } from "./src/design";
-import { ThemeProvider, useTheme } from "./src/contexts/ThemeContext";
+import {
+  ThemeProvider,
+  useTheme,
+  useColors,
+} from "./src/contexts/ThemeContext";
 import Toast from "react-native-toast-message";
 import * as Linking from "expo-linking";
 
@@ -37,6 +43,7 @@ import { deviceTokenService } from "./src/services/device-token.service";
 import { widgetStorageService } from "./src/services/widget-storage.service";
 import { syncWidgetFriendsFromApiInBackground } from "./src/services/widget-background-sync";
 import { statusService } from "./src/services/status.service";
+import { emitFriendStatusUpdated } from "./src/utils/friend-status-events";
 
 // Screens
 import LoginScreen from "./src/screens/LoginScreen";
@@ -51,56 +58,92 @@ import ConnectScreen from "./src/screens/ConnectScreen";
 import ManageStatusScreen from "./src/screens/ManageStatusScreen";
 import SubscriptionManagementScreen from "./src/screens/SubscriptionManagementScreen";
 
-// Custom Toast Configuration
-const toastConfig = {
-  success: ({ text1, text2 }: any) => {
-    const message = text2 || text1 || "";
-    return (
-      <View style={styles.toastContainer}>
-        <View style={[styles.toastContent, styles.successToast]}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-          </View>
-          <View style={styles.textContainer}>
-            <Text style={styles.text1}>{message}</Text>
+// Custom Toast Configuration — built as a function so it can receive theme colors
+function buildToastConfig(colors: any) {
+  return {
+    success: ({ text1, text2 }: any) => {
+      const message = text2 || text1 || "";
+      return (
+        <View style={styles.toastContainer}>
+          <View
+            style={[
+              styles.toastContent,
+              { backgroundColor: colors.canvas.card },
+              styles.successToast,
+            ]}
+          >
+            <View style={styles.iconContainer}>
+              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={[styles.text1, { color: colors.text.primary }]}>
+                {message}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    );
-  },
+      );
+    },
 
-  error: ({ text1, text2 }: any) => {
-    const message = text2 || text1 || "";
-    return (
-      <View style={styles.toastContainer}>
-        <View style={[styles.toastContent, styles.errorToast]}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="close-circle" size={24} color="#EF4444" />
-          </View>
-          <View style={styles.textContainer}>
-            <Text style={styles.text1}>{message}</Text>
+    error: ({ text1, text2 }: any) => {
+      const message = text2 || text1 || "";
+      return (
+        <View style={styles.toastContainer}>
+          <View
+            style={[
+              styles.toastContent,
+              { backgroundColor: colors.canvas.card },
+              styles.errorToast,
+            ]}
+          >
+            <View style={styles.iconContainer}>
+              <Ionicons name="close-circle" size={24} color="#EF4444" />
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={[styles.text1, { color: colors.text.primary }]}>
+                {message}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    );
-  },
+      );
+    },
 
-  info: ({ text1, text2 }: any) => {
-    const message = text2 || text1 || "";
-    return (
-      <View style={styles.toastContainer}>
-        <View style={[styles.toastContent, styles.infoToast]}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="information-circle" size={24} color="#007AFF" />
-          </View>
-          <View style={styles.textContainer}>
-            <Text style={styles.text1}>{message}</Text>
+    info: ({ text1, text2 }: any) => {
+      return (
+        <View style={styles.toastContainer}>
+          <View
+            style={[
+              styles.toastContent,
+              { backgroundColor: colors.canvas.card },
+              styles.infoToast,
+            ]}
+          >
+            <View style={styles.iconContainer}>
+              <Ionicons name="information-circle" size={24} color="#007AFF" />
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={[styles.text1, { color: colors.text.primary }]}>
+                {text1 || ""}
+              </Text>
+              {text2 ? (
+                <Text style={[styles.text2, { color: colors.text.secondary }]}>
+                  {text2}
+                </Text>
+              ) : null}
+            </View>
           </View>
         </View>
-      </View>
-    );
-  },
-};
+      );
+    },
+  };
+}
+
+function ThemedToast() {
+  const colors = useColors();
+  const config = React.useMemo(() => buildToastConfig(colors), [colors]);
+  return <Toast config={config} topOffset={60} visibilityTime={3000} />;
+}
 
 const styles = StyleSheet.create({
   toastContainer: {
@@ -126,17 +169,14 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   successToast: {
-    backgroundColor: "#FFFFFF",
     borderLeftWidth: 4,
     borderLeftColor: "#10B981",
   },
   errorToast: {
-    backgroundColor: "#FFFFFF",
     borderLeftWidth: 4,
     borderLeftColor: "#EF4444",
   },
   infoToast: {
-    backgroundColor: "#FFFFFF",
     borderLeftWidth: 4,
     borderLeftColor: "#007AFF",
   },
@@ -151,8 +191,10 @@ const styles = StyleSheet.create({
   text1: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#000000",
     marginBottom: 2,
+  },
+  text2: {
+    fontSize: 13,
   },
 });
 
@@ -220,10 +262,55 @@ function MainTabs() {
 
 function AppNavigator() {
   const { user, loading, onboarding, emailVerified, noInternet } = useAuth();
+  const { isDark, colors: themeColors } = useTheme();
   const navigationRef =
     useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [isNavReady, setIsNavReady] = useState(false);
+  const [noInternetNavReady, setNoInternetNavReady] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const prevPushPermissionRef = useRef<boolean | null>(null);
+  const prevUserIdForPushSyncRef = useRef<string | undefined>(undefined);
+
+  const navigationTheme = useMemo(
+    () => ({
+      ...(isDark ? DarkTheme : DefaultTheme),
+      colors: {
+        ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+        primary: themeColors.interaction.primary,
+        background: themeColors.canvas.background,
+        card: themeColors.canvas.background,
+        text: themeColors.text.primary,
+        border: themeColors.canvas.subtle,
+        notification: themeColors.interaction.primary,
+      },
+    }),
+    [isDark, themeColors],
+  );
+
+  const stackScreenOptions = useMemo(
+    () => ({
+      headerShown: false as const,
+      contentStyle: {
+        flex: 1,
+        backgroundColor: themeColors.canvas.background,
+      },
+    }),
+    [themeColors.canvas.background],
+  );
+
+  useEffect(() => {
+    if (!noInternet) setNoInternetNavReady(false);
+  }, [noInternet]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (noInternet) {
+      if (!noInternetNavReady) return;
+    } else if (!isNavReady) {
+      return;
+    }
+    SplashScreen.hideAsync().catch(() => {});
+  }, [loading, isNavReady, noInternet, noInternetNavReady]);
 
   // Handle deep links when app opens or is already open
   useEffect(() => {
@@ -305,6 +392,11 @@ function AppNavigator() {
     let isMounted = true;
     if (!user || !emailVerified || onboarding) return;
 
+    if (user.id !== prevUserIdForPushSyncRef.current) {
+      prevPushPermissionRef.current = null;
+      prevUserIdForPushSyncRef.current = user.id;
+    }
+
     const initMessaging = async () => {
       try {
         // 1. On iOS, request permission automatically on first launch (only once)
@@ -322,12 +414,27 @@ function AppNavigator() {
           // Android 13+: POST_NOTIFICATIONS requires explicit request; same modal flow applies.
           setShowNotificationModal(true);
         } else if (isMounted) {
-          // hasPerm=true  → normal registration path
-          // hasAskedBefore=true + hasPerm=false → user may have re-granted via system settings;
-          //   attempt a token fetch and register if it succeeds. Fails silently if still denied.
-          const token = await messagingService.getToken().catch(() => null);
-          if (token && user && isMounted) {
-            await deviceTokenService.registerToken(token);
+          // If notifications are off in system settings, unregister so the backend stops sending.
+          // (Previously we still registered here when hasAskedBefore && !hasPerm, so pushes kept coming.)
+          if (!hasPerm) {
+            try {
+              await messagingService.unregister();
+              await deviceTokenService.unregisterToken();
+            } catch {
+              // best effort
+            }
+          } else {
+            const token = await messagingService
+              .getTokenForRegistration()
+              .catch(() => null);
+            if (token && user && isMounted) {
+              try {
+                await deviceTokenService.registerToken(token);
+                prevPushPermissionRef.current = true;
+              } catch {
+                // device-token.service reports to Sentry; swallow so outer catch does not duplicate
+              }
+            }
           }
         }
 
@@ -343,13 +450,53 @@ function AppNavigator() {
 
     initMessaging();
 
+    // Re-sync when returning from system Settings (permission toggled without remounting JS).
+    const syncRegistrationWithPermission = async () => {
+      if (!isMounted || !user) return;
+      const hasPerm = await messagingService.hasPermission();
+      const prev = prevPushPermissionRef.current;
+      prevPushPermissionRef.current = hasPerm;
+
+      if (!hasPerm) {
+        try {
+          await messagingService.unregister();
+          await deviceTokenService.unregisterToken();
+        } catch {
+          // best effort
+        }
+        return;
+      }
+
+      // Register when permission is on and either:
+      // - user re-enabled in system Settings (prev was false), or
+      // - first foreground with permission (prev null), e.g. enabled in Settings after "Not Now"
+      //   on first install — prev === false alone missed that case.
+      if (prev === false || prev === null) {
+        const token = await messagingService
+          .getTokenForRegistration()
+          .catch(() => null);
+        if (token && isMounted) {
+          try {
+            await deviceTokenService.registerToken(token);
+          } catch {
+            // device-token.service reports to Sentry
+          }
+        }
+      }
+    };
+    const appStateSub = AppState.addEventListener("change", (next) => {
+      if (next === "active") syncRegistrationWithPermission();
+    });
+
     // 3. Listeners
     const unsubToken = messagingService.onTokenRefresh((t) => {
-      if (isMounted && user) {
-        deviceTokenService.registerToken(t).catch((error) => {
-          Sentry.captureException(error);
+      if (!isMounted || !user) return;
+      messagingService.hasPermission().then((ok) => {
+        if (!isMounted || !ok) return;
+        deviceTokenService.registerToken(t).catch(() => {
+          // device-token.service reports to Sentry with feature: device_token_registration
         });
-      }
+      });
     });
     const unsubOpened = messagingService.onNotificationOpenedApp(
       handleNotificationNavigation,
@@ -357,13 +504,15 @@ function AppNavigator() {
     const unsubForeground = messagingService.onMessage(async (msg) => {
       try {
         if (msg.data?.type === "status_update" && isMounted) {
-          // Show in-app Toast and update widget
           const optionLabel = msg.data.option_label;
-          Toast.show({
-            type: "info",
-            text1: `${msg.data.display_name} is ${optionLabel.toLowerCase()}`,
-            text2: msg.data.note,
-          });
+          const showPushUi = await messagingService.hasPermission();
+          if (showPushUi) {
+            Toast.show({
+              type: "info",
+              text1: `${msg.data.display_name} is ${optionLabel.toLowerCase()}`,
+              text2: msg.data.note,
+            });
+          }
           await widgetStorageService.updateFriendStatus(
             msg.data.user_id,
             msg.data.display_name,
@@ -377,8 +526,16 @@ function AppNavigator() {
           );
           // Reconcile with server truth as a fire-and-forget (same as background handler).
           syncWidgetFriendsFromApiInBackground().catch(() => {});
-        } else if (msg.data?.type === "friend_removed" && msg.data.peer_user_id && isMounted) {
-          await widgetStorageService.removeFriendFromWidget(msg.data.peer_user_id);
+          // Notify HomeScreen to refresh friends list
+          emitFriendStatusUpdated();
+        } else if (
+          msg.data?.type === "friend_removed" &&
+          msg.data.peer_user_id &&
+          isMounted
+        ) {
+          await widgetStorageService.removeFriendFromWidget(
+            msg.data.peer_user_id,
+          );
         } else if (msg.data?.type === "widget_resync_friends" && isMounted) {
           const synced = await syncWidgetFriendsFromApiInBackground();
           if (!synced) {
@@ -397,24 +554,25 @@ function AppNavigator() {
 
     return () => {
       isMounted = false;
+      appStateSub.remove();
       unsubToken();
       unsubOpened();
       unsubForeground();
     };
   }, [user, emailVerified, onboarding, isNavReady]);
 
-  // Show splash screen while loading auth state
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />
-    );
+    return <View style={{ flex: 1, backgroundColor: isDark ? "#1A2332" : "#FFFFFF" }} />;
   }
 
   // Show no internet screen when sync failed due to network
   if (noInternet) {
     return (
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <NavigationContainer
+        theme={navigationTheme}
+        onReady={() => setNoInternetNavReady(true)}
+      >
+        <Stack.Navigator screenOptions={stackScreenOptions}>
           <Stack.Screen name="NoInternet" component={NoInternetScreen} />
         </Stack.Navigator>
       </NavigationContainer>
@@ -430,9 +588,14 @@ function AppNavigator() {
     await AsyncStorage.setItem(PERMISSION_ASKED_KEY, "true");
     setShowNotificationModal(false);
     if (granted && user?.id) {
-      const token = await messagingService.getToken();
+      const token = await messagingService.getTokenForRegistration();
       if (token) {
-        await deviceTokenService.registerToken(token);
+        try {
+          await deviceTokenService.registerToken(token);
+          prevPushPermissionRef.current = true;
+        } catch {
+          // Logged in device-token.service
+        }
       }
     } else if (!granted) {
       Alert.alert(
@@ -462,6 +625,7 @@ function AppNavigator() {
     <>
       <NavigationContainer
         ref={navigationRef}
+        theme={navigationTheme}
         onReady={() => {
           navigationIntegration.registerNavigationContainer(navigationRef);
           setIsNavReady(true);
@@ -476,15 +640,15 @@ function AppNavigator() {
                 path: "verify",
                 // Query parameters (mode, oobCode) are automatically parsed from URL
               },
-              // ResetPassword is handled manually in handleInitialURL / Linking.addEventListener
-              // because it is conditionally rendered based on auth state.
-              // It is intentionally absent from this config so React Navigation does not
-              // try to parse reset-password URLs (they are not in the screen config anyway).
+              ResetPassword: {
+                path: "reset-password",
+                // Query parameters (mode, oobCode) are automatically parsed from URL
+              },
             },
           },
         }}
       >
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator screenOptions={stackScreenOptions}>
           {!user ? (
             <>
               <Stack.Screen name="SignIn" component={LoginScreen} />
@@ -592,14 +756,14 @@ function AppNavigatorWithTheme() {
   const { isDark } = useTheme();
   return (
     <>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <StatusBar style={isDark ? "light" : "dark"} />
       <AppNavigator />
     </>
   );
 }
 
 function App() {
-  const [appIsReady, setAppIsReady] = useState(false);
+  const [fontsReady, setFontsReady] = useState(false);
   const appState = useRef(AppState.currentState);
 
   // RevenueCat: configure once at app startup (not in screens, not in re-renders)
@@ -608,8 +772,12 @@ function App() {
 
     const apiKey =
       Platform.OS === "ios"
-        ? process.env.EXPO_PUBLIC_RC_IOS_KEY
-        : process.env.EXPO_PUBLIC_RC_ANDROID_KEY;
+        ? __DEV__
+          ? process.env.EXPO_PUBLIC_RC_IOS_TEST_KEY
+          : process.env.EXPO_PUBLIC_RC_IOS_KEY
+        : __DEV__
+          ? process.env.EXPO_PUBLIC_RC_ANDROID_TEST_KEY
+          : process.env.EXPO_PUBLIC_RC_ANDROID_KEY;
 
     if (!apiKey) {
       if (__DEV__) console.warn("RevenueCat API key missing");
@@ -639,11 +807,7 @@ function App() {
       } catch {
         // Continue even if font loading fails (fallback to system font)
       } finally {
-        try {
-          await SplashScreen.hideAsync();
-        } finally {
-          setAppIsReady(true);
-        }
+        setFontsReady(true);
       }
     }
     prepare();
@@ -670,7 +834,10 @@ function App() {
     };
   }, []);
 
-  if (!appIsReady) return null;
+  // Mint matches native splash; splash hides from AppNavigator after nav is ready + auth resolved.
+  if (!fontsReady) {
+    return <View style={{ flex: 1, backgroundColor: "#10B981" }} />;
+  }
 
   return (
     <SafeAreaProvider>
@@ -678,7 +845,7 @@ function App() {
         <AuthProvider>
           <WidgetFriendsForegroundSync />
           <AppNavigatorWithTheme />
-          <Toast config={toastConfig} topOffset={60} />
+          <ThemedToast />
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
