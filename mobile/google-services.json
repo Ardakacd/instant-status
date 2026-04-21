@@ -7,53 +7,6 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:70279102156:android:d66a5b15d14c3c4b9c4c69",
-        "android_client_info": {
-          "package_name": "com.arda.instantstatus.dev"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "70279102156-0glse6khpuhvnne9dpi7ps6j037f8r79.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.arda.instantstatus.dev",
-            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
-          }
-        },
-        {
-          "client_id": "70279102156-aa9dqgogs3kn4cv8p05ilm6j8g5vicqg.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBd6kU60axCF-Bok1O85o7CffW7NrtuEs4"
-        },
-        {
-          "current_key": "AIzaSyCyZ4fytLkqoEB8_AczgUBLr6wfdYxUUYs"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "70279102156-aa9dqgogs3kn4cv8p05ilm6j8g5vicqg.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "70279102156-1hdnc7rnv4mlumb4ldifsdm1at2ejka1.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.arda.instantstatus.dev"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:70279102156:android:6f41ea3cccbc8e589c4c69",
         "android_client_info": {
           "package_name": "com.arda.instantstatusapp"
@@ -91,9 +44,6 @@
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBd6kU60axCF-Bok1O85o7CffW7NrtuEs4"
-        },
-        {
           "current_key": "AIzaSyCyZ4fytLkqoEB8_AczgUBLr6wfdYxUUYs"
         }
       ],
@@ -105,10 +55,10 @@
               "client_type": 3
             },
             {
-              "client_id": "70279102156-1hdnc7rnv4mlumb4ldifsdm1at2ejka1.apps.googleusercontent.com",
+              "client_id": "70279102156-u25u3kigcp4gscisb80cr6f6vnca1rad.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.arda.instantstatus.dev"
+                "bundle_id": "com.arda.instantstatusapp"
               }
             }
           ]
