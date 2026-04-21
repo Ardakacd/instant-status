@@ -268,25 +268,31 @@ describe("InviteCodeController", () => {
       expect(result).toBe(serviceResult);
     });
 
-    it("throws ZodError when user_id is not a valid UUID", async () => {
+    it("throws BadRequestException with a friendly message when user_id is not a valid UUID", async () => {
+      const { BadRequestException } = await import("@nestjs/common");
       await expect(
         controller.connectByLink({ user: makeUser() }, { user_id: "not-a-uuid" }),
-      ).rejects.toThrow();
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        controller.connectByLink({ user: makeUser() }, { user_id: "not-a-uuid" }),
+      ).rejects.toThrow(/invite link is not valid/i);
     });
 
-    it("throws ZodError when user_id is missing from body", async () => {
+    it("throws BadRequestException when user_id is missing from body", async () => {
+      const { BadRequestException } = await import("@nestjs/common");
       await expect(
         controller.connectByLink({ user: makeUser() }, {} as any),
-      ).rejects.toThrow();
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it("throws ZodError when body contains unknown fields (strict schema)", async () => {
+    it("throws BadRequestException when body contains unknown fields (strict schema)", async () => {
+      const { BadRequestException } = await import("@nestjs/common");
       await expect(
         controller.connectByLink(
           { user: makeUser() },
           { user_id: USER_B_ID, extra: "bad" } as any,
         ),
-      ).rejects.toThrow();
+      ).rejects.toThrow(BadRequestException);
     });
 
     it("propagates BadRequestException when user tries to connect to themselves", async () => {
@@ -303,12 +309,14 @@ describe("InviteCodeController", () => {
     it("propagates NotFoundException when target user does not exist", async () => {
       const { NotFoundException } = await import("@nestjs/common");
       inviteCodeService.connectByLink.mockRejectedValue(
-        new NotFoundException("User not found"),
+        new NotFoundException(
+          "We could not find this person. The link may be incorrect or outdated. Ask your friend to send their invite again.",
+        ),
       );
 
       await expect(
         controller.connectByLink({ user: makeUser() }, { user_id: USER_B_ID }),
-      ).rejects.toThrow("User not found");
+      ).rejects.toThrow(/could not find this person/i);
     });
 
     it("propagates BadRequestException when connection already exists", async () => {

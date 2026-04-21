@@ -222,7 +222,9 @@ export class InviteCodeService {
       });
 
       if (!targetUser) {
-        throw new NotFoundException("User not found");
+        throw new NotFoundException(
+          "We could not find this person. The link may be incorrect or outdated. Ask your friend to send their invite again.",
+        );
       }
 
       // Use a transaction with pessimistic lock to prevent concurrent duplicate connections.
