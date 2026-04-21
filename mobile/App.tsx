@@ -562,7 +562,11 @@ function AppNavigator() {
   }, [user, emailVerified, onboarding, isNavReady]);
 
   if (loading) {
-    return <View style={{ flex: 1, backgroundColor: isDark ? "#1A2332" : "#FFFFFF" }} />;
+    return (
+      <View
+        style={{ flex: 1, backgroundColor: isDark ? "#1A2332" : "#FFFFFF" }}
+      />
+    );
   }
 
   // Show no internet screen when sync failed due to network
