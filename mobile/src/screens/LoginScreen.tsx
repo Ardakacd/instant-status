@@ -16,8 +16,8 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { authService } from "../services/auth.service";
 import { ErrorBanner } from "../components/ErrorBanner";
-import Toast from "react-native-toast-message";
-import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive, useColors } from "../design";
+import { toast } from "../utils/toast";
+import { Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
@@ -107,7 +107,7 @@ export default function LoginScreen({ navigation }: Props) {
       await signInWithGoogle();
       // No error means success or cancellation (both handled silently)
     } catch (error: any) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Failed to sign in with Google. Please try again.",
       });
@@ -121,7 +121,7 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       await signInWithApple();
     } catch (error: any) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Failed to sign in with Apple. Please try again.",
       });
@@ -152,18 +152,17 @@ export default function LoginScreen({ navigation }: Props) {
     setSendingReset(true);
     try {
       await authService.resetPassword(resetEmail.trim());
-      Toast.show({
-        type: "success",
-        text1: "Please check your email for instructions to reset your password.",
-      });
       setForgotPasswordModalVisible(false);
       setResetEmail("");
       setResetEmailError("");
-    } catch (error: any) {
-      Toast.show({
-        type: "error",
-        text1: error.message || "Failed to send password reset email. Please try again.",
+      toast.show({
+        type: "success",
+        text1: "Please check your email for instructions to reset your password.",
       });
+    } catch (error: any) {
+      setResetEmailError(
+        error.message || "Failed to send password reset email. Please try again.",
+      );
     } finally {
       setSendingReset(false);
     }

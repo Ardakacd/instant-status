@@ -12,8 +12,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { ErrorBanner } from "../components/ErrorBanner";
-import Toast from "react-native-toast-message";
-import { Colors, Borders, Spacing, Typography, useResponsive, useColors } from "../design";
+import { toast } from "../utils/toast";
+import {  Borders, Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
@@ -104,7 +104,7 @@ export default function SignUpScreen({ navigation }: Props) {
     try {
       await signInWithGoogle();
     } catch (error: any) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1:
           error.message || "Failed to sign in with Google. Please try again.",
@@ -119,7 +119,7 @@ export default function SignUpScreen({ navigation }: Props) {
     try {
       await signInWithApple();
     } catch (error: any) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1:
           error.message || "Failed to sign in with Apple. Please try again.",

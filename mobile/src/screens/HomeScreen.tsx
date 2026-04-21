@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   TouchableOpacity,
@@ -10,6 +10,7 @@ import {
   TouchableWithoutFeedback,
   Animated,
   Alert,
+  AppState,
   LayoutAnimation,
   Platform,
   UIManager,
@@ -26,9 +27,10 @@ import { statusService } from "../services/status.service";
 import { statusOptionService } from "../services/status-option.service";
 import { widgetStorageService } from "../services/widget-storage.service";
 import { connectionsService } from "../services/connections.service";
+import { subscribeFriendStatusUpdated } from "../utils/friend-status-events";
 import StatusChangeModal from "../components/StatusChangeModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Toast from "react-native-toast-message";
+import { toast } from "../utils/toast";
 import Sentry from "../../sentry";
 import { useIsPremium } from "../hooks/useIsPremium";
 import { useAuth } from "../contexts/AuthContext";
@@ -40,6 +42,7 @@ import {
   Typography,
   useResponsive,
   useColors,
+  useTheme,
 } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
@@ -47,6 +50,7 @@ import { Button } from "../components/actions/Button";
 export default function HomeScreen() {
   const { horizontalPadding, fs } = useResponsive();
   const colors = useColors();
+  const { isDark } = useTheme();
   const navigation = useNavigation();
   const route = useRoute();
   const { isPremium, loading: premiumLoading } = useIsPremium();
@@ -115,7 +119,7 @@ export default function HomeScreen() {
         navigation.navigate("ManageStatus" as never);
       }
     } catch (error: any) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1:
           error.message ||
@@ -131,22 +135,22 @@ export default function HomeScreen() {
     };
   }, []);
 
+  // Initial data load is handled by useFocusEffect (runs on first focus too).
+  // Avoid duplicate GET /status/friends here — mount + focus was doubling requests and hitting throttles.
   useEffect(() => {
-    loadStatusOptions();
-    loadFriendsStatus().catch(() => {
-      Toast.show({
-        type: "error",
-        text1: "Failed to load friends. Check your connection.",
-      });
-    });
-    loadCurrentStatus().catch(() => {});
     checkRefreshHint();
-    loadConnections();
   }, []);
 
   useEffect(() => {
     AsyncStorage.getItem(FRIEND_LAYOUT_STORAGE_KEY).then((value) => {
       if (value === "compact" || value === "large") setFriendLayoutMode(value);
+    });
+  }, []);
+
+  // Refresh friends when a push notification arrives while app is in foreground
+  useEffect(() => {
+    return subscribeFriendStatusUpdated(() => {
+      loadFriendsStatus().catch(() => {});
     });
   }, []);
 
@@ -167,13 +171,33 @@ export default function HomeScreen() {
     }
   };
 
-  // Reload status options whenever this screen comes back into focus
-  // so changes made in ManageStatusScreen are reflected immediately.
+  // Reload data whenever this screen comes back into focus (includes first mount).
   useFocusEffect(
     useCallback(() => {
       loadStatusOptions();
+      loadFriendsStatus().catch(() => {
+        toast.show({
+          type: "error",
+          text1: "Failed to load friends. Check your connection.",
+        });
+      });
+      loadCurrentStatus().catch(() => {});
+      loadConnections();
     }, []),
   );
+
+  // Refresh when app comes back from background
+  const appStateRef = useRef(AppState.currentState);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (appStateRef.current.match(/inactive|background/) && nextState === "active") {
+        loadFriendsStatus().catch(() => {});
+        loadCurrentStatus().catch(() => {});
+      }
+      appStateRef.current = nextState;
+    });
+    return () => sub.remove();
+  }, []);
 
   // Handle navigation params to open friend detail modal
   useEffect(() => {
@@ -260,6 +284,16 @@ export default function HomeScreen() {
     setSelectedFriend(null);
   }, []);
 
+  const openMyStatusDetail = () => {
+    if (!displayMyStatus?.option) return;
+    setSelectedFriend({
+      ...displayMyStatus,
+      first_name: user?.first_name ?? displayMyStatus.first_name,
+      last_name: user?.last_name ?? displayMyStatus.last_name,
+    });
+    setFriendModalVisible(true);
+  };
+
   const getConnectionForFriend = (userId: string): Connection | null =>
     connections.find((c) => c.friend_id === userId) ?? null;
 
@@ -273,7 +307,7 @@ export default function HomeScreen() {
     ]);
     setRefreshing(false);
     if (results.some((r) => r.status === "rejected")) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Failed to refresh. Check your connection.",
       });
@@ -305,15 +339,9 @@ export default function HomeScreen() {
         selectedFriend.user_id,
         newShowsStatus,
       );
-      Toast.show({
-        type: "success",
-        text1: newShowsStatus
-          ? "You've enabled status sharing with them."
-          : "You've hidden your status from them.",
-      });
-      await loadConnections();
+      await Promise.all([loadConnections(), loadFriendsStatus()]);
     } catch (error: any) {
-      Toast.show({ type: "error", text1: "Failed to update. Try again." });
+      toast.show({ type: "error", text1: "Failed to update. Try again." });
     } finally {
       setTogglingVisibility(false);
     }
@@ -335,9 +363,9 @@ export default function HomeScreen() {
             await connectionsService.deleteConnection(selectedFriend.user_id);
             closeFriendModal();
             await Promise.all([loadFriendsStatus(), loadConnections()]);
-            Toast.show({ type: "success", text1: `${name} removed.` });
+            toast.show({ type: "success", text1: `${name} removed.` });
           } catch (error: any) {
-            Toast.show({
+            toast.show({
               type: "error",
               text1: "Failed to remove. Try again.",
             });
@@ -354,7 +382,19 @@ export default function HomeScreen() {
     widgetStorageService.saveAllFriendStatuses(statuses).catch(() => {});
   };
 
-  const handleStatusButtonPress = (option: StatusOption) => {
+  const handleStatusButtonPress = async (option: StatusOption) => {
+    if (option.user_id !== null && !isPremium && option.id !== currentOptionId) {
+      try {
+        const success = await presentPaywall();
+        if (success) await refreshUser();
+      } catch (error: any) {
+        toast.show({
+          type: "error",
+          text1: error.message || "Failed to open subscription options.",
+        });
+      }
+      return;
+    }
     setSelectedOption(option);
     setModalVisible(true);
   };
@@ -376,7 +416,7 @@ export default function HomeScreen() {
       setSelectedOption(null);
     } catch (error: any) {
       Sentry.captureException(error);
-      Toast.show({
+      toast.show({
         type: "error",
         text1: error.message || "Check your connection and try again.",
       });
@@ -384,19 +424,6 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getInitials = (firstName: string | null, lastName: string | null) => {
-    if (firstName && lastName) {
-      return (firstName[0] + lastName[0]).toUpperCase();
-    }
-    if (firstName) {
-      return firstName[0].toUpperCase();
-    }
-    if (lastName) {
-      return lastName[0].toUpperCase();
-    }
-    return "?";
   };
 
   const getDisplayName = (
@@ -407,6 +434,13 @@ export default function HomeScreen() {
       return `${firstName} ${lastName}`;
     }
     return firstName || lastName || "User";
+  };
+
+  const getDetailModalDisplayName = (friend: Status) => {
+    if (user?.id && friend.user_id === user.id) {
+      return getDisplayName(user.first_name, user.last_name);
+    }
+    return getDisplayName(friend.first_name, friend.last_name);
   };
 
   const formatExpirationTime = (expiresAt: string | null): string | null => {
@@ -527,7 +561,7 @@ export default function HomeScreen() {
                 styles.heroCard,
                 { backgroundColor: displayMyStatus.option.color + "12" },
               ]}
-              onPress={() => handleStatusButtonPress(displayMyStatus.option!)}
+              onPress={openMyStatusDetail}
               activeOpacity={0.8}
             >
               <View
@@ -537,26 +571,24 @@ export default function HomeScreen() {
                 <Text style={styles.heroEmoji}>{displayMyStatus.option.emoji}</Text>
               </View>
               <View style={styles.heroTextBlock}>
-                <View style={styles.heroTopRow}>
-                  <Text variant="primary" style={styles.heroLabel} numberOfLines={1}>
-                    {displayMyStatus.option.label}
-                  </Text>
-                  {displayMyStatus.expires_at &&
-                    formatExpirationTime(displayMyStatus.expires_at) && (
-                      <View style={styles.heroExpiryRow}>
-                        <Ionicons name="time-outline" size={11} color="#F59E0B" />
-                        <Text style={styles.heroExpiryText}>
-                          {formatExpirationTime(displayMyStatus.expires_at)}
-                        </Text>
-                      </View>
-                    )}
-                </View>
+                <Text variant="primary" style={styles.heroLabel} numberOfLines={1}>
+                  {displayMyStatus.option.label}
+                </Text>
                 {displayMyStatus.note && (
                   <Text variant="secondary" style={styles.heroNote} numberOfLines={1}>
                     {displayMyStatus.note}
                   </Text>
                 )}
               </View>
+              {displayMyStatus.expires_at &&
+                formatExpirationTime(displayMyStatus.expires_at) && (
+                  <View style={styles.heroExpiryRow}>
+                    <Ionicons name="time-outline" size={11} color={isDark ? "#F59E0B" : "#B45309"} />
+                    <Text style={[styles.heroExpiryText, { color: isDark ? "#F59E0B" : "#B45309" }]}>
+                      {formatExpirationTime(displayMyStatus.expires_at)}
+                    </Text>
+                  </View>
+                )}
             </TouchableOpacity>
           ) : (
             <View style={[styles.heroCardEmpty, { backgroundColor: colors.canvas.card }]}>
@@ -585,13 +617,16 @@ export default function HomeScreen() {
         >
           {displayStatusOptions.map((option) => {
             const isActive = currentOptionId === option.id;
+            const isCustom = option.user_id !== null;
+            const isLocked = isCustom && !isPremium;
             return (
               <TouchableOpacity
                 key={option.id}
                 style={[
                   styles.statusPill,
                   { backgroundColor: colors.canvas.card },
-                  isActive && { backgroundColor: option.color },
+                  isLocked && { opacity: 0.5 },
+                  isActive && { backgroundColor: option.color, opacity: 1 },
                 ]}
                 onPress={() => handleStatusButtonPress(option)}
                 disabled={loading}
@@ -608,6 +643,9 @@ export default function HomeScreen() {
                 >
                   {option.label}
                 </Text>
+                {isLocked && (
+                  <Ionicons name="diamond" size={10} color={colors.interaction.accent} />
+                )}
               </TouchableOpacity>
             );
           })}
@@ -752,6 +790,11 @@ export default function HomeScreen() {
                         {getConnectionForFriend(status.user_id)?.user_shows_status === false && (
                           <Ionicons name="eye-off-outline" size={13} color={colors.text.secondary} />
                         )}
+                        {status.expires_at && formatExpirationTime(status.expires_at) && (
+                          <Text style={[styles.friendExpiryText, { color: isDark ? "#F59E0B" : "#B45309" }]}>
+                            {formatExpirationTime(status.expires_at)}
+                          </Text>
+                        )}
                       </View>
                       <View style={styles.friendBottomRow}>
                         <Text variant="secondary" style={styles.friendStatusLabel} numberOfLines={1}>
@@ -765,11 +808,6 @@ export default function HomeScreen() {
                             </Text>
                           </>
                         )}
-                        {status.expires_at && formatExpirationTime(status.expires_at) && (
-                          <Text style={styles.friendExpiryText}>
-                            {formatExpirationTime(status.expires_at)}
-                          </Text>
-                        )}
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -778,25 +816,6 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Invite Card — shown when user has some friends but < 5 */}
-          {displayFriendsStatus.length > 0 && displayFriendsStatus.length < 5 && (
-            <TouchableOpacity
-              style={[styles.inviteCard, { backgroundColor: colors.tint.mint }]}
-              onPress={() => (navigation.getParent() as any)?.navigate("Connect")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.inviteIconCircle, { backgroundColor: colors.interaction.primary + "20" }]}>
-                <Ionicons name="people" size={20} color={colors.interaction.primary} />
-              </View>
-              <View style={styles.inviteContent}>
-                <Text variant="primary" style={styles.inviteTitle}>Better with friends</Text>
-                <Text variant="secondary" style={styles.inviteSubtitle}>
-                  Share your invite link to connect
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.interaction.primary} />
-            </TouchableOpacity>
-          )}
         </View>
       </ScrollView>
 
@@ -867,10 +886,7 @@ export default function HomeScreen() {
                         style={styles.friendModalTitle}
                         numberOfLines={1}
                       >
-                        {getDisplayName(
-                          selectedFriend.first_name,
-                          selectedFriend.last_name,
-                        )}
+                        {getDetailModalDisplayName(selectedFriend)}
                       </Text>
                       <View style={styles.friendModalStatusRow}>
                         <Text
@@ -921,8 +937,9 @@ export default function HomeScreen() {
                       </View>
                     )}
 
-                    {/* Manage Actions */}
-                    {getConnectionForFriend(selectedFriend.user_id) && (
+                    {/* Manage Actions (friends only — no connection to self) */}
+                    {user?.id !== selectedFriend.user_id &&
+                      getConnectionForFriend(selectedFriend.user_id) && (
                       <View style={styles.friendModalActions}>
                         {!getConnectionForFriend(selectedFriend.user_id)
                           ?.user_shows_status && (
@@ -941,8 +958,8 @@ export default function HomeScreen() {
                               variant="secondary"
                               style={styles.friendModalHiddenNote}
                             >
-                              You've hidden your status from them, so they can't
-                              see yours either.
+                              You've hidden your status from them, so neither of
+                              you sees the other's real status.
                             </Text>
                           </View>
                         )}
@@ -1125,11 +1142,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
     gap: 2,
   },
-  heroTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
   heroLabel: {
     fontSize: 16,
     fontFamily: Typography.fontFamily.semiBold,
@@ -1143,7 +1155,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginLeft: "auto",
     flexShrink: 0,
   },
   heroExpiryText: {
@@ -1297,7 +1308,7 @@ const styles = StyleSheet.create({
 
   // ── Large Friend Cards ──
   friendsList: {
-    gap: 2,
+    gap: Spacing.sm,
   },
   friendCard: {
     flexDirection: "row",
@@ -1348,7 +1359,7 @@ const styles = StyleSheet.create({
   friendExpiryText: {
     fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
-    color: "#F59E0B",
+    color: "#B45309",
     marginLeft: "auto",
     flexShrink: 0,
   },
@@ -1390,33 +1401,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // ── Invite Card ──
-  inviteCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: Borders.radius.medium,
-    padding: Spacing.md,
-    marginTop: Spacing.lg,
-    gap: Spacing.md,
-  },
-  inviteIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  inviteContent: {
-    flex: 1,
-    gap: 2,
-  },
-  inviteTitle: {
-    fontSize: 15,
-    fontFamily: Typography.fontFamily.semiBold,
-  },
-  inviteSubtitle: {
-    fontSize: 13,
-  },
   friendModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
@@ -1495,11 +1479,11 @@ const styles = StyleSheet.create({
   },
   friendModalHiddenNoteBox: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Spacing.xs,
+    alignItems: "center",
+    gap: Spacing.sm,
     borderRadius: Borders.radius.small,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
   },
   friendModalHiddenNote: {
     fontSize: 13,

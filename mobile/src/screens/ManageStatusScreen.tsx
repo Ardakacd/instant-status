@@ -15,7 +15,7 @@ import {
   statusOptionService,
   StatusOption,
 } from "../services/status-option.service";
-import Toast from "react-native-toast-message";
+import { toast } from "../utils/toast";
 import Sentry from "../../sentry";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { EmojiPicker } from "../components/EmojiPicker";
@@ -80,7 +80,7 @@ export default function ManageStatusScreen() {
           return;
         }
       } catch (error: any) {
-        Toast.show({
+        toast.show({
           type: "error",
           text1: error.message || "Failed to open subscription options. Please try again.",
         });
@@ -107,7 +107,7 @@ export default function ManageStatusScreen() {
           return;
         }
       } catch (error: any) {
-        Toast.show({
+        toast.show({
           type: "error",
           text1: error.message || "Failed to open subscription options. Please try again.",
         });
@@ -127,7 +127,7 @@ export default function ManageStatusScreen() {
 
   const handleDelete = (option: StatusOption) => {
     if (option.user_id === null) {
-      Toast.show({
+      toast.show({
         type: "info",
         text1: "System status options cannot be deleted.",
       });
@@ -147,10 +147,6 @@ export default function ManageStatusScreen() {
               setGlobalError("");
               await statusOptionService.deleteStatusOption(option.id);
               setEditModalVisible(false);
-              Toast.show({
-                type: "success",
-                text1: "Status option deleted",
-              });
               loadStatusOptions();
             } catch (error: any) {
               Sentry.captureException(error);
@@ -203,7 +199,7 @@ export default function ManageStatusScreen() {
       (opt) => opt.user_id !== null,
     ).length;
     if (customOptionsCount >= MAX_CUSTOM_STATUS_OPTIONS) {
-      Toast.show({
+      toast.show({
         type: "info",
         text1: `You can only create up to ${MAX_CUSTOM_STATUS_OPTIONS} custom status options. Please delete one first.`,
       });
@@ -256,10 +252,6 @@ export default function ManageStatusScreen() {
         label: label.trim(),
         emoji: emoji.trim(),
         color: color.toUpperCase(),
-      });
-      Toast.show({
-        type: "success",
-        text1: "Status option updated",
       });
       setEditModalVisible(false);
       setLabelError("");

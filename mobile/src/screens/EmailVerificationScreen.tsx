@@ -15,8 +15,8 @@ import { authService } from "../services/auth.service";
 import { auth } from "../config/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { RootStackParamList } from "../../App";
-import Toast from "react-native-toast-message";
-import { Colors, Spacing, Typography, useResponsive, useColors } from "../design";
+import { toast } from "../utils/toast";
+import { Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { Button } from "../components/actions/Button";
 
@@ -65,7 +65,7 @@ export default function EmailVerificationScreen({ route }: Props) {
       // If still mounted here, email is not verified (verified → navigator routes away)
       setNotVerifiedYet(true);
     } catch (error: any) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Failed to check verification status. Please try again.",
       });
@@ -80,7 +80,7 @@ export default function EmailVerificationScreen({ route }: Props) {
       await authService.verifyEmail(oobCode);
       await checkEmailVerification();
     } catch (error: any) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: error.message || "Failed to verify email. Please try again.",
       });
@@ -118,7 +118,7 @@ export default function EmailVerificationScreen({ route }: Props) {
     try {
       await authService.sendEmailVerification();
       setResendCooldown(60);
-      Toast.show({
+      toast.show({
         type: "success",
         text1: "Verification email has been sent. Please check your inbox.",
       });
@@ -127,7 +127,7 @@ export default function EmailVerificationScreen({ route }: Props) {
       if ((error as any).statusCode === 429) {
         setResendCooldown(60);
       }
-      Toast.show({
+      toast.show({
         type: "error",
         text1: error.message || "Failed to send verification email. Please try again.",
       });
@@ -149,7 +149,7 @@ export default function EmailVerificationScreen({ route }: Props) {
             try {
               await logout();
             } catch (error: any) {
-              Toast.show({
+              toast.show({
                 type: "error",
                 text1: error.message || "Failed to logout. Please try again.",
               });

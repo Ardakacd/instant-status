@@ -14,7 +14,7 @@ import { inviteService } from "../services/invite.service";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RootStackParamList } from "../../App";
-import Toast from "react-native-toast-message";
+import { toast } from "../utils/toast";
 
 import { Colors, Borders, Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
@@ -22,6 +22,16 @@ import { Button } from "../components/actions/Button";
 import { TextInput } from "../components/inputs/TextInput";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Connect">;
+
+/** Matches API / shareable link format; avoids showing raw validation errors for junk URLs */
+function isLikelyInviteUserId(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value.trim(),
+  );
+}
+
+const CONNECT_LINK_INVALID_MESSAGE =
+  "This invite link is not valid. Use the full link your friend shared, or enter their 8-character code instead.";
 
 export default function ConnectScreen({ navigation, route }: Props) {
   const { user } = useAuth();
@@ -53,7 +63,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
       // Clear params immediately to prevent re-triggering on user reference changes
       navigation.setParams({ userId: undefined });
       if (userId === user.id) {
-        Toast.show({
+        toast.show({
           type: "info",
           text1: "You cannot connect with yourself. Share this link with a friend instead!",
         });
@@ -70,7 +80,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
       setMyInviteCode(result.code);
     } catch {
       setInviteCodeError(true);
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Failed to load your invite code. Check your connection.",
       });
@@ -86,7 +96,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
   const handleCopyCode = async () => {
     if (!myInviteCode) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Unable to copy invite code. Please try again.",
       });
@@ -94,12 +104,12 @@ export default function ConnectScreen({ navigation, route }: Props) {
     }
     try {
       await Clipboard.setStringAsync(myInviteCode);
-      Toast.show({
+      toast.show({
         type: "success",
         text1: "Invite code copied to clipboard",
       });
     } catch (error) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Failed to copy code. Please try again.",
       });
@@ -108,7 +118,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
   const handleShareCode = async () => {
     if (!myInviteCode) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Unable to share invite code. Please try again.",
       });
@@ -119,13 +129,13 @@ export default function ConnectScreen({ navigation, route }: Props) {
         message: `Join me on Instant Status!\n\nMy invite code:\n${myInviteCode}`,
       });
     } catch {
-      Toast.show({ type: "error", text1: "Failed to share invite code. Please try again." });
+      toast.show({ type: "error", text1: "Failed to share invite code. Please try again." });
     }
   };
 
   const handleCopyLink = async () => {
     if (!shareableLink) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Unable to copy link. Please try again.",
       });
@@ -133,12 +143,12 @@ export default function ConnectScreen({ navigation, route }: Props) {
     }
     try {
       await Clipboard.setStringAsync(shareableLink);
-      Toast.show({
+      toast.show({
         type: "success",
         text1: "Shareable link copied to clipboard",
       });
     } catch (error) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Failed to copy link. Please try again.",
       });
@@ -147,7 +157,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
   const handleShareLink = async () => {
     if (!shareableLink) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Unable to share link. Please try again.",
       });
@@ -157,23 +167,32 @@ export default function ConnectScreen({ navigation, route }: Props) {
       const shareMessage = `${shareableLink}\n\nConnect with me on Instant Status!`;
       await Share.share({ message: shareMessage });
     } catch {
-      Toast.show({ type: "error", text1: "Failed to share link. Please try again." });
+      toast.show({ type: "error", text1: "Failed to share link. Please try again." });
     }
   };
 
   const handleConnectByLink = async (targetUserId: string) => {
     if (!user) return;
-    if (user.id === targetUserId) {
-      Toast.show({
+    const trimmedId = targetUserId.trim();
+    navigation.setParams({ userId: undefined });
+
+    if (!isLikelyInviteUserId(trimmedId)) {
+      toast.show({ type: "error", text1: CONNECT_LINK_INVALID_MESSAGE });
+      return;
+    }
+
+    if (user.id === trimmedId) {
+      toast.show({
         type: "error",
         text1: "You cannot connect with yourself.",
       });
       return;
     }
+
     setConnectingByLink(true);
     try {
-      const result = await inviteService.connectByLink(targetUserId);
-      Toast.show({
+      const result = await inviteService.connectByLink(trimmedId);
+      toast.show({
         type: "success",
         text1: `Successfully connected with ${[result.owner.first_name, result.owner.last_name].filter(Boolean).join(" ")}!`,
       });
@@ -181,10 +200,13 @@ export default function ConnectScreen({ navigation, route }: Props) {
         navigation.navigate("Main", { screen: "Friends" });
       }, 1500);
     } catch (error: any) {
-      navigation.setParams({ userId: undefined });
-      Toast.show({
+      let msg = (error.message || "").trim();
+      if (/user_id\s*:\s*|invalid uuid/i.test(msg)) {
+        msg = CONNECT_LINK_INVALID_MESSAGE;
+      }
+      toast.show({
         type: "error",
-        text1: error.message || "Failed to connect via link. Check your connection and try again.",
+        text1: msg || "Failed to connect via link. Check your connection and try again.",
       });
     } finally {
       setConnectingByLink(false);
@@ -193,7 +215,7 @@ export default function ConnectScreen({ navigation, route }: Props) {
 
   const handleRedeemCode = async () => {
     if (!/^[A-Z0-9]{8}$/.test(inviteCode.trim().toUpperCase())) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: "Please enter a valid 8-character code",
       });
@@ -202,13 +224,13 @@ export default function ConnectScreen({ navigation, route }: Props) {
     setRedeemingCode(true);
     try {
       await inviteService.redeemCode(inviteCode.toUpperCase());
-      Toast.show({
+      toast.show({
         type: "success",
         text1: "Friend added successfully!",
       });
       setInviteCode("");
     } catch (error: any) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1: error.message || "Check your connection and try again.",
       });

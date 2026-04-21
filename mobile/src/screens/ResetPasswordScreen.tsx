@@ -11,8 +11,8 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { authService } from "../services/auth.service";
 import { RootStackParamList } from "../../App";
 import { ErrorBanner } from "../components/ErrorBanner";
-import Toast from "react-native-toast-message";
-import { Colors, Spacing, Typography, useResponsive, useColors } from "../design";
+import { toast } from "../utils/toast";
+import { Spacing, Typography, useResponsive, useColors } from "../design";
 import { Text } from "../components/primitives/Text";
 import { TextInput } from "../components/inputs/TextInput";
 import { Button } from "../components/actions/Button";
@@ -106,7 +106,7 @@ export default function ResetPasswordScreen({ route, navigation }: Props) {
     setGlobalError("");
     try {
       await authService.confirmPasswordReset(finalOobCode, password);
-      Toast.show({
+      toast.show({
         type: "success",
         text1: "Password Reset Successful",
         text2: "Your password has been reset successfully. You can now sign in.",

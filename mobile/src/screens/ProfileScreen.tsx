@@ -11,6 +11,8 @@ import {
   AppState,
   Modal,
   Platform,
+  Keyboard,
+  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,7 +31,7 @@ import {
   presentPaywall,
 } from "../services/purchases.service";
 import { useIsPremium } from "../hooks/useIsPremium";
-import Toast from "react-native-toast-message";
+import { toast } from "../utils/toast";
 import Sentry from "../../sentry";
 import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM, useResponsive, useColors, useTheme } from "../design";
 import type { ThemeMode } from "../design";
@@ -39,6 +41,12 @@ import { TextInput as DesignTextInput } from "../components/inputs/TextInput";
 
 type ProfileScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList>;
+
+const PROFILE_NAME_MAX_LENGTH = 50;
+
+function clampProfileName(value: string | null | undefined): string {
+  return (value || "").slice(0, PROFILE_NAME_MAX_LENGTH);
+}
 
 export default function ProfileScreen() {
   const { user, logout, deleteAccount, refreshUser } = useAuth();
@@ -54,8 +62,8 @@ export default function ProfileScreen() {
     willRenew,
     expirationDate,
   } = useIsPremium();
-  const [firstName, setFirstName] = useState(user?.first_name || "");
-  const [lastName, setLastName] = useState(user?.last_name || "");
+  const [firstName, setFirstName] = useState(() => clampProfileName(user?.first_name));
+  const [lastName, setLastName] = useState(() => clampProfileName(user?.last_name));
   const [pushNotifications, setPushNotifications] = useState(false);
   const [editingFirstName, setEditingFirstName] = useState(false);
   const [editingLastName, setEditingLastName] = useState(false);
@@ -66,9 +74,37 @@ export default function ProfileScreen() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [changePasswordError, setChangePasswordError] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [openingPaywall, setOpeningPaywall] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
+  const [changePasswordKeyboardLift, setChangePasswordKeyboardLift] = useState(0);
+
+  useEffect(() => {
+    if (!changePasswordModalVisible) {
+      setChangePasswordKeyboardLift(0);
+      return;
+    }
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const onShow = (e: { endCoordinates: { height: number } }) => {
+      const h = e.endCoordinates.height;
+      // Full keyboard height often over-lifts bottom sheets. Subtract a soften amount that
+      // scales with screen size; users can still scroll the sheet if a field is tight.
+      const soften = Math.min(100, Math.max(44, Math.round(windowHeight * 0.06)));
+      setChangePasswordKeyboardLift(Math.max(0, h - soften));
+    };
+    const onHide = () => setChangePasswordKeyboardLift(0);
+    const subShow = Keyboard.addListener(showEvent, onShow);
+    const subHide = Keyboard.addListener(hideEvent, onHide);
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, [changePasswordModalVisible, windowHeight]);
 
   useEffect(() => {
     checkNotificationState();
@@ -87,8 +123,8 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (user) {
-      setFirstName(user.first_name || "");
-      setLastName(user.last_name || "");
+      setFirstName(clampProfileName(user.first_name));
+      setLastName(clampProfileName(user.last_name));
     }
   }, [user]);
 
@@ -131,13 +167,16 @@ export default function ProfileScreen() {
 
   const handleSaveFirstName = async () => {
     if (!firstName.trim()) {
-      Toast.show({ type: "error", text1: "First name cannot be empty" });
-      setFirstName(user?.first_name || "");
+      toast.show({ type: "error", text1: "First name cannot be empty" });
+      setFirstName(clampProfileName(user?.first_name));
       setEditingFirstName(false);
       return;
     }
-    if (firstName.trim().length > 50) {
-      Toast.show({ type: "error", text1: "First name must be 50 characters or less" });
+    if (firstName.trim().length > PROFILE_NAME_MAX_LENGTH) {
+      toast.show({
+        type: "error",
+        text1: `First name must be ${PROFILE_NAME_MAX_LENGTH} characters or less`,
+      });
       return;
     }
     setSaving(true);
@@ -145,10 +184,9 @@ export default function ProfileScreen() {
       await userService.updateMe({ first_name: firstName.trim() });
       await refreshUser();
       setEditingFirstName(false);
-      Toast.show({ type: "success", text1: "First name updated" });
     } catch (error: any) {
-      Toast.show({ type: "error", text1: error.message || "Failed to update" });
-      setFirstName(user?.first_name || "");
+      toast.show({ type: "error", text1: error.message || "Failed to update" });
+      setFirstName(clampProfileName(user?.first_name));
       setEditingFirstName(false);
     } finally {
       setSaving(false);
@@ -157,13 +195,16 @@ export default function ProfileScreen() {
 
   const handleSaveLastName = async () => {
     if (!lastName.trim()) {
-      Toast.show({ type: "error", text1: "Last name cannot be empty" });
-      setLastName(user?.last_name || "");
+      toast.show({ type: "error", text1: "Last name cannot be empty" });
+      setLastName(clampProfileName(user?.last_name));
       setEditingLastName(false);
       return;
     }
-    if (lastName.trim().length > 50) {
-      Toast.show({ type: "error", text1: "Last name must be 50 characters or less" });
+    if (lastName.trim().length > PROFILE_NAME_MAX_LENGTH) {
+      toast.show({
+        type: "error",
+        text1: `Last name must be ${PROFILE_NAME_MAX_LENGTH} characters or less`,
+      });
       return;
     }
     setSaving(true);
@@ -171,10 +212,9 @@ export default function ProfileScreen() {
       await userService.updateMe({ last_name: lastName.trim() });
       await refreshUser();
       setEditingLastName(false);
-      Toast.show({ type: "success", text1: "Last name updated" });
     } catch (error: any) {
-      Toast.show({ type: "error", text1: error.message || "Failed to update" });
-      setLastName(user?.last_name || "");
+      toast.show({ type: "error", text1: error.message || "Failed to update" });
+      setLastName(clampProfileName(user?.last_name));
       setEditingLastName(false);
     } finally {
       setSaving(false);
@@ -188,7 +228,7 @@ export default function ProfileScreen() {
         if (!hasPermission) {
           const granted = await messagingService.requestPermission();
           if (granted) {
-            const token = await messagingService.getToken();
+            const token = await messagingService.getTokenForRegistration();
             if (token && user) await deviceTokenService.registerToken(token);
             setPushNotifications(true);
           } else {
@@ -209,7 +249,7 @@ export default function ProfileScreen() {
             setPushNotifications(false);
           }
         } else {
-          const token = await messagingService.getToken();
+          const token = await messagingService.getTokenForRegistration();
           if (token && user) await deviceTokenService.registerToken(token);
           setPushNotifications(true);
         }
@@ -228,10 +268,10 @@ export default function ProfileScreen() {
             },
           ]
         );
-        setPushNotifications(true);
+        setPushNotifications(false);
       }
     } catch (error: any) {
-      Toast.show({ type: "error", text1: error.message || "Failed to update" });
+      toast.show({ type: "error", text1: error.message || "Failed to update" });
     }
   };
 
@@ -245,7 +285,7 @@ export default function ProfileScreen() {
           try {
             await logout();
           } catch (error: any) {
-            Toast.show({ type: "error", text1: error.message || "Failed to logout" });
+            toast.show({ type: "error", text1: error.message || "Failed to logout" });
           }
         },
       },
@@ -254,6 +294,7 @@ export default function ProfileScreen() {
 
   const handleChangePassword = () => {
     setChangePasswordModalVisible(true);
+    setChangePasswordError("");
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
@@ -261,31 +302,32 @@ export default function ProfileScreen() {
 
   const handleSavePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Toast.show({ type: "error", text1: "Please fill in all fields" });
+      setChangePasswordError("Please fill in all fields");
       return;
     }
     if (newPassword.length < 8) {
-      Toast.show({ type: "error", text1: "Password must be at least 8 characters" });
+      setChangePasswordError("Password must be at least 8 characters");
       return;
     }
     if (newPassword !== confirmPassword) {
-      Toast.show({ type: "error", text1: "Passwords do not match" });
+      setChangePasswordError("Passwords do not match");
       return;
     }
     if (currentPassword === newPassword) {
-      Toast.show({ type: "error", text1: "New password must be different" });
+      setChangePasswordError("New password must be different");
       return;
     }
+    setChangePasswordError("");
     setChangingPassword(true);
     try {
       await authService.changePassword(currentPassword, newPassword);
-      Toast.show({ type: "success", text1: "Password updated" });
       setChangePasswordModalVisible(false);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      toast.show({ type: "success", text1: "Password updated" });
     } catch (error: any) {
-      Toast.show({ type: "error", text1: error.message || "Failed to update" });
+      setChangePasswordError(error.message || "Failed to update password");
     } finally {
       setChangingPassword(false);
     }
@@ -312,7 +354,7 @@ export default function ProfileScreen() {
       await deleteAccount();
       // On success the component unmounts — no state update needed
     } catch (error: any) {
-      Toast.show({ type: "error", text1: error.message || "Failed to delete" });
+      toast.show({ type: "error", text1: error.message || "Failed to delete" });
       setDeletingAccount(false);
     }
   };
@@ -329,9 +371,9 @@ export default function ProfileScreen() {
     try {
       setOpeningPaywall(true);
       const success = await presentPaywall();
-      if (success) Toast.show({ type: "success", text1: "Welcome to Premium!" });
+      if (success) toast.show({ type: "success", text1: "Welcome to Premium!" });
     } catch (error: any) {
-      Toast.show({ type: "error", text1: error.message || "Please try again" });
+      toast.show({ type: "error", text1: error.message || "Please try again" });
     } finally {
       setOpeningPaywall(false);
     }
@@ -379,6 +421,7 @@ export default function ProfileScreen() {
                     onChangeText={setFirstName}
                     placeholder="First name"
                     editable={!saving}
+                    maxLength={PROFILE_NAME_MAX_LENGTH}
                     style={styles.input}
                   />
                   <TouchableOpacity onPress={handleSaveFirstName} disabled={saving} style={styles.iconBtn}>
@@ -388,7 +431,7 @@ export default function ProfileScreen() {
                       <Ionicons name="checkmark" size={22} color={colors.interaction.primary} />
                     )}
                   </TouchableOpacity>
-                  <TouchableOpacity disabled={saving} onPress={() => { setFirstName(user?.first_name || ""); setEditingFirstName(false); }} style={styles.iconBtn}>
+                  <TouchableOpacity disabled={saving} onPress={() => { setFirstName(clampProfileName(user?.first_name)); setEditingFirstName(false); }} style={styles.iconBtn}>
                     <Ionicons name="close" size={22} color={colors.text.secondary} />
                   </TouchableOpacity>
                 </View>
@@ -413,6 +456,7 @@ export default function ProfileScreen() {
                     onChangeText={setLastName}
                     placeholder="Last name"
                     editable={!saving}
+                    maxLength={PROFILE_NAME_MAX_LENGTH}
                     style={styles.input}
                   />
                   <TouchableOpacity onPress={handleSaveLastName} disabled={saving} style={styles.iconBtn}>
@@ -422,7 +466,7 @@ export default function ProfileScreen() {
                       <Ionicons name="checkmark" size={22} color={colors.interaction.primary} />
                     )}
                   </TouchableOpacity>
-                  <TouchableOpacity disabled={saving} onPress={() => { setLastName(user?.last_name || ""); setEditingLastName(false); }} style={styles.iconBtn}>
+                  <TouchableOpacity disabled={saving} onPress={() => { setLastName(clampProfileName(user?.last_name)); setEditingLastName(false); }} style={styles.iconBtn}>
                     <Ionicons name="close" size={22} color={colors.text.secondary} />
                   </TouchableOpacity>
                 </View>
@@ -622,9 +666,9 @@ export default function ProfileScreen() {
                 onPress={async () => {
                   try {
                     await widgetStorageService.seedMockFriendsForWidgetTesting(8);
-                    Toast.show({ type: "success", text1: "Seeded 8 mock friends (marketing presets)" });
+                    toast.show({ type: "success", text1: "Seeded 8 mock friends (marketing presets)" });
                   } catch (e) {
-                    Toast.show({ type: "error", text1: "Failed to seed mock friends" });
+                    toast.show({ type: "error", text1: "Failed to seed mock friends" });
                   }
                 }}
               >
@@ -636,9 +680,9 @@ export default function ProfileScreen() {
                 onPress={async () => {
                   try {
                     await widgetStorageService.seedMockFriendsForWidgetTesting(24);
-                    Toast.show({ type: "success", text1: "Seeded 24 mock friends (layout stress)" });
+                    toast.show({ type: "success", text1: "Seeded 24 mock friends (layout stress)" });
                   } catch (e) {
-                    Toast.show({ type: "error", text1: "Failed to seed mock friends" });
+                    toast.show({ type: "error", text1: "Failed to seed mock friends" });
                   }
                 }}
               >
@@ -656,9 +700,17 @@ export default function ProfileScreen() {
         visible={changePasswordModalVisible}
         animationType="slide"
         transparent
-        onRequestClose={() => setChangePasswordModalVisible(false)}
+        onRequestClose={() => {
+          setChangePasswordModalVisible(false);
+          setChangePasswordError("");
+        }}
       >
-        <View style={styles.modalOverlay}>
+        <View
+          style={[
+            styles.modalOverlay,
+            { paddingBottom: changePasswordKeyboardLift },
+          ]}
+        >
           <View style={[styles.modalContent, { backgroundColor: colors.canvas.background, paddingBottom: SAFE_AREA_BOTTOM + insets.bottom }]}>
             <View style={styles.modalHeader}>
               <Text variant="primary" style={[styles.modalTitle, { fontSize: fs(18) }]}>
@@ -667,6 +719,7 @@ export default function ProfileScreen() {
               <TouchableOpacity
                 onPress={() => {
                   setChangePasswordModalVisible(false);
+                  setChangePasswordError("");
                   setCurrentPassword("");
                   setNewPassword("");
                   setConfirmPassword("");
@@ -678,16 +731,29 @@ export default function ProfileScreen() {
             </View>
             <ScrollView
               style={styles.modalBody}
+              contentContainerStyle={styles.modalBodyContent}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="always"
+              keyboardDismissMode="interactive"
             >
+              {!!changePasswordError && (
+                <Text
+                  variant="hint"
+                  style={[styles.modalInlineError, { color: colors.interaction.error }]}
+                >
+                  {changePasswordError}
+                </Text>
+              )}
               <View style={styles.modalField}>
                 <Text variant="secondary" style={styles.modalLabel}>
                   Current password
                 </Text>
                 <DesignTextInput
                   value={currentPassword}
-                  onChangeText={setCurrentPassword}
+                  onChangeText={(t) => {
+                    setChangePasswordError("");
+                    setCurrentPassword(t);
+                  }}
                   placeholder="Current password"
                   secureTextEntry
                   autoCapitalize="none"
@@ -700,7 +766,10 @@ export default function ProfileScreen() {
                 </Text>
                 <DesignTextInput
                   value={newPassword}
-                  onChangeText={setNewPassword}
+                  onChangeText={(t) => {
+                    setChangePasswordError("");
+                    setNewPassword(t);
+                  }}
                   placeholder="Min 8 characters"
                   secureTextEntry
                   autoCapitalize="none"
@@ -713,7 +782,10 @@ export default function ProfileScreen() {
                 </Text>
                 <DesignTextInput
                   value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+                  onChangeText={(t) => {
+                    setChangePasswordError("");
+                    setConfirmPassword(t);
+                  }}
                   placeholder="Confirm new password"
                   secureTextEntry
                   autoCapitalize="none"
@@ -933,11 +1005,19 @@ const styles = StyleSheet.create({
   modalBody: {
     maxHeight: 400,
   },
+  modalBodyContent: {
+    flexGrow: 1,
+    paddingBottom: Spacing.lg,
+  },
   modalField: {
     marginBottom: Spacing.md,
   },
   modalLabel: {
     fontSize: 13,
     marginBottom: Spacing.xs,
+  },
+  modalInlineError: {
+    marginBottom: Spacing.sm,
+    lineHeight: 20,
   },
 });

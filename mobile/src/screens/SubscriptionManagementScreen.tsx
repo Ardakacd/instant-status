@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import Toast from "react-native-toast-message";
+import { toast } from "../utils/toast";
 import {
   getOfferings,
   purchasePackage,
@@ -85,7 +85,7 @@ export default function SubscriptionManagementScreen() {
       }
     } catch (error: any) {
       setLoadError(true);
-      Toast.show({
+      toast.show({
         type: "error",
         text1:
           error.message ||
@@ -99,7 +99,7 @@ export default function SubscriptionManagementScreen() {
   const handlePurchasePackage = async (pkg: any) => {
     // Don't allow purchasing the same package (check by product identifier)
     if (isCurrentPackage(pkg)) {
-      Toast.show({
+      toast.show({
         type: "info",
         text1: "This is your current plan",
       });
@@ -165,7 +165,7 @@ export default function SubscriptionManagementScreen() {
         // User cancelled - don't show error
         return;
       }
-      Toast.show({
+      toast.show({
         type: "error",
         text1: error.message || "Failed to update plan. Please try again.",
       });
@@ -201,12 +201,12 @@ export default function SubscriptionManagementScreen() {
       const customerInfo = await restorePurchases();
       const isActive = !!customerInfo.entitlements.active["Instant Status Premium"];
       if (isActive) {
-        Toast.show({
+        toast.show({
           type: "success",
           text1: "Purchases restored successfully",
         });
       } else {
-        Toast.show({
+        toast.show({
           type: "info",
           text1: "No active purchases found",
         });
@@ -215,7 +215,7 @@ export default function SubscriptionManagementScreen() {
       await loadSubscriptionData();
       refreshUser();
     } catch (error: any) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1:
           error.message || "Failed to restore purchases. Please try again.",
@@ -250,7 +250,7 @@ export default function SubscriptionManagementScreen() {
         presentCustomerCenter();
       }
     } catch (error: any) {
-      Toast.show({
+      toast.show({
         type: "error",
         text1:
           error.message ||
