@@ -12,7 +12,10 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const sharedPath = path.join(root, "android-widget", "widget-shared.ts");
-const outPath = path.join(root, "targets", "widget", "WidgetStorageKeys.generated.swift");
+const outTargets = [
+  path.join(root, "targets", "widget", "WidgetStorageKeys.generated.swift"),
+  path.join(root, "targets", "notification-service", "WidgetStorageKeys.generated.swift"),
+];
 
 const src = fs.readFileSync(sharedPath, "utf8");
 
@@ -22,16 +25,20 @@ const dataMatch = src.match(
 const premiumMatch = src.match(
   /export const IS_PREMIUM_KEY\s*=\s*["']([^"']+)["']/,
 );
+const loggedOutMatch = src.match(
+  /export const WIDGET_LOGGED_OUT_KEY\s*=\s*["']([^"']+)["']/,
+);
 
-if (!dataMatch || !premiumMatch) {
+if (!dataMatch || !premiumMatch || !loggedOutMatch) {
   console.error(
-    "Could not parse WIDGET_DATA_KEY / IS_PREMIUM_KEY from widget-shared.ts",
+    "Could not parse WIDGET_DATA_KEY / IS_PREMIUM_KEY / WIDGET_LOGGED_OUT_KEY from widget-shared.ts",
   );
   process.exit(1);
 }
 
 const widgetDataKey = dataMatch[1];
 const isPremiumKey = premiumMatch[1];
+const loggedOutKey = loggedOutMatch[1];
 
 // Escape for Swift string literal (only " and \ matter)
 function swiftString(s) {
@@ -46,8 +53,12 @@ import Foundation
 enum WidgetStorageKeys {
     static let widgetData: String = "${swiftString(widgetDataKey)}"
     static let isPremium: String = "${swiftString(isPremiumKey)}"
+    static let loggedOut: String = "${swiftString(loggedOutKey)}"
 }
 `;
 
-fs.writeFileSync(outPath, swift, "utf8");
-console.log("Wrote", path.relative(root, outPath));
+for (const outPath of outTargets) {
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, swift, "utf8");
+  console.log("Wrote", path.relative(root, outPath));
+}

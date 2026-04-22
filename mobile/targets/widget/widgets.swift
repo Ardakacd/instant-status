@@ -184,7 +184,7 @@ struct StatusSummary {
 
     static func from(_ friends: [FriendStatusWidgetItem]) -> StatusSummary {
         let available = friends.filter { $0.effectiveOptionLabel == "Available" }.count
-        let busy = friends.filter { $0.effectiveOptionLabel == "Busy" }.count
+        let busy = friends.count - available
         return StatusSummary(available: available, busy: busy)
     }
 }

@@ -1,4 +1,5 @@
 import { registerRootComponent } from "expo";
+import { Platform } from "react-native";
 import {
   getMessaging,
   setBackgroundMessageHandler,
@@ -26,6 +27,10 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
     const type = data?.type;
 
     if (type === "status_update" && data?.user_id) {
+      // On iOS, don't defer widget refresh — the API sync below often fails in headless
+      // mode (no auth session), so the delta write + immediate reload is the only reliable path.
+      // On Android, defer to avoid a double update (requestWidgetUpdate is called by syncWidget below).
+      const deferWidgetRefresh = Platform.OS !== "ios";
       await widgetStorageService.updateFriendStatus(
         String(data.user_id),
         String(data.display_name || ""),
@@ -36,11 +41,11 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
         data.note ? String(data.note) : null,
         data.expires_at ? String(data.expires_at) : null,
         data.timestamp ? String(data.timestamp) : new Date().toISOString(),
-        { deferWidgetRefresh: true },
+        { deferWidgetRefresh },
       );
       // Reconcile full list with server (delta push can miss edge cases; iOS may coalesce alerts).
       const synced = await syncWidgetFriendsFromApiInBackground();
-      if (!synced) {
+      if (!synced && deferWidgetRefresh) {
         await widgetStorageService.reloadWidget();
       }
     } else if (type === "friend_removed" && data?.peer_user_id) {

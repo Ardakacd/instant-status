@@ -6,7 +6,7 @@ import { requestWidgetUpdate } from "react-native-android-widget";
 import { renderInstantStatusWidgetForInfo } from "../../android-widget/widget-task-handler";
 import Sentry from "../../sentry";
 import { WidgetExpiryScheduler } from "../native/WidgetExpiryScheduler";
-import { IS_PREMIUM_KEY, WIDGET_DATA_KEY } from "../../android-widget/widget-shared";
+import { IS_PREMIUM_KEY, WIDGET_DATA_KEY, WIDGET_LOGGED_OUT_KEY, WIDGET_CONFIG_KEY_PREFIX, WIDGET_CONFIG_BACKGROUND_PREFIX } from "../../android-widget/widget-shared";
 
 /** Must match App Group in Apple Developer, app entitlements, and AppGroup.generated.swift (prebuild). */
 const APP_GROUP_ID = process.env.EXPO_PUBLIC_IOS_APP_GROUP;
@@ -247,6 +247,7 @@ export class WidgetStorageService {
 
 
       if (Platform.OS === "ios" && this.storage) {
+        this.storage.remove(WIDGET_LOGGED_OUT_KEY);
         this.storage.set(WIDGET_DATA_KEY, jsonString);
         await this.reloadWidget();
       } else if (Platform.OS === "android") {
@@ -483,12 +484,22 @@ export class WidgetStorageService {
         this.iosReloadFollowUp = null;
       }
       if (Platform.OS === "ios" && this.storage) {
+        this.storage.set(WIDGET_LOGGED_OUT_KEY, "true");
         this.storage.remove(WIDGET_DATA_KEY);
         this.storage.remove(IS_PREMIUM_KEY);
         ExtensionStorage.reloadWidget("InstantStatusWidget");
       } else if (Platform.OS === "android") {
         await AsyncStorage.removeItem(WIDGET_DATA_KEY);
         await AsyncStorage.removeItem(IS_PREMIUM_KEY);
+        // Clear per-widget-instance config keys (selected friends, background style)
+        // to prevent stale friend IDs from leaking across sessions.
+        const allKeys = await AsyncStorage.getAllKeys();
+        const widgetConfigKeys = allKeys.filter(
+          (k) => k.startsWith(WIDGET_CONFIG_KEY_PREFIX) || k.startsWith(WIDGET_CONFIG_BACKGROUND_PREFIX),
+        );
+        if (widgetConfigKeys.length > 0) {
+          await AsyncStorage.multiRemove(widgetConfigKeys);
+        }
         await this.triggerAndroidUpdate();
       }
     } catch (error) {

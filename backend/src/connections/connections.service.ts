@@ -534,11 +534,11 @@ export class ConnectionsService {
         android: { priority: "high" as const },
         apns: {
           headers: {
-            "apns-push-type": "background",
+            "apns-push-type": "alert",
             "apns-priority": "5",
           },
           payload: {
-            aps: { "content-available": 1 },
+            aps: { "content-available": 1, "mutable-content": 1 },
           },
         },
       });
@@ -587,11 +587,11 @@ export class ConnectionsService {
         android: { priority: "high" as const },
         apns: {
           headers: {
-            "apns-push-type": "background",
+            "apns-push-type": "alert",
             "apns-priority": "5",
           },
           payload: {
-            aps: { "content-available": 1 },
+            aps: { "content-available": 1, "mutable-content": 1 },
           },
         },
       });
@@ -675,6 +675,7 @@ export class ConnectionsService {
               aps: {
                 sound: "default",
                 badge: 1,
+                "mutable-content": 1,
               },
             },
           },
