@@ -14,15 +14,14 @@
  * - Inputs should feel neutral and safe
  */
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
-  Platform,
   TextInput as RNTextInput,
   TextInputProps as RNTextInputProps,
   StyleSheet,
-} from 'react-native';
-import { Borders, Spacing, Typography } from '../../design/tokens';
-import { useResponsive, useColors } from '../../design';
+} from "react-native";
+import { Borders, Spacing, Typography } from "../../design/tokens";
+import { useResponsive, useColors } from "../../design";
 
 export interface TextInputProps extends RNTextInputProps {
   error?: boolean;
@@ -42,10 +41,10 @@ export const TextInput: React.FC<TextInputProps> = ({
   const borderColor = error
     ? colors.interaction.error
     : isFocused
-    ? colors.interaction.primary
-    : !editable
-    ? colors.interaction.disabled
-    : colors.text.secondary + '40';
+      ? colors.interaction.primary
+      : !editable
+        ? colors.interaction.disabled
+        : colors.text.secondary + "40";
 
   const textColor = !editable
     ? colors.interaction.disabled
@@ -88,6 +87,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     fontFamily: Typography.fontFamily.regular,
     fontSize: 16,
-    textAlignVertical: 'center',
+    textAlignVertical: "center",
   },
 });
