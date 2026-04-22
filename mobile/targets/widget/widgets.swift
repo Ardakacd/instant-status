@@ -278,12 +278,16 @@ struct Provider: AppIntentTimelineProvider {
             .min()
 
         // 2. Timeline policy: event-driven, not polling
-        // - If there's an upcoming expiry → refresh exactly when it expires
-        // - If no expiry → .atEnd = no periodic wakeups (app/push triggers reload)
+        // - If there's an upcoming expiry → refresh when it passes
+        // - If no expiry: avoid a single "now" entry with `.atEnd` only — on iOS 17+ that
+        //   can leave the on-screen view stale until a user action (e.g. in-widget ↻) even
+        //   when the app calls `reloadTimelines`. Use a long `.after` so we don't add
+        //   frequent OS wakeups; the app + reloadTimelines() still drive real-time updates.
         if let nextExpiry = nextExpiry {
             return Timeline(entries: [entry], policy: .after(nextExpiry))
         } else {
-            return Timeline(entries: [entry], policy: .atEnd)
+            let far = Calendar.current.date(byAdding: .day, value: 1, to: now) ?? now.addingTimeInterval(86_400)
+            return Timeline(entries: [entry], policy: .after(far))
         }
     }
 }

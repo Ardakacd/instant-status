@@ -1,5 +1,9 @@
 import React from "react";
-import type { WidgetTaskHandlerProps } from "react-native-android-widget";
+import type {
+  WidgetInfo,
+  WidgetRepresentation,
+  WidgetTaskHandlerProps,
+} from "react-native-android-widget";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   InstantStatusWidget,
@@ -91,17 +95,27 @@ async function loadWidgetData(widgetId: number): Promise<{
   }
 }
 
-async function renderCurrentWidget(props: WidgetTaskHandlerProps) {
+/**
+ * Build light/dark trees for one widget instance — same data path as the task handler
+ * (`loadWidgetData` + per-instance config). Use with `requestWidgetUpdate({ renderWidget })`
+ * so the main JS runtime draws via `drawWidgetById` immediately after storage writes.
+ */
+export async function renderInstantStatusWidgetForInfo(
+  info: WidgetInfo
+): Promise<WidgetRepresentation> {
   const Widget =
-    nameToWidget[props.widgetInfo.widgetName as keyof typeof nameToWidget];
+    nameToWidget[info.widgetName as keyof typeof nameToWidget];
+  if (!Widget) {
+    throw new Error(`Unknown Android widget: ${info.widgetName}`);
+  }
 
-  const widgetWidthDp  = props.widgetInfo.width;
-  const widgetHeightDp = props.widgetInfo.height;
+  const widgetWidthDp = info.width || 200;
+  const widgetHeightDp = info.height || 220;
 
   const { friends, hasAnyFriends, isPremium, backgroundStyle } =
-    await loadWidgetData(props.widgetInfo.widgetId);
+    await loadWidgetData(info.widgetId);
 
-  props.renderWidget({
+  return {
     light: (
       <Widget
         friends={friends}
@@ -124,7 +138,14 @@ async function renderCurrentWidget(props: WidgetTaskHandlerProps) {
         widgetWidthDp={widgetWidthDp}
       />
     ),
-  });
+  };
+}
+
+async function renderCurrentWidget(props: WidgetTaskHandlerProps) {
+  const representation = await renderInstantStatusWidgetForInfo(
+    props.widgetInfo
+  );
+  props.renderWidget(representation);
 }
 
 export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {

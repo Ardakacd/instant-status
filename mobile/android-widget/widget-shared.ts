@@ -1,9 +1,7 @@
 /** Shared constants and utilities used by both widget-task-handler and WidgetConfigurationScreen. */
 
-/** After changing these two, run `npm run generate:widget-keys` to refresh iOS `WidgetStorageKeys.generated.swift`. */
+/** After changing these, run `npm run generate:widget-keys` to refresh iOS `WidgetStorageKeys.generated.swift`. */
 export const WIDGET_DATA_KEY = "widget_status_data";
-/** iOS: set when widget JSON/premium changed; AppDelegate reloads timeline on background only if still set. Saves WidgetKit reload budget. */
-export const WIDGET_PENDING_TIMELINE_RELOAD_KEY = "widget_pending_timeline_reload";
 export const WIDGET_CONFIG_KEY_PREFIX = "widget_config_";
 export const WIDGET_CONFIG_BACKGROUND_PREFIX = "widget_config_background_";
 export const IS_PREMIUM_KEY = "is_premium";

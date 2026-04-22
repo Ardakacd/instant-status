@@ -3,13 +3,10 @@ import { ExtensionStorage } from "@bacons/apple-targets";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Status } from "../types";
 import { requestWidgetUpdate } from "react-native-android-widget";
+import { renderInstantStatusWidgetForInfo } from "../../android-widget/widget-task-handler";
 import Sentry from "../../sentry";
 import { WidgetExpiryScheduler } from "../native/WidgetExpiryScheduler";
-import {
-  IS_PREMIUM_KEY,
-  WIDGET_DATA_KEY,
-  WIDGET_PENDING_TIMELINE_RELOAD_KEY,
-} from "../../android-widget/widget-shared";
+import { IS_PREMIUM_KEY, WIDGET_DATA_KEY } from "../../android-widget/widget-shared";
 
 /** Must match App Group in Apple Developer, app entitlements, and AppGroup.generated.swift (prebuild). */
 const APP_GROUP_ID = process.env.EXPO_PUBLIC_IOS_APP_GROUP;
@@ -36,8 +33,9 @@ interface FriendStatusWidgetItem {
 
 export class WidgetStorageService {
   private storage: ExtensionStorage | null = null;
-  private reloadTimeout: ReturnType<typeof setTimeout> | null = null;
-  private readonly DEBOUNCE_MS = 1500; // Debounce per-friend updates
+  /** iOS: second `reloadTimelines` after a short delay — some iOS 17+ builds coalesce
+   *  the first call before the App Group write is visible to the widget extension. */
+  private iosReloadFollowUp: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (Platform.OS === "ios" && APP_GROUP_ID) {
@@ -59,62 +57,16 @@ export class WidgetStorageService {
     }
   }
 
-  /** Lets AppDelegate reload only when debounce did not run before suspend (saves WidgetKit budget). */
-  private markIosTimelineReloadPending() {
-    if (Platform.OS === "ios" && this.storage) {
-      this.storage.set(WIDGET_PENDING_TIMELINE_RELOAD_KEY, "1");
-    }
-  }
-
-  private clearIosTimelineReloadPending() {
-    if (Platform.OS === "ios" && this.storage) {
-      this.storage.remove(WIDGET_PENDING_TIMELINE_RELOAD_KEY);
-    }
-  }
-
   /**
-   * Debounce widget reload — batches rapid per-friend updates into a single reload.
-   * Data is saved immediately; only the reload is delayed until updates settle.
-   */
-  private scheduleReload() {
-    if (this.reloadTimeout) {
-      clearTimeout(this.reloadTimeout);
-      this.reloadTimeout = null;
-    }
-
-    const runReload = () => {
-      if (Platform.OS === "ios") {
-        ExtensionStorage.reloadWidget("InstantStatusWidget");
-        this.clearIosTimelineReloadPending();
-      }
-      this.reloadTimeout = null;
-    };
-
-    // Always debounce — including when backgrounded — to batch burst FCM pushes and
-    // avoid draining the WidgetKit daily reload budget. The pending flag ensures
-    // AppDelegate triggers a reload on next foreground if the timer fires after suspension.
-    this.reloadTimeout = setTimeout(runReload, this.DEBOUNCE_MS);
-  }
-
-  /**
-   * Helper to trigger Android Widget Update
-   * This tells Android to wake up the widgetTaskHandler, which will:
-   * 1. Load the data from AsyncStorage
-   * 2. Filter by widget-specific configuration (widget_config_{id})
-   * 3. Render the widget with the correct filtered data for each widget instance
-   * 
-   * Note: We don't provide a renderWidget here. This forces the widgetTaskHandler
-   * to be the single source of truth, ensuring each widget instance respects its
-   * own configuration without any race conditions or flickering.
+   * Android: redraw all home-screen widget instances in the current JS process.
+   * `requestWidgetUpdate` with `renderWidget` calls `drawWidgetById` (same data path as
+   * `widget-task-handler`: `loadWidgetData` + per-instance `widget_config_{id}`).
    */
   private async triggerAndroidUpdate() {
     try {
-      // Omit renderWidget intentionally — the runtime supports it even though the type does not.
-      // Omitting it causes Android to invoke widgetTaskHandler for every on-screen instance,
-      // which is the single source of truth for per-widget config (selected friends, background).
-      type TriggerOnly = { widgetName: string; widgetNotFound?: () => void };
-      await (requestWidgetUpdate as unknown as (p: TriggerOnly) => Promise<void>)({
+      await requestWidgetUpdate({
         widgetName: "InstantStatusWidget",
+        renderWidget: renderInstantStatusWidgetForInfo,
       });
     } catch (error) {
       Sentry.captureException(error);
@@ -200,12 +152,13 @@ export class WidgetStorageService {
       const jsonString = JSON.stringify(friendsData);
       const deferRefresh = options?.deferWidgetRefresh === true;
 
-      // 4. Save and Reload (debounced on iOS to batch rapid push updates)
+      // 4. Save and ask the OS to redraw. iOS: WidgetCenter reload must run in the same
+      // pass as the write, or the widget can stay on the old timeline (debouncing delayed
+      // reload for up to 1.5s before). Android: same pass via requestWidgetUpdate + drawWidgetById.
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
         if (!deferRefresh) {
-          this.markIosTimelineReloadPending();
-          this.scheduleReload();
+          await this.reloadWidget();
         }
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
@@ -264,8 +217,7 @@ export class WidgetStorageService {
 
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
-        this.markIosTimelineReloadPending();
-        this.scheduleReload();
+        await this.reloadWidget();
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
         await this.triggerAndroidUpdate();
@@ -296,8 +248,7 @@ export class WidgetStorageService {
 
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
-        this.markIosTimelineReloadPending();
-        this.scheduleReload();
+        await this.reloadWidget();
       } else if (Platform.OS === "android") {
         // Cancel workers for friends that dropped off the list before overwriting.
         const existingRaw = await AsyncStorage.getItem(WIDGET_DATA_KEY);
@@ -329,11 +280,24 @@ export class WidgetStorageService {
 
   /**
    * Force widget to reload (e.g. when app comes to foreground to pick up changes).
+   * On iOS, schedules a second `WidgetCenter.reloadTimelines` shortly after the first
+   * so the home-screen widget is more likely to match fresh App Group data.
    */
   async reloadWidget(): Promise<void> {
     if (Platform.OS === "ios") {
+      if (this.iosReloadFollowUp) {
+        clearTimeout(this.iosReloadFollowUp);
+        this.iosReloadFollowUp = null;
+      }
       ExtensionStorage.reloadWidget("InstantStatusWidget");
-      this.clearIosTimelineReloadPending();
+      this.iosReloadFollowUp = setTimeout(() => {
+        this.iosReloadFollowUp = null;
+        try {
+          ExtensionStorage.reloadWidget("InstantStatusWidget");
+        } catch {
+          /* native reload best-effort */
+        }
+      }, 200);
     } else if (Platform.OS === "android") {
       await this.triggerAndroidUpdate();
     }
@@ -346,8 +310,7 @@ export class WidgetStorageService {
     try {
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(IS_PREMIUM_KEY, isPremium ? "true" : "false");
-        this.markIosTimelineReloadPending();
-        this.scheduleReload();
+        await this.reloadWidget();
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(IS_PREMIUM_KEY, isPremium ? "true" : "false");
         await this.triggerAndroidUpdate();
@@ -499,7 +462,6 @@ export class WidgetStorageService {
         this.storage.set(WIDGET_DATA_KEY, jsonString);
         this.storage.set(IS_PREMIUM_KEY, "true");
         ExtensionStorage.reloadWidget("InstantStatusWidget");
-        this.clearIosTimelineReloadPending();
       } else if (Platform.OS === "android") {
         await AsyncStorage.setItem(WIDGET_DATA_KEY, jsonString);
         await AsyncStorage.setItem(IS_PREMIUM_KEY, "true");
@@ -516,15 +478,14 @@ export class WidgetStorageService {
    */
   async clearAll(): Promise<void> {
     try {
-      if (this.reloadTimeout) {
-        clearTimeout(this.reloadTimeout);
-        this.reloadTimeout = null;
+      if (this.iosReloadFollowUp) {
+        clearTimeout(this.iosReloadFollowUp);
+        this.iosReloadFollowUp = null;
       }
       if (Platform.OS === "ios" && this.storage) {
         this.storage.remove(WIDGET_DATA_KEY);
         this.storage.remove(IS_PREMIUM_KEY);
         ExtensionStorage.reloadWidget("InstantStatusWidget");
-        this.clearIosTimelineReloadPending();
       } else if (Platform.OS === "android") {
         await AsyncStorage.removeItem(WIDGET_DATA_KEY);
         await AsyncStorage.removeItem(IS_PREMIUM_KEY);

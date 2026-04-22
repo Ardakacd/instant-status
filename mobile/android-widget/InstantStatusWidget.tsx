@@ -397,45 +397,54 @@ function MediumFriendCell({
     <FlexWidget
       style={{
         flexDirection: "row",
-        alignItems: "center",
+        alignItems: "flex-start",
         width: "match_parent",
       }}
       clickAction="OPEN_APP"
     >
       <TextWidget
         text={effectiveStatus.emoji}
-        style={{ fontSize: 11, marginRight: 5 }}
+        style={{ fontSize: 11, marginRight: 5, marginTop: 1 }}
       />
-      <FlexWidget style={{ flexDirection: "column", flex: 1, alignItems: "flex-start" }}>
+      <FlexWidget
+        style={{
+          flexDirection: "column",
+          flex: 1,
+          alignItems: "flex-start",
+          width: "match_parent",
+        }}
+      >
         <FlexWidget
-          style={{ flexDirection: "row", alignItems: "center", marginBottom: 1 }}
+          style={{ flexDirection: "row", alignItems: "center", width: "match_parent", marginBottom: 1 }}
         >
-          <FlexWidget style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+          <TextWidget
+            text={friend.firstName}
+            style={{
+              fontSize: 11,
+              fontWeight: "bold",
+              color: (isExpired ? colors.muted : colors.primary) as `#${string}`,
+            }}
+            maxLines={1}
+          />
+          {hasNonEmptyNote(friend) ? (
             <TextWidget
-              text={friend.firstName}
-              style={{
-                fontSize: 11,
-                fontWeight: "bold",
-                color: (isExpired ? colors.muted : colors.primary) as `#${string}`,
-              }}
-              maxLines={1}
-            />
-            {hasNonEmptyNote(friend) ? (
-              <TextWidget
-                text="📝"
-                style={{ fontSize: 8, marginLeft: 2, color: colors.muted as `#${string}` }}
-              />
-            ) : null}
-          </FlexWidget>
-          {timeUntil ? <FlexWidget style={{ width: 4 }} /> : null}
-          {timeUntil ? (
-            <TextWidget
-              text={timeUntil}
-              style={{ fontSize: 8, fontWeight: "500", color: colors.expiry as `#${string}`, marginLeft: 3 }}
-              maxLines={1}
+              text="📝"
+              style={{ fontSize: 8, marginLeft: 2, color: colors.muted as `#${string}` }}
             />
           ) : null}
         </FlexWidget>
+        {timeUntil ? (
+          <TextWidget
+            text={timeUntil}
+            style={{
+              fontSize: 8,
+              fontWeight: "500",
+              color: colors.expiry as `#${string}`,
+              marginBottom: 1,
+            }}
+            maxLines={1}
+          />
+        ) : null}
         <TextWidget
           text={displayStatus}
           style={{ fontSize: 9, color: colors.muted as `#${string}` }}

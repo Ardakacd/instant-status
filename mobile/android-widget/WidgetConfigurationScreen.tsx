@@ -6,11 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  useColorScheme,
 } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { WidgetConfigurationScreenProps } from "react-native-android-widget";
-import { WidgetPreview, requestWidgetUpdate } from "react-native-android-widget";
+import {
+  WidgetPreview,
+  requestWidgetUpdate,
+} from "react-native-android-widget";
+import { renderInstantStatusWidgetForInfo } from "./widget-task-handler";
 import { Colors, Borders, Spacing, Typography, SAFE_AREA_BOTTOM } from "../src/design";
 import {
   InstantStatusWidget,
@@ -36,11 +41,50 @@ export function WidgetConfigurationScreen(
   );
 }
 
+const MIN_WIDGET_PREVIEW_DP = 120;
+
+/**
+ * When configuring, the system often reports a small 2x2 size (~100–130dp wide). At that
+ * width our grid layout chooses 1–2 very narrow columns, so name + "until …" on one row
+ * collides and truncates in WidgetPreview. The real home widget still uses `safe*` below;
+ * preview only uses at least this size so the snapshot is readable and matches a typical
+ * medium/large cell (~2+ columns, comfortable row height).
+ */
+const PREVIEW_MIN_LAYOUT_WIDTH_DP = 300;
+const PREVIEW_MIN_LAYOUT_HEIGHT_DP = 220;
+
+/**
+ * The library's WidgetPreview ErrorState renders an Icon with
+ *   fontSize = floor(min(w,h) / 3) / 2
+ * (see node_modules/.../WidgetPreview.tsx). If the system reports 0x0 or very small
+ * size for widgetInfo, that becomes 0 and Android throws FontSize 0 in getLetterSpacing.
+ * iOS home screen widgets are Swift; this RN screen is Android widget configuration.
+ */
+function safeWidgetSizeDp(
+  w: number | undefined,
+  h: number | undefined
+): { width: number; height: number } {
+  const width = Number.isFinite(w as number) && (w as number) > 0 ? (w as number) : 200;
+  const height = Number.isFinite(h as number) && (h as number) > 0 ? (h as number) : 220;
+  return {
+    width: Math.max(MIN_WIDGET_PREVIEW_DP, width),
+    height: Math.max(MIN_WIDGET_PREVIEW_DP, height),
+  };
+}
+
 function WidgetConfigurationScreenContent({
   widgetInfo,
   renderWidget,
   setResult,
 }: WidgetConfigurationScreenProps) {
+  const { width: safeWidthDp, height: safeHeightDp } = safeWidgetSizeDp(
+    widgetInfo.width,
+    widgetInfo.height
+  );
+  const previewWidthDp = Math.max(safeWidthDp, PREVIEW_MIN_LAYOUT_WIDTH_DP);
+  const previewHeightDp = Math.max(safeHeightDp, PREVIEW_MIN_LAYOUT_HEIGHT_DP);
+  /** Match `widget-task-handler` light / dark `renderWidget` (home widget default bg). */
+  const isWidgetDark = useColorScheme() === "dark";
   const insets = useSafeAreaInsets();
   const [friends, setFriends] = useState<FriendStatusWidgetItem[]>([]);
   const [selectedFriendIds, setSelectedFriendIds] = useState<Set<string>>(
@@ -109,9 +153,9 @@ function WidgetConfigurationScreenContent({
         hasAnyFriends={friends.length > 0}
         isPremium={isPremium}
         backgroundStyle={bg}
-        isDarkMode={false}
-        widgetWidthDp={widgetInfo.width}
-        widgetHeightDp={widgetInfo.height}
+        isDarkMode={isWidgetDark}
+        widgetWidthDp={previewWidthDp}
+        widgetHeightDp={previewHeightDp}
       />
     );
   }
@@ -128,14 +172,14 @@ function WidgetConfigurationScreenContent({
           hasAnyFriends={friends.length > 0}
           isPremium={isPremium}
           backgroundStyle={backgroundStyle}
-          isDarkMode={false}
-          widgetWidthDp={widgetInfo.width}
-          widgetHeightDp={widgetInfo.height}
+          isDarkMode={isWidgetDark}
+          widgetWidthDp={previewWidthDp}
+          widgetHeightDp={previewHeightDp}
         />
       );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [backgroundStyle, selectedFriendIds, friends, isPremium]
+    [backgroundStyle, selectedFriendIds, friends, isPremium, previewWidthDp, previewHeightDp, isWidgetDark]
   );
 
   function toggleFriendSelection(friendId: string) {
@@ -163,25 +207,22 @@ function WidgetConfigurationScreenContent({
       const selectedFriends = friends.filter((f) =>
         selectedFriendIds.has(f.id)
       );
-      const widgetWidthDp  = widgetInfo.width;
-      const widgetHeightDp = widgetInfo.height;
       renderWidget(
         <InstantStatusWidget
           friends={selectedFriends}
           hasAnyFriends={friends.length > 0}
           isPremium={isPremium}
           backgroundStyle={backgroundStyle}
-          isDarkMode={false}
-          widgetHeightDp={widgetHeightDp}
-          widgetWidthDp={widgetWidthDp}
+          isDarkMode={isWidgetDark}
+          widgetHeightDp={safeHeightDp}
+          widgetWidthDp={safeWidthDp}
         />
       );
 
-      // Trigger widgetTaskHandler for all instances so dark mode and
-      // other widget instances also pick up the new background immediately.
-      type TriggerOnly = { widgetName: string };
-      (requestWidgetUpdate as unknown as (p: TriggerOnly) => Promise<void>)({
+      // Redraw all placed widget instances (light + dark + other homescreen copies).
+      requestWidgetUpdate({
         widgetName: "InstantStatusWidget",
+        renderWidget: renderInstantStatusWidgetForInfo,
       }).catch(() => {});
 
       setResult("ok");
@@ -249,8 +290,8 @@ function WidgetConfigurationScreenContent({
           <WidgetPreview
             key={previewKey}
             renderWidget={previewRenderWidget}
-            width={widgetInfo.width}
-            height={widgetInfo.height}
+            width={previewWidthDp}
+            height={previewHeightDp}
           />
         </View>
       </View>
