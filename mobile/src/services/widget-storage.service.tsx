@@ -7,6 +7,7 @@ import { renderInstantStatusWidgetForInfo } from "../../android-widget/widget-ta
 import Sentry from "../../sentry";
 import { WidgetExpiryScheduler } from "../native/WidgetExpiryScheduler";
 import { IS_PREMIUM_KEY, WIDGET_DATA_KEY, WIDGET_LOGGED_OUT_KEY, WIDGET_CONFIG_KEY_PREFIX, WIDGET_CONFIG_BACKGROUND_PREFIX } from "../../android-widget/widget-shared";
+import type { FriendStatusWidgetItem } from "../../android-widget/InstantStatusWidget";
 
 /** Must match App Group in Apple Developer, app entitlements, and AppGroup.generated.swift (prebuild). */
 const APP_GROUP_ID = process.env.EXPO_PUBLIC_IOS_APP_GROUP;
@@ -16,19 +17,6 @@ if (!APP_GROUP_ID) {
   console.error(
     "[WidgetStorageService] EXPO_PUBLIC_IOS_APP_GROUP is not set. Widget data will not be shared with the iOS widget extension."
   );
-}
-
-interface FriendStatusWidgetItem {
-  id: string;
-  firstName: string;
-  lastName: string | null;
-  optionId: string | null;
-  optionLabel: string | null;
-  optionEmoji: string | null;
-  optionColor: string | null;
-  note: string | null;
-  expiresAt: string | null;
-  updatedAt: string;
 }
 
 export class WidgetStorageService {

@@ -284,6 +284,8 @@ export default function ManageStatusScreen() {
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
             <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
@@ -305,6 +307,8 @@ export default function ManageStatusScreen() {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
         >
           <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
@@ -406,6 +410,8 @@ export default function ManageStatusScreen() {
                   setEmojiError("");
                 }}
                 style={styles.modalCloseButton}
+                accessibilityLabel="Close"
+                accessibilityRole="button"
               >
                 <Ionicons
                   name="close"
@@ -535,6 +541,8 @@ export default function ManageStatusScreen() {
                   setEmojiError("");
                 }}
                 style={styles.modalCloseButton}
+                accessibilityLabel="Close"
+                accessibilityRole="button"
               >
                 <Ionicons
                   name="close"

@@ -218,6 +218,8 @@ export default function StatusChangeModal({
                   <TouchableOpacity
                     onPress={handleClose}
                     style={styles.closeButton}
+                    accessibilityLabel="Cancel"
+                    accessibilityRole="button"
                   >
                     <Ionicons
                       name="close"
@@ -335,6 +337,8 @@ export default function StatusChangeModal({
                               onPress={handleClearExpiresAt}
                               style={styles.clearButton}
                               activeOpacity={0.7}
+                              accessibilityLabel="Clear expiration"
+                              accessibilityRole="button"
                             >
                               <Ionicons
                                 name="close-circle"

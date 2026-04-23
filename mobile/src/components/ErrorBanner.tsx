@@ -19,7 +19,7 @@ export function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
       <Ionicons name="alert-circle" size={16} color={colors.interaction.error} />
       <Text style={[styles.message, { color: colors.interaction.error }]}>{message}</Text>
       {onDismiss && (
-        <TouchableOpacity onPress={onDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity onPress={onDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Dismiss" accessibilityRole="button">
           <Ionicons name="close" size={16} color={colors.interaction.error} />
         </TouchableOpacity>
       )}

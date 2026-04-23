@@ -424,14 +424,14 @@ export default function ProfileScreen() {
                     maxLength={PROFILE_NAME_MAX_LENGTH}
                     style={styles.input}
                   />
-                  <TouchableOpacity onPress={handleSaveFirstName} disabled={saving} style={styles.iconBtn}>
+                  <TouchableOpacity onPress={handleSaveFirstName} disabled={saving} style={styles.iconBtn} accessibilityLabel="Save first name" accessibilityRole="button">
                     {saving ? (
                       <ActivityIndicator size="small" color={colors.interaction.primary} />
                     ) : (
                       <Ionicons name="checkmark" size={22} color={colors.interaction.primary} />
                     )}
                   </TouchableOpacity>
-                  <TouchableOpacity disabled={saving} onPress={() => { setFirstName(clampProfileName(user?.first_name)); setEditingFirstName(false); }} style={styles.iconBtn}>
+                  <TouchableOpacity disabled={saving} onPress={() => { setFirstName(clampProfileName(user?.first_name)); setEditingFirstName(false); }} style={styles.iconBtn} accessibilityLabel="Cancel" accessibilityRole="button">
                     <Ionicons name="close" size={22} color={colors.text.secondary} />
                   </TouchableOpacity>
                 </View>
@@ -459,14 +459,14 @@ export default function ProfileScreen() {
                     maxLength={PROFILE_NAME_MAX_LENGTH}
                     style={styles.input}
                   />
-                  <TouchableOpacity onPress={handleSaveLastName} disabled={saving} style={styles.iconBtn}>
+                  <TouchableOpacity onPress={handleSaveLastName} disabled={saving} style={styles.iconBtn} accessibilityLabel="Save last name" accessibilityRole="button">
                     {saving ? (
                       <ActivityIndicator size="small" color={colors.interaction.primary} />
                     ) : (
                       <Ionicons name="checkmark" size={22} color={colors.interaction.primary} />
                     )}
                   </TouchableOpacity>
-                  <TouchableOpacity disabled={saving} onPress={() => { setLastName(clampProfileName(user?.last_name)); setEditingLastName(false); }} style={styles.iconBtn}>
+                  <TouchableOpacity disabled={saving} onPress={() => { setLastName(clampProfileName(user?.last_name)); setEditingLastName(false); }} style={styles.iconBtn} accessibilityLabel="Cancel" accessibilityRole="button">
                     <Ionicons name="close" size={22} color={colors.text.secondary} />
                   </TouchableOpacity>
                 </View>
@@ -599,6 +599,7 @@ export default function ProfileScreen() {
                   ]}
                   onPress={() => setThemeMode(mode)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
                 >
                   <Text
                     style={[
@@ -725,6 +726,8 @@ export default function ProfileScreen() {
                   setConfirmPassword("");
                 }}
                 disabled={changingPassword}
+                accessibilityLabel="Close"
+                accessibilityRole="button"
               >
                 <Ionicons name="close" size={24} color={colors.text.primary} />
               </TouchableOpacity>

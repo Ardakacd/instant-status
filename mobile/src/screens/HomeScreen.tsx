@@ -503,7 +503,7 @@ export default function HomeScreen() {
             <Ionicons name="arrow-down" size={20} color={colors.interaction.primary} />
             <Text variant="primary" style={styles.refreshHintText}>Pull down to refresh</Text>
           </View>
-          <TouchableOpacity onPress={dismissRefreshHint} style={styles.refreshHintClose}>
+          <TouchableOpacity onPress={dismissRefreshHint} style={styles.refreshHintClose} accessibilityLabel="Dismiss" accessibilityRole="button">
             <Ionicons name="close" size={20} color={colors.text.secondary} />
           </TouchableOpacity>
         </Animated.View>
@@ -539,6 +539,8 @@ export default function HomeScreen() {
             onPress={handleManageStatusPress}
             disabled={premiumLoading}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Manage statuses"
+            accessibilityRole="button"
           >
             {premiumLoading ? (
               <ActivityIndicator size="small" color={colors.interaction.primary} />
@@ -631,6 +633,7 @@ export default function HomeScreen() {
                 onPress={() => handleStatusButtonPress(option)}
                 disabled={loading}
                 activeOpacity={0.7}
+                accessibilityRole="button"
               >
                 <Text style={styles.statusPillEmoji}>{option.emoji}</Text>
                 <Text
@@ -679,6 +682,8 @@ export default function HomeScreen() {
                     ]}
                     onPress={() => setFriendLayoutModeAndPersist("large")}
                     activeOpacity={0.8}
+                    accessibilityLabel="Large view"
+                    accessibilityRole="button"
                   >
                     <Ionicons
                       name="list"
@@ -693,6 +698,8 @@ export default function HomeScreen() {
                     ]}
                     onPress={() => setFriendLayoutModeAndPersist("compact")}
                     activeOpacity={0.8}
+                    accessibilityLabel="Compact view"
+                    accessibilityRole="button"
                   >
                     <Ionicons
                       name="grid"
@@ -873,6 +880,8 @@ export default function HomeScreen() {
                         <TouchableOpacity
                           onPress={closeFriendModal}
                           style={styles.friendModalCloseButton}
+                          accessibilityLabel="Close"
+                          accessibilityRole="button"
                         >
                           <Ionicons
                             name="close"
