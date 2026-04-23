@@ -545,10 +545,20 @@ function AppNavigator() {
             await widgetStorageService.reloadWidget();
           }
         } else if (msg.data?.type === "friend_added" && isMounted) {
+          // Foreground: iOS often does not show a system banner; mirror status_update UX.
+          const showPushUi = await messagingService.hasPermission();
+          const name = String(msg.data.display_name || "").trim() || "Someone";
+          if (showPushUi) {
+            Toast.show({
+              type: "info",
+              text1: `${name} added you as a friend`,
+            });
+          }
           const synced = await syncWidgetFriendsFromApiInBackground();
           if (!synced) {
             await widgetStorageService.reloadWidget();
           }
+          emitFriendStatusUpdated();
         }
       } catch (error) {
         Sentry.captureException(error);

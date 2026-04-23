@@ -93,10 +93,6 @@ export class WidgetStorageService {
 
       // 1. Fetch Data
       if (Platform.OS === "ios" && this.storage) {
-        // Match NSE: ignore stale FCM after logout (main app may still run briefly).
-        if (this.storage.get(WIDGET_LOGGED_OUT_KEY) === "true") {
-          return;
-        }
         const existingData = this.storage.get(WIDGET_DATA_KEY);
         if (existingData) {
           try {
@@ -145,7 +141,8 @@ export class WidgetStorageService {
                            existing.note !== friendStatusItem.note ||
                            existing.expiresAt !== friendStatusItem.expiresAt ||
                            existing.firstName !== friendStatusItem.firstName ||
-                           existing.lastName !== friendStatusItem.lastName;
+                           existing.lastName !== friendStatusItem.lastName ||
+                           existing.updatedAt !== friendStatusItem.updatedAt;
         if (!hasChanged) return;
         friendsData[friendIndex] = friendStatusItem;
       } else {
@@ -189,9 +186,6 @@ export class WidgetStorageService {
       let friendsData: FriendStatusWidgetItem[] = [];
 
       if (Platform.OS === "ios" && this.storage) {
-        if (this.storage.get(WIDGET_LOGGED_OUT_KEY) === "true") {
-          return;
-        }
         const existingData = this.storage.get(WIDGET_DATA_KEY);
         if (existingData) {
           try {
