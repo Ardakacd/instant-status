@@ -20,6 +20,7 @@ import { User } from "./user.entity";
  */
 @Entity("connections")
 @Unique("unique_connection_pair", ["user_id", "friend_id"])
+@Index("IDX_connections_user_id", ["user_id"])
 @Index("IDX_connections_friend_id", ["friend_id"])
 export class Connection {
   @PrimaryGeneratedColumn("uuid")

@@ -10,6 +10,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import { NotificationPermissionModal } from "./src/components/NotificationPermissionModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SplashScreen from "expo-splash-screen";
@@ -844,15 +845,17 @@ function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <WidgetFriendsForegroundSync />
-          <AppNavigatorWithTheme />
-          <ThemedToast />
-        </AuthProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <WidgetFriendsForegroundSync />
+            <AppNavigatorWithTheme />
+            <ThemedToast />
+          </AuthProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 

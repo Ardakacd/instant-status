@@ -5,10 +5,12 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from "typeorm";
 import { User } from "./user.entity";
 
 @Entity("invite_codes")
+@Index("IDX_invite_codes_owner_user_id", ["owner_user_id"])
 export class InviteCode {
   @PrimaryGeneratedColumn("uuid")
   id: string;
