@@ -14,7 +14,12 @@ import {
 import { widgetTaskHandler } from "./android-widget/widget-task-handler";
 import { WidgetConfigurationScreen } from "./android-widget/WidgetConfigurationScreen";
 
+import notifee from "@notifee/react-native";
 import App from "./App";
+
+// Notifee requires a background event handler to be registered even if
+// Firebase Messaging handles all background pushes.  No-op silences the warning.
+notifee.onBackgroundEvent(async () => {});
 
 /**
  * BACKGROUND MESSAGE HANDLER
@@ -45,7 +50,8 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
       );
       // Reconcile full list with server (delta push can miss edge cases; iOS may coalesce alerts).
       const synced = await syncWidgetFriendsFromApiInBackground();
-      if (!synced && deferWidgetRefresh) {
+      // If API sync fails (common iOS headless), still reload so the delta write is shown.
+      if (!synced) {
         await widgetStorageService.reloadWidget();
       }
     } else if (type === "friend_removed" && data?.peer_user_id) {

@@ -32,6 +32,17 @@ export class WidgetStorageService {
   }
 
   /**
+   * Logout sets `widget_logged_out` so the iOS Notification Service Extension ignores stale pushes.
+   * That flag must be cleared as soon as the session is valid again — not only when HomeScreen
+   * saves friends — otherwise NSE exits early while the app is backgrounded and the widget never updates.
+   */
+  clearLoggedOutFlag(): void {
+    if (Platform.OS === "ios" && this.storage) {
+      this.storage.remove(WIDGET_LOGGED_OUT_KEY);
+    }
+  }
+
+  /**
    * Android-only: schedule a WorkManager one-shot task that triggers a widget
    * update when a friend's status expires. Survives app process death unlike setTimeout.
    * Calling again for the same userId replaces the existing task (WorkManager REPLACE policy).
@@ -82,6 +93,10 @@ export class WidgetStorageService {
 
       // 1. Fetch Data
       if (Platform.OS === "ios" && this.storage) {
+        // Match NSE: ignore stale FCM after logout (main app may still run briefly).
+        if (this.storage.get(WIDGET_LOGGED_OUT_KEY) === "true") {
+          return;
+        }
         const existingData = this.storage.get(WIDGET_DATA_KEY);
         if (existingData) {
           try {
@@ -144,6 +159,7 @@ export class WidgetStorageService {
       // pass as the write, or the widget can stay on the old timeline (debouncing delayed
       // reload for up to 1.5s before). Android: same pass via requestWidgetUpdate + drawWidgetById.
       if (Platform.OS === "ios" && this.storage) {
+        this.clearLoggedOutFlag();
         this.storage.set(WIDGET_DATA_KEY, jsonString);
         if (!deferRefresh) {
           await this.reloadWidget();
@@ -173,6 +189,9 @@ export class WidgetStorageService {
       let friendsData: FriendStatusWidgetItem[] = [];
 
       if (Platform.OS === "ios" && this.storage) {
+        if (this.storage.get(WIDGET_LOGGED_OUT_KEY) === "true") {
+          return;
+        }
         const existingData = this.storage.get(WIDGET_DATA_KEY);
         if (existingData) {
           try {
@@ -204,6 +223,7 @@ export class WidgetStorageService {
       const jsonString = JSON.stringify(next);
 
       if (Platform.OS === "ios" && this.storage) {
+        this.clearLoggedOutFlag();
         this.storage.set(WIDGET_DATA_KEY, jsonString);
         await this.reloadWidget();
       } else if (Platform.OS === "android") {
@@ -235,7 +255,7 @@ export class WidgetStorageService {
 
 
       if (Platform.OS === "ios" && this.storage) {
-        this.storage.remove(WIDGET_LOGGED_OUT_KEY);
+        this.clearLoggedOutFlag();
         this.storage.set(WIDGET_DATA_KEY, jsonString);
         await this.reloadWidget();
       } else if (Platform.OS === "android") {

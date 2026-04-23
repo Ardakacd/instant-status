@@ -158,12 +158,19 @@ struct FriendDataService {
     /// App syncs premium status; widget gates premium backgrounds.
     func fetchIsPremium() -> Bool {
         guard let defaults = UserDefaults(suiteName: AppGroupConstants.id) else { return false }
+        defaults.synchronize()
         return defaults.string(forKey: WidgetStorageKeys.isPremium) == "true"
     }
 
     func fetchAllFriends() -> [FriendStatusWidgetItem] {
         guard
-            let defaults = UserDefaults(suiteName: AppGroupConstants.id),
+            let defaults = UserDefaults(suiteName: AppGroupConstants.id)
+        else {
+            return []
+        }
+        // Force reading from disk so we pick up writes from the NSE process immediately.
+        defaults.synchronize()
+        guard
             let jsonString = defaults.string(forKey: WidgetStorageKeys.widgetData),
             let jsonData = jsonString.data(using: .utf8)
         else {

@@ -763,9 +763,23 @@ export default function HomeScreen() {
                     >
                       <Text style={styles.compactEmoji}>{status.option?.emoji || "🟢"}</Text>
                     </View>
-                    <Text variant="primary" style={styles.friendNameCompact} numberOfLines={1}>
-                      {firstName}
-                    </Text>
+                    <View style={styles.friendNameCompactRow}>
+                      <Text
+                        variant="primary"
+                        style={styles.friendNameCompact}
+                        numberOfLines={1}
+                      >
+                        {firstName}
+                      </Text>
+                      {getConnectionForFriend(status.user_id)?.user_shows_status === false && (
+                        <Ionicons
+                          name="eye-off-outline"
+                          size={12}
+                          color={colors.text.secondary}
+                          style={styles.friendNameCompactHiddenIcon}
+                        />
+                      )}
+                    </View>
                     <Text variant="secondary" style={styles.friendStatusCompact} numberOfLines={1}>
                       {status.option?.label || "Available"}
                     </Text>
@@ -1399,11 +1413,22 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
   },
+  friendNameCompactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    maxWidth: "100%",
+    marginBottom: 2,
+    gap: 2,
+  },
   friendNameCompact: {
     fontSize: 13,
     fontFamily: Typography.fontFamily.semiBold,
     textAlign: "center",
-    marginBottom: 2,
+    flexShrink: 1,
+  },
+  friendNameCompactHiddenIcon: {
+    flexShrink: 0,
   },
   friendStatusCompact: {
     fontSize: 11,

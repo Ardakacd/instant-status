@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "../config/firebase";
 import { setOnSessionDead } from "../config/api";
 import Purchases from "react-native-purchases";
+import { widgetStorageService } from "../services/widget-storage.service";
 
 interface AuthContextType {
   user: User | null;
@@ -59,6 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       Sentry.setUser({ id: result.user.firebase_uid });
       await AsyncStorage.setItem("firebase_uid", result.user.firebase_uid);
+      // Let the iOS NSE accept pushes again before HomeScreen runs saveAllFriendStatuses.
+      widgetStorageService.clearLoggedOutFlag();
     } catch (error: any) {
       if (error?.isSessionDead) {
         setNoInternet(false);

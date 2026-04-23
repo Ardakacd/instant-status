@@ -25,8 +25,8 @@ class NotificationService: UNNotificationServiceExtension {
 
         let userInfo = request.content.userInfo
 
-        // Firebase wraps custom data in the top-level userInfo dict.
-        let type = userInfo["type"] as? String ?? ""
+        // FCM `data` fields are usually top-level strings; coerce defensively (NSNumber, etc.).
+        let type = Self.stringValue(userInfo["type"]) ?? ""
 
         // Don't write widget data if the user has logged out — prevents stale pushes
         // from re-populating the widget after clearAll().
@@ -35,9 +35,9 @@ class NotificationService: UNNotificationServiceExtension {
             return
         }
 
-        if type == "status_update", let userId = userInfo["user_id"] as? String {
+        if type == "status_update", let userId = Self.stringValue(userInfo["user_id"]) {
             handleStatusUpdate(userInfo: userInfo, userId: userId)
-        } else if type == "friend_removed", let peerId = userInfo["peer_user_id"] as? String {
+        } else if type == "friend_removed", let peerId = Self.stringValue(userInfo["peer_user_id"]) {
             handleFriendRemoved(peerId: peerId)
         } else if type == "friend_added" || type == "widget_resync_friends" {
             // Can't fetch from API here (no auth token), but reload widget to pick up
@@ -60,18 +60,18 @@ class NotificationService: UNNotificationServiceExtension {
     private func handleStatusUpdate(userInfo: [AnyHashable: Any], userId: String) {
         guard let defaults = UserDefaults(suiteName: AppGroupConstants.id) else { return }
 
-        let displayName = userInfo["display_name"] as? String ?? ""
+        let displayName = Self.stringValue(userInfo["display_name"]) ?? ""
         let nameParts = displayName.split(separator: " ", maxSplits: 1)
         let firstName = nameParts.first.map(String.init) ?? displayName
         let lastName: String? = nameParts.count > 1 ? String(nameParts[1]) : nil
 
-        let optionId = (userInfo["option_id"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-        let optionLabel = (userInfo["option_label"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-        let optionEmoji = (userInfo["option_emoji"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-        let optionColor = (userInfo["option_color"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-        let note = (userInfo["note"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-        let expiresAt = (userInfo["expires_at"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-        let timestamp = userInfo["timestamp"] as? String ?? ISO8601DateFormatter().string(from: Date())
+        let optionId = Self.stringValue(userInfo["option_id"])
+        let optionLabel = Self.stringValue(userInfo["option_label"])
+        let optionEmoji = Self.stringValue(userInfo["option_emoji"])
+        let optionColor = Self.stringValue(userInfo["option_color"])
+        let note = Self.stringValue(userInfo["note"])
+        let expiresAt = Self.stringValue(userInfo["expires_at"])
+        let timestamp = Self.stringValue(userInfo["timestamp"]) ?? ISO8601DateFormatter().string(from: Date())
 
         // Read existing widget data
         var friends = readWidgetData(from: defaults)
@@ -101,6 +101,18 @@ class NotificationService: UNNotificationServiceExtension {
         // Write back
         writeWidgetData(friends, to: defaults)
         reloadWidget()
+    }
+
+    /// Normalize FCM / APNs userInfo values to String (handles NSNumber and empty strings).
+    private static func stringValue(_ any: Any?) -> String? {
+        if let s = any as? String {
+            let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+            return t.isEmpty ? nil : t
+        }
+        if let n = any as? NSNumber {
+            return n.stringValue
+        }
+        return nil
     }
 
     private func handleFriendRemoved(peerId: String) {
@@ -150,6 +162,9 @@ class NotificationService: UNNotificationServiceExtension {
     }
 
     private func reloadWidget() {
-        WidgetCenter.shared.reloadTimelines(ofKind: "InstantStatusWidget")
+        // Small delay lets UserDefaults cross-process sync settle before the widget
+        // extension reads the data. Without this, the widget can read stale values.
+        Thread.sleep(forTimeInterval: 0.05)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }
