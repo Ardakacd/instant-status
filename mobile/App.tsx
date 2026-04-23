@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
+import { ForceUpdateScreen } from "./src/screens/ForceUpdateScreen";
+import Constants from "expo-constants";
 import { NotificationPermissionModal } from "./src/components/NotificationPermissionModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SplashScreen from "expo-splash-screen";
@@ -767,8 +769,20 @@ function AppNavigatorWithTheme() {
   );
 }
 
+function compareVersions(a: string, b: string): number {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const na = pa[i] || 0;
+    const nb = pb[i] || 0;
+    if (na !== nb) return na - nb;
+  }
+  return 0;
+}
+
 function App() {
   const [fontsReady, setFontsReady] = useState(false);
+  const [needsUpdate, setNeedsUpdate] = useState(false);
   const appState = useRef(AppState.currentState);
 
   // RevenueCat: configure once at app startup (not in screens, not in re-renders)
@@ -818,6 +832,22 @@ function App() {
     prepare();
   }, []);
 
+  // Check minimum app version on startup
+  useEffect(() => {
+    const appVersion = Constants.expoConfig?.version ?? "0.0.0";
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+    fetch(`${apiUrl}/health`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.minVersion && compareVersions(appVersion, data.minVersion) < 0) {
+          setNeedsUpdate(true);
+        }
+      })
+      .catch(() => {
+        // Network failure — don't block the app, version check is best-effort
+      });
+  }, []);
+
   // Reset badge count when app comes to foreground (not on cold start)
   useEffect(() => {
     const subscription = AppState.addEventListener(
@@ -842,6 +872,16 @@ function App() {
   // Mint matches native splash; splash hides from AppNavigator after nav is ready + auth resolved.
   if (!fontsReady) {
     return <View style={{ flex: 1, backgroundColor: "#10B981" }} />;
+  }
+
+  if (needsUpdate) {
+    return (
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <ForceUpdateScreen />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    );
   }
 
   return (
