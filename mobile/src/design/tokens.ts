@@ -19,10 +19,10 @@ export type ColorPalette = {
 };
 
 export const lightColors: ColorPalette = {
-  canvas: { background: '#FFFFFF', card: '#F3F4F6', subtle: '#E5E7EB' },
-  text: { primary: '#2C2C2C', secondary: '#6B7280' },
-  interaction: { primary: '#10B981', accent: '#F59E0B', informational: '#A78BFA', disabled: '#D1D5DB', error: '#FF5C5C' },
-  tint: { mint: '#ECFDF5', error: '#FEF2F2', premium: '#F0FDF8' },
+  canvas: { background: '#F0EEEB', card: '#E7E5E2', subtle: '#DBD9D5' },
+  text: { primary: '#1C1917', secondary: '#78716C' },
+  interaction: { primary: '#10B981', accent: '#F59E0B', informational: '#A78BFA', disabled: '#D6D3D1', error: '#FF5C5C' },
+  tint: { mint: '#E6F7F0', error: '#FBE9E9', premium: '#E8F5EC' },
 };
 
 export const darkColors: ColorPalette = {
