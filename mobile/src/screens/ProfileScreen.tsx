@@ -19,7 +19,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
 import { messagingService } from "../services/messaging.service";
-import { widgetStorageService } from "../services/widget-storage.service";
 import { useAuth } from "../contexts/AuthContext";
 import { userService } from "../services/user.service";
 import { authService } from "../services/auth.service";
@@ -657,41 +656,6 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         </View>
-
-        {__DEV__ && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>DEVELOPER</Text>
-            <View style={[styles.card, { backgroundColor: colors.canvas.card }]}>
-              <TouchableOpacity
-                style={styles.actionRow}
-                onPress={async () => {
-                  try {
-                    await widgetStorageService.seedMockFriendsForWidgetTesting(8);
-                    toast.show({ type: "success", text1: "Seeded 8 mock friends (marketing presets)" });
-                  } catch (e) {
-                    toast.show({ type: "error", text1: "Failed to seed mock friends" });
-                  }
-                }}
-              >
-                <Text variant="primary">Seed 8 mock friends (widget / screenshots)</Text>
-              </TouchableOpacity>
-              <View style={[styles.divider, { backgroundColor: colors.text.secondary + "30" }]} />
-              <TouchableOpacity
-                style={styles.actionRow}
-                onPress={async () => {
-                  try {
-                    await widgetStorageService.seedMockFriendsForWidgetTesting(24);
-                    toast.show({ type: "success", text1: "Seeded 24 mock friends (layout stress)" });
-                  } catch (e) {
-                    toast.show({ type: "error", text1: "Failed to seed mock friends" });
-                  }
-                }}
-              >
-                <Text variant="primary">Seed 24 mock friends (layout stress)</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
 
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>

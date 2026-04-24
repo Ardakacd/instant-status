@@ -91,36 +91,8 @@ export class AuthService {
     onboarding: boolean;
     emailVerified: boolean;
   }> {
-    // Dev-only bypass: skip Firebase verification for test tokens
-    if (
-      process.env.NODE_ENV === "development" &&
-      idToken.startsWith("dev-test-")
-    ) {
-      const testFirebaseUid = idToken.replace("dev-test-", "");
-      const user = await this.getOrCreateUser(testFirebaseUid, null, true);
-      const onboarding = !user.first_name || !user.last_name;
-      const { is_in_grace_period, should_reset_custom_status } =
-        computePremiumGraceFlags(user);
-
-      return {
-        user: {
-          id: user.id,
-          firebase_uid: user.firebase_uid,
-          email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          is_premium: isUserPremium(user),
-          premium_until: user.premium_until ?? null,
-          is_in_grace_period,
-          should_reset_custom_status,
-        },
-        onboarding,
-        emailVerified: true,
-      };
-    }
-
     const decodedToken = await this.verifyFirebaseToken(idToken);
-    if (!decodedToken.uid) {
+    if (!decodedToken?.uid) {
       throw new UnauthorizedException("Firebase UID not found in token");
     }
 

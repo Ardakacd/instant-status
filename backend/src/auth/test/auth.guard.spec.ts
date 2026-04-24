@@ -119,61 +119,27 @@ describe("AuthGuard", () => {
   });
 
   // =========================================================================
-  // Dev bypass
+  // No dev-token bypass: strings like "dev-test-*" are verified by Firebase like any token
   // =========================================================================
 
-  describe("dev bypass (NODE_ENV=development, dev-test- prefix)", () => {
-    beforeEach(() => {
+  describe("dev-test- prefix tokens (always via Firebase)", () => {
+    it("in development, still calls verifyFirebaseToken with the full Bearer secret", async () => {
       process.env.NODE_ENV = "development";
-    });
 
-    it("skips Firebase verification and attaches user from DB to request", async () => {
+      const decoded = { uid: "firebase-uid-1", email_verified: true };
+      authService.verifyFirebaseToken.mockResolvedValue(decoded as any);
       const user = makeUser();
       userService.findByFirebaseUid.mockResolvedValue(user);
 
-      const request: any = { headers: { authorization: "Bearer dev-test-firebase-uid-1" } };
-      const ctx = {
-        switchToHttp: () => ({ getRequest: () => request }),
-        getHandler: () => ({}),
-        getClass: () => ({}),
-      } as unknown as ExecutionContext;
-
-      const result = await guard.canActivate(ctx);
-
-      expect(result).toBe(true);
-      expect(authService.verifyFirebaseToken).not.toHaveBeenCalled();
-      expect(userService.findByFirebaseUid).toHaveBeenCalledWith("firebase-uid-1");
-      expect(request.user).toBe(user);
-    });
-
-    it("strips 'dev-test-' prefix before looking up firebase_uid", async () => {
-      const user = makeUser({ firebase_uid: "test-user2" });
-      userService.findByFirebaseUid.mockResolvedValue(user);
-
-      const request: any = { headers: { authorization: "Bearer dev-test-test-user2" } };
-      const ctx = {
-        switchToHttp: () => ({ getRequest: () => request }),
-        getHandler: () => ({}),
-        getClass: () => ({}),
-      } as unknown as ExecutionContext;
+      const ctx = makeContext({ authorization: "Bearer dev-test-firebase-uid-1" });
 
       await guard.canActivate(ctx);
 
-      expect(userService.findByFirebaseUid).toHaveBeenCalledWith("test-user2");
+      expect(authService.verifyFirebaseToken).toHaveBeenCalledWith("dev-test-firebase-uid-1");
+      expect(userService.findByFirebaseUid).toHaveBeenCalledWith("firebase-uid-1");
     });
 
-    it("throws UnauthorizedException with UNAUTHORIZED when dev user is not found in DB", async () => {
-      userService.findByFirebaseUid.mockResolvedValue(null);
-
-      const ctx = makeContext({ authorization: "Bearer dev-test-nobody" });
-
-      await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
-      await expect(guard.canActivate(ctx)).rejects.toMatchObject({
-        response: expect.objectContaining({ errorCode: "UNAUTHORIZED" }),
-      });
-    });
-
-    it("does not apply dev bypass in production even if token starts with dev-test-", async () => {
+    it("in production, same — verifyFirebaseToken receives the literal token string", async () => {
       process.env.NODE_ENV = "production";
 
       const decoded = { uid: "firebase-uid-1", email_verified: true };
@@ -185,7 +151,6 @@ describe("AuthGuard", () => {
 
       await guard.canActivate(ctx);
 
-      // In production the real Firebase path must be taken
       expect(authService.verifyFirebaseToken).toHaveBeenCalledWith("dev-test-firebase-uid-1");
     });
   });

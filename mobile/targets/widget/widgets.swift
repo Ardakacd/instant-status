@@ -655,7 +655,7 @@ struct InstantStatusWidget: Widget {
 private let mockExpiresTwoDaysLater: Date = Date().addingTimeInterval(189_000) // 48h + 4h30m
 private let mockExpiresTwoDaysLaterPM: Date = Date().addingTimeInterval(223_200) // 48h + 14h
 
-/// First four marketing presets — matches app `seedMockFriendsForWidgetTesting(8)` (small widget previews).
+/// First four marketing presets — aligned with `makeMockStatuses()` / small widget previews.
 private func makeMockStatuses() -> [FriendStatusWidgetItem] {
     let a = FriendStatusWidgetItem(id: "1", firstName: "Mia", lastName: nil, optionId: "available", optionLabel: "Available", optionEmoji: "✅", optionColor: "#10B981", note: "Free to chat", expiresAt: Date().addingTimeInterval(3600), updatedAt: Date())
     let b = FriendStatusWidgetItem(id: "2", firstName: "Leo", lastName: nil, optionId: "busy", optionLabel: "In meetings", optionEmoji: "📅", optionColor: "#F59E0B", note: "Until 4pm", expiresAt: Date().addingTimeInterval(7200), updatedAt: Date())

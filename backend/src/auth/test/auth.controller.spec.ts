@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { ExecutionContext, NotFoundException } from "@nestjs/common";
+import { ExecutionContext } from "@nestjs/common";
 
 import { AuthController } from "../auth.controller";
 import { AuthService } from "../auth.service";
@@ -168,30 +168,18 @@ describe("AuthController", () => {
   describe("POST /auth/send-email-verification", () => {
     it("sends a verification email for the authenticated user", async () => {
       const user = makeUser();
-      userService.findById.mockResolvedValue(user);
       authService.sendEmailVerification.mockResolvedValue(undefined);
 
       const result = await controller.sendEmailVerification({ user });
 
-      expect(userService.findById).toHaveBeenCalledWith(user.id);
       expect(authService.sendEmailVerification).toHaveBeenCalledWith(
         user.firebase_uid,
       );
       expect(result).toEqual({ message: "Verification email sent successfully" });
     });
 
-    it("throws NotFoundException when the user record is not found by ID", async () => {
-      const user = makeUser();
-      userService.findById.mockResolvedValue(null);
-
-      await expect(
-        controller.sendEmailVerification({ user }),
-      ).rejects.toThrow(NotFoundException);
-    });
-
     it("propagates errors thrown by authService.sendEmailVerification", async () => {
       const user = makeUser();
-      userService.findById.mockResolvedValue(user);
       authService.sendEmailVerification.mockRejectedValue(
         new Error("Firebase unavailable"),
       );

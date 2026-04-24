@@ -400,16 +400,28 @@ describe("InviteCodeService", () => {
   // =========================================================================
 
   describe("connectByLink", () => {
+    beforeEach(() => {
+      mockManager.createQueryBuilder = jest.fn().mockReturnValue({
+        setLock: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getExists: jest.fn().mockResolvedValue(false),
+      });
+    });
+
     it("creates a connection when target user exists and no connection yet", async () => {
       const targetUser = makeUser({ id: USER_B_ID, first_name: "Bob", last_name: "Jones" });
       const mockConnection = { id: "conn-1" };
       userRepo.findOne.mockResolvedValue(targetUser);
-      connectionsService.findConnection.mockResolvedValue(null);
       connectionsService.createFromInvite.mockResolvedValue(mockConnection);
 
       const result = await service.connectByLink(USER_A_ID, USER_B_ID);
 
-      expect(connectionsService.createFromInvite).toHaveBeenCalledWith(USER_A_ID, USER_B_ID);
+      expect(connectionsService.createFromInvite).toHaveBeenCalledWith(
+        USER_A_ID,
+        USER_B_ID,
+        mockManager,
+      );
       expect(result).toMatchObject({
         connection: mockConnection,
         owner: {
@@ -435,7 +447,12 @@ describe("InviteCodeService", () => {
     it("throws BadRequestException when a connection already exists between the two users", async () => {
       const targetUser = makeUser({ id: USER_B_ID });
       userRepo.findOne.mockResolvedValue(targetUser);
-      connectionsService.findConnection.mockResolvedValue({ id: "existing-conn" });
+      mockManager.createQueryBuilder = jest.fn().mockReturnValue({
+        setLock: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getExists: jest.fn().mockResolvedValue(true),
+      });
 
       await expect(service.connectByLink(USER_A_ID, USER_B_ID)).rejects.toThrow(
         BadRequestException,
@@ -445,7 +462,6 @@ describe("InviteCodeService", () => {
     it("returns owner with id, first_name, and last_name from target user", async () => {
       const targetUser = makeUser({ id: USER_B_ID, first_name: "Bob", last_name: "Jones" });
       userRepo.findOne.mockResolvedValue(targetUser);
-      connectionsService.findConnection.mockResolvedValue(null);
       connectionsService.createFromInvite.mockResolvedValue({ id: "conn-1" });
 
       const result = await service.connectByLink(USER_A_ID, USER_B_ID);
@@ -468,7 +484,6 @@ describe("InviteCodeService", () => {
     it("calls findOne with the target user's id", async () => {
       const targetUser = makeUser({ id: USER_B_ID });
       userRepo.findOne.mockResolvedValue(targetUser);
-      connectionsService.findConnection.mockResolvedValue(null);
       connectionsService.createFromInvite.mockResolvedValue({ id: "conn-1" });
 
       await service.connectByLink(USER_A_ID, USER_B_ID);
@@ -476,15 +491,23 @@ describe("InviteCodeService", () => {
       expect(userRepo.findOne).toHaveBeenCalledWith({ where: { id: USER_B_ID } });
     });
 
-    it("calls findConnection with both user ids to check for existing connection", async () => {
+    it("checks for an existing connection inside the transaction with a pessimistic lock", async () => {
       const targetUser = makeUser({ id: USER_B_ID });
       userRepo.findOne.mockResolvedValue(targetUser);
-      connectionsService.findConnection.mockResolvedValue(null);
+      const qb = {
+        setLock: jest.fn().mockReturnThis(),
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        getExists: jest.fn().mockResolvedValue(false),
+      };
+      mockManager.createQueryBuilder = jest.fn().mockReturnValue(qb);
       connectionsService.createFromInvite.mockResolvedValue({ id: "conn-1" });
 
       await service.connectByLink(USER_A_ID, USER_B_ID);
 
-      expect(connectionsService.findConnection).toHaveBeenCalledWith(USER_A_ID, USER_B_ID);
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(qb.setLock).toHaveBeenCalledWith("pessimistic_write");
+      expect(qb.getExists).toHaveBeenCalled();
     });
   });
 });

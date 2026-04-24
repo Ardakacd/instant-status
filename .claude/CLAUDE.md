@@ -44,17 +44,6 @@ Zod validation errors become `[{ field, message }]` arrays.
 - `/auth/sync` (POST) — bootstrap endpoint, NO AuthGuard. Verifies Firebase token, upserts user, returns `{ user, onboarding, emailVerified }` atomically.
 - All other protected endpoints use `@UseGuards(AuthGuard)` which verifies the Bearer token, loads user from DB, enforces email verification (opt-out via `@AllowUnverifiedEmail()`).
 
-## Dev bypass
-
-Token format: `dev-test-<firebase_uid>` — skips Firebase verification when `NODE_ENV=development`. Works in both AuthGuard and syncAuthState.
-
-Test users (seeded via `npm run seed:test` in backend):
-```
-dev-test-test-user1  →  Alice (premium), friends: Bob + Carol
-dev-test-test-user2  →  Bob (free), friends: Alice + Carol
-dev-test-test-user3  →  Carol (free), friends: Bob (Alice hidden from Carol)
-```
-
 ## Premium
 
 Single source of truth: `user.premium_until` (timestamptz). Use `utils/premium.ts`:

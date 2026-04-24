@@ -293,59 +293,24 @@ describe("AuthService", () => {
       });
     });
 
-    describe("dev bypass (NODE_ENV=development, dev-test- prefix)", () => {
-      beforeEach(() => {
+    describe("dev-test- prefix idTokens (always verified with Firebase)", () => {
+      it("uses decoded uid from Firebase, not string stripping", async () => {
         process.env.NODE_ENV = "development";
-      });
-
-      it("skips Firebase verification and loads user from DB by firebase_uid", async () => {
-        const user = makeUser();
-        userService.findByFirebaseUid.mockResolvedValue(user);
-        userService.update.mockResolvedValue(user);
-
-        const result = await service.syncAuthState("dev-test-firebase-uid-1");
-
-        expect(mockVerifyIdToken).not.toHaveBeenCalled();
-        expect(userService.findByFirebaseUid).toHaveBeenCalledWith("firebase-uid-1");
-        expect(result.user.id).toBe(user.id);
-      });
-
-      it("returns emailVerified=true unconditionally for dev tokens", async () => {
-        const user = makeUser();
-        userService.findByFirebaseUid.mockResolvedValue(user);
-        userService.update.mockResolvedValue(user);
-
-        const result = await service.syncAuthState("dev-test-firebase-uid-1");
-
-        expect(result.emailVerified).toBe(true);
-      });
-
-      it("strips the 'dev-test-' prefix correctly before looking up firebase_uid", async () => {
-        const user = makeUser({ firebase_uid: "test-user1" });
-        userService.findByFirebaseUid.mockResolvedValue(user);
-        userService.update.mockResolvedValue(user);
-
-        await service.syncAuthState("dev-test-test-user1");
-
-        expect(userService.findByFirebaseUid).toHaveBeenCalledWith("test-user1");
-      });
-
-      it("creates user when dev user does not exist in DB", async () => {
-        const newUser = makeUser({ first_name: null, last_name: null });
-        userService.findByFirebaseUid.mockResolvedValue(null);
-        userService.findByEmail.mockResolvedValue(null);
-        userService.create.mockResolvedValue(newUser);
-        userService.update.mockResolvedValue(newUser);
-
-        const result = await service.syncAuthState("dev-test-new-uid");
-
-        expect(userService.create).toHaveBeenCalledWith({
-          firebase_uid: "new-uid",
-          email: null,
-          first_name: null,
-          last_name: null,
+        const user = makeUser({ firebase_uid: "real-uid-from-firebase" });
+        const decoded = makeDecodedToken({
+          uid: "real-uid-from-firebase",
+          email_verified: true,
         });
-        expect(result.emailVerified).toBe(true);
+        mockVerifyIdToken.mockResolvedValue(decoded);
+        userService.findByFirebaseUid.mockResolvedValue(user);
+        userService.update.mockResolvedValue(user);
+
+        await service.syncAuthState("dev-test-looks-like-old-format");
+
+        expect(mockVerifyIdToken).toHaveBeenCalledWith(
+          "dev-test-looks-like-old-format",
+        );
+        expect(userService.findByFirebaseUid).toHaveBeenCalledWith("real-uid-from-firebase");
       });
     });
   });
@@ -565,14 +530,20 @@ describe("AuthService", () => {
   // =========================================================================
 
   describe("sendPasswordResetEmail", () => {
-    // Override the 800ms baseline delay so tests run at full speed
+    // Fake timers: sendPasswordResetEmail uses Date.now() + setTimeout for a baseline
+    // delay. Advance both clock and timers so waitBaseline() can finish (Jest 29+).
     beforeEach(() => {
-      jest.useFakeTimers();
+      jest.useFakeTimers({ advanceTimers: true });
     });
 
     afterEach(() => {
       jest.useRealTimers();
     });
+
+    /** Flush the 800ms anti-enumeration baseline and any nested timer waits. */
+    async function flushPasswordResetBaseline() {
+      await jest.advanceTimersByTimeAsync(900);
+    }
 
     it("sends a password reset email for a valid password-provider user", async () => {
       const user = makeUser();
@@ -584,7 +555,7 @@ describe("AuthService", () => {
       emailService.sendPasswordResetEmail.mockResolvedValue(undefined);
 
       const promise = service.sendPasswordResetEmail("alice@example.com");
-      jest.runAllTimers();
+      await flushPasswordResetBaseline();
       await promise;
 
       expect(emailService.sendPasswordResetEmail).toHaveBeenCalledWith(
@@ -597,7 +568,7 @@ describe("AuthService", () => {
       userService.findByEmail.mockResolvedValue(null);
 
       const promise = service.sendPasswordResetEmail("unknown@example.com");
-      jest.runAllTimers();
+      await flushPasswordResetBaseline();
       await promise;
 
       expect(emailService.sendPasswordResetEmail).not.toHaveBeenCalled();
@@ -609,7 +580,7 @@ describe("AuthService", () => {
       mockGetUserByEmail.mockRejectedValue({ code: "auth/user-not-found" });
 
       const promise = service.sendPasswordResetEmail("alice@example.com");
-      jest.runAllTimers();
+      await flushPasswordResetBaseline();
       await promise;
 
       expect(emailService.sendPasswordResetEmail).not.toHaveBeenCalled();
@@ -623,7 +594,7 @@ describe("AuthService", () => {
       });
 
       const promise = service.sendPasswordResetEmail("alice@example.com");
-      jest.runAllTimers();
+      await flushPasswordResetBaseline();
       await promise;
 
       expect(emailService.sendPasswordResetEmail).not.toHaveBeenCalled();
@@ -633,7 +604,7 @@ describe("AuthService", () => {
       userService.findByEmail.mockRejectedValue(new Error("DB error"));
 
       const promise = service.sendPasswordResetEmail("alice@example.com");
-      jest.runAllTimers();
+      await flushPasswordResetBaseline();
 
       // Must not throw
       await expect(promise).resolves.toBeUndefined();

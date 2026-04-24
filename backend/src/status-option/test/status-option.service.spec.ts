@@ -5,7 +5,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull } from 'typeorm';
 import { StatusOptionService } from '../status-option.service';
 import { StatusOption } from '../../entities/status-option.entity';
 import { Status } from '../../entities/status.entity';
@@ -86,6 +86,10 @@ const mockTransactionStatusRepo = {
 const mockTransactionStatusOptionRepo = {
   findOne: jest.fn(),
   remove: jest.fn(),
+  count: jest.fn(),
+  create: jest.fn(),
+  save: jest.fn(),
+  createQueryBuilder: jest.fn(),
 };
 
 const mockTransactionManager = {
@@ -119,6 +123,9 @@ describe('StatusOptionService', () => {
       where: jest.fn().mockReturnThis(),
       getRawOne: jest.fn().mockResolvedValue({ max: null }),
     });
+    mockTransactionStatusOptionRepo.createQueryBuilder.mockImplementation(() =>
+      mockStatusOptionRepository.createQueryBuilder()
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -222,10 +229,10 @@ describe('StatusOptionService', () => {
 
   describe('createCustomStatusOption', () => {
     beforeEach(() => {
-      mockStatusOptionRepository.count.mockResolvedValue(0);
+      mockTransactionStatusOptionRepo.count.mockResolvedValue(0);
       const created = makeCustomOption(USER_ID);
-      mockStatusOptionRepository.create.mockReturnValue(created);
-      mockStatusOptionRepository.save.mockResolvedValue(created);
+      mockTransactionStatusOptionRepo.create.mockReturnValue(created);
+      mockTransactionStatusOptionRepo.save.mockResolvedValue(created);
     });
 
     it('creates a custom option for a premium user', async () => {
@@ -233,7 +240,7 @@ describe('StatusOptionService', () => {
 
       const result = await service.createCustomStatusOption(USER_ID, 'Gaming', '🎮', '#FF5733');
       expect(result).toBeDefined();
-      expect(mockStatusOptionRepository.save).toHaveBeenCalled();
+      expect(mockTransactionStatusOptionRepo.save).toHaveBeenCalled();
     });
 
     it('allows creation during grace period', async () => {
@@ -261,7 +268,7 @@ describe('StatusOptionService', () => {
 
     it('throws BadRequestException when at max custom options limit', async () => {
       mockUserService.findById.mockResolvedValue(makePremiumUser());
-      mockStatusOptionRepository.count.mockResolvedValue(MAX_CUSTOM_STATUS_OPTIONS);
+      mockTransactionStatusOptionRepo.count.mockResolvedValue(MAX_CUSTOM_STATUS_OPTIONS);
 
       await expect(
         service.createCustomStatusOption(USER_ID, 'Gaming', '🎮', '#FF5733')
@@ -279,7 +286,7 @@ describe('StatusOptionService', () => {
 
       await service.createCustomStatusOption(USER_ID, 'Gaming', '🎮', '#FF5733');
 
-      expect(mockStatusOptionRepository.create).toHaveBeenCalledWith(
+      expect(mockTransactionStatusOptionRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ sort_order: 1000 })
       );
     });
@@ -294,7 +301,7 @@ describe('StatusOptionService', () => {
 
       await service.createCustomStatusOption(USER_ID, 'Gaming', '🎮', '#FF5733');
 
-      expect(mockStatusOptionRepository.create).toHaveBeenCalledWith(
+      expect(mockTransactionStatusOptionRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ sort_order: 1003 })
       );
     });
@@ -304,7 +311,7 @@ describe('StatusOptionService', () => {
 
       await service.createCustomStatusOption(USER_ID, 'Gaming', '🎮', '#FF5733', 5);
 
-      expect(mockStatusOptionRepository.create).toHaveBeenCalledWith(
+      expect(mockTransactionStatusOptionRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ sort_order: 5 })
       );
     });
@@ -314,7 +321,7 @@ describe('StatusOptionService', () => {
 
       await service.createCustomStatusOption(USER_ID, '  Gaming  ', ' 🎮 ', '#ff5733');
 
-      expect(mockStatusOptionRepository.create).toHaveBeenCalledWith(
+      expect(mockTransactionStatusOptionRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           label: 'Gaming',
           emoji: '🎮',
@@ -325,7 +332,7 @@ describe('StatusOptionService', () => {
 
     it('throws InternalServerErrorException on unexpected DB error', async () => {
       mockUserService.findById.mockResolvedValue(makePremiumUser());
-      mockStatusOptionRepository.save.mockRejectedValue(new Error('DB error'));
+      mockTransactionStatusOptionRepo.save.mockRejectedValue(new Error('DB error'));
 
       await expect(
         service.createCustomStatusOption(USER_ID, 'Gaming', '🎮', '#FF5733')
@@ -505,9 +512,10 @@ describe('StatusOptionService', () => {
 
       const result = await service.getDefaultStatusOption();
       expect(result).toEqual(defaultOpt);
-      expect(mockStatusOptionRepository.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expect.objectContaining({ label: 'Available' }) })
-      );
+      expect(mockStatusOptionRepository.findOne).toHaveBeenCalledWith({
+        where: { is_default: true, user_id: IsNull() },
+        order: { sort_order: 'ASC' },
+      });
     });
 
     it('returns null on DB error', async () => {

@@ -48,8 +48,7 @@ const isShortScreen = height < 700;
 
 ### Premium
 - Always use `useIsPremium()` hook — never inline checks
-- Feature gating: `hasPremiumAccess` (includes grace period)
-- Dev override: `DEV_ALWAYS_SHOW_PAYWALL` in `config/dev-features.ts` (only under `__DEV__`)
+- Feature gating: `hasPremiumAccess` (includes grace period + RevenueCat entitlement when applicable)
 - Sync widget storage when premium status changes
 
 ### Design system (`src/design/`)

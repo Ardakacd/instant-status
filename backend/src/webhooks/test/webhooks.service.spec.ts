@@ -151,8 +151,11 @@ describe("WebhooksService", () => {
         new Error("DB write failed")
       );
 
+      const expirationMs = Date.now() + 30 * 24 * 60 * 60 * 1000;
       await expect(
-        service.handleRevenueCatEvent(makeEvent() as any)
+        service.handleRevenueCatEvent(
+          makeEvent({ expiration_at_ms: expirationMs }) as any
+        )
       ).rejects.toThrow("DB write failed");
 
       expect(mockProcessedWebhookRepo.delete).toHaveBeenCalledWith({ event_id: "evt_001" });
@@ -173,13 +176,14 @@ describe("WebhooksService", () => {
       );
     });
 
-    it("sets LIFETIME_PREMIUM_UNTIL when expiration_at_ms is absent", async () => {
+    it("does not grant premium when INITIAL_PURCHASE omits expiration_at_ms (no silent lifetime)", async () => {
       await service.handleRevenueCatEvent(
         makeEvent({ type: "INITIAL_PURCHASE" }) as any
       );
-      expect(mockUserService.updatePremiumExpirationByRevenueCatId).toHaveBeenCalledWith(
-        "user_firebase_abc",
-        LIFETIME_PREMIUM_UNTIL
+      expect(mockUserService.updatePremiumExpirationByRevenueCatId).not.toHaveBeenCalled();
+      expect(mockProcessedWebhookRepo.update).toHaveBeenCalledWith(
+        { event_id: "evt_001" },
+        { status: "completed" }
       );
     });
 
@@ -352,17 +356,19 @@ describe("WebhooksService", () => {
         return Promise.resolve(null);
       });
 
+      const expirationMs = Date.now() + 30 * 24 * 60 * 60 * 1000;
       await service.handleRevenueCatEvent(
         makeEvent({
           type: "INITIAL_PURCHASE",
           app_user_id: "rc_anonymous_id",
           aliases: ["alias_firebase_uid"],
+          expiration_at_ms: expirationMs,
         }) as any
       );
 
       expect(mockUserService.updatePremiumExpirationByRevenueCatId).toHaveBeenCalledWith(
         "alias_firebase_uid",
-        expect.anything()
+        new Date(expirationMs)
       );
     });
 
@@ -372,18 +378,20 @@ describe("WebhooksService", () => {
         return Promise.resolve(null);
       });
 
+      const expirationMs = Date.now() + 30 * 24 * 60 * 60 * 1000;
       await service.handleRevenueCatEvent(
         makeEvent({
           type: "INITIAL_PURCHASE",
           app_user_id: "rc_anon",
           aliases: ["another_anon"],
           original_app_user_id: "original_uid",
+          expiration_at_ms: expirationMs,
         }) as any
       );
 
       expect(mockUserService.updatePremiumExpirationByRevenueCatId).toHaveBeenCalledWith(
         "original_uid",
-        expect.anything()
+        new Date(expirationMs)
       );
     });
 

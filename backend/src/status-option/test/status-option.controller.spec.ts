@@ -138,14 +138,14 @@ describe('StatusOptionController', () => {
     it('passes sort_order when provided', async () => {
       mockStatusOptionService.createCustomStatusOption.mockResolvedValue(makeOption());
 
-      await controller.createStatusOption(makeReq(), { ...validBody, sort_order: 5 });
+      await controller.createStatusOption(makeReq(), { ...validBody, sort_order: 1500 });
 
       expect(mockStatusOptionService.createCustomStatusOption).toHaveBeenCalledWith(
         USER_ID,
         'Gaming',
         '🎮',
         '#FF5733',
-        5
+        1500
       );
     });
 
@@ -245,13 +245,13 @@ describe('StatusOptionController', () => {
       mockStatusOptionService.updateCustomStatusOption.mockResolvedValue(makeOption());
 
       await expect(
-        controller.updateStatusOption(makeReq(), VALID_UUID, { sort_order: 5 })
+        controller.updateStatusOption(makeReq(), VALID_UUID, { sort_order: 1500 })
       ).resolves.toBeDefined();
 
       expect(mockStatusOptionService.updateCustomStatusOption).toHaveBeenCalledWith(
         VALID_UUID,
         USER_ID,
-        { sort_order: 5 }
+        { sort_order: 1500 }
       );
     });
 

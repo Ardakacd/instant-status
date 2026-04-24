@@ -43,28 +43,10 @@ export class AuthGuard implements CanActivate {
 
     const token = authHeader.substring(7);
 
-    // Dev-only bypass: "dev-test-<firebase_uid>" tokens skip Firebase verification
-    // and load the user directly from the database by firebase_uid.
-    if (
-      process.env.NODE_ENV === "development" &&
-      token.startsWith("dev-test-")
-    ) {
-      const testFirebaseUid = token.replace("dev-test-", "");
-      const user = await this.userService.findByFirebaseUid(testFirebaseUid);
-      if (!user) {
-        throw new UnauthorizedException({
-          message: `Dev test user not found: ${testFirebaseUid}`,
-          errorCode: "UNAUTHORIZED",
-        });
-      }
-      request.user = user;
-      return true;
-    }
-
     try {
       const decodedToken = await this.authService.verifyFirebaseToken(token);
 
-      if (!decodedToken.uid) {
+      if (!decodedToken?.uid) {
         throw new UnauthorizedException({
           message: "Firebase UID not found in token",
           errorCode: "TOKEN_INVALID",
