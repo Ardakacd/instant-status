@@ -21,9 +21,13 @@ if (!APP_GROUP_ID) {
 
 export class WidgetStorageService {
   private storage: ExtensionStorage | null = null;
-  /** iOS: second `reloadTimelines` after a short delay — some iOS 17+ builds coalesce
-   *  the first call before the App Group write is visible to the widget extension. */
-  private iosReloadFollowUp: ReturnType<typeof setTimeout> | null = null;
+  /** iOS: timestamp of the last reloadWidget() call. Used to throttle reloads
+   *  so rapid-fire calls (app launch, push + sync) coalesce into one,
+   *  preserving the WidgetKit daily budget (~40-70 reloads). */
+  private lastIosReloadAt = 0;
+  private pendingIosReload: ReturnType<typeof setTimeout> | null = null;
+  /** Minimum gap between two WidgetCenter.reloadTimelines() calls (ms). */
+  private static readonly IOS_RELOAD_THROTTLE_MS = 3000;
 
   constructor() {
     if (Platform.OS === "ios" && APP_GROUP_ID) {
@@ -282,25 +286,38 @@ export class WidgetStorageService {
   }
 
   /**
-   * Force widget to reload (e.g. when app comes to foreground to pick up changes).
-   * On iOS, schedules a second `WidgetCenter.reloadTimelines` shortly after the first
-   * so the home-screen widget is more likely to match fresh App Group data.
+   * Force widget to reload. iOS calls are throttled (max once per 3s) to preserve
+   * the WidgetKit daily budget. Multiple rapid calls coalesce into one trailing reload.
    */
   async reloadWidget(): Promise<void> {
     if (Platform.OS === "ios") {
-      if (this.iosReloadFollowUp) {
-        clearTimeout(this.iosReloadFollowUp);
-        this.iosReloadFollowUp = null;
+      // Throttle iOS reloads to preserve the WidgetKit daily budget (~40-70).
+      // Multiple calls within the throttle window (e.g. setPremiumStatus then
+      // saveAllFriendStatuses on app launch) are coalesced into one trailing call.
+      const now = Date.now();
+      const elapsed = now - this.lastIosReloadAt;
+
+      if (this.pendingIosReload) {
+        clearTimeout(this.pendingIosReload);
+        this.pendingIosReload = null;
       }
-      ExtensionStorage.reloadWidget("InstantStatusWidget");
-      this.iosReloadFollowUp = setTimeout(() => {
-        this.iosReloadFollowUp = null;
-        try {
-          ExtensionStorage.reloadWidget("InstantStatusWidget");
-        } catch {
-          /* native reload best-effort */
-        }
-      }, 200);
+
+      if (elapsed >= WidgetStorageService.IOS_RELOAD_THROTTLE_MS) {
+        this.lastIosReloadAt = now;
+        ExtensionStorage.reloadWidget("InstantStatusWidget");
+      } else {
+        // Schedule a trailing reload at the end of the throttle window.
+        const delay = WidgetStorageService.IOS_RELOAD_THROTTLE_MS - elapsed;
+        this.pendingIosReload = setTimeout(() => {
+          this.pendingIosReload = null;
+          this.lastIosReloadAt = Date.now();
+          try {
+            ExtensionStorage.reloadWidget("InstantStatusWidget");
+          } catch {
+            /* best-effort */
+          }
+        }, delay);
+      }
     } else if (Platform.OS === "android") {
       await this.triggerAndroidUpdate();
     }
@@ -481,9 +498,9 @@ export class WidgetStorageService {
    */
   async clearAll(): Promise<void> {
     try {
-      if (this.iosReloadFollowUp) {
-        clearTimeout(this.iosReloadFollowUp);
-        this.iosReloadFollowUp = null;
+      if (this.pendingIosReload) {
+        clearTimeout(this.pendingIosReload);
+        this.pendingIosReload = null;
       }
       if (Platform.OS === "ios" && this.storage) {
         this.storage.set(WIDGET_LOGGED_OUT_KEY, "true");

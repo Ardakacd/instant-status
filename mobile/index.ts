@@ -32,10 +32,11 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
     const type = data?.type;
 
     if (type === "status_update" && data?.user_id) {
-      // On iOS, don't defer widget refresh — the API sync below often fails in headless
-      // mode (no auth session), so the delta write + immediate reload is the only reliable path.
-      // On Android, defer to avoid a double update (requestWidgetUpdate is called by syncWidget below).
-      const deferWidgetRefresh = Platform.OS !== "ios";
+      // Always defer the delta write's widget reload. The API sync below
+      // (or its fallback reloadWidget) triggers one reload with authoritative
+      // data. On iOS the NSE also independently writes and reloads from
+      // the alert push's mutable-content path, so the delta reload here
+      // would be a second (wasted) budget hit.
       await widgetStorageService.updateFriendStatus(
         String(data.user_id),
         String(data.display_name || ""),
@@ -46,7 +47,7 @@ setBackgroundMessageHandler(getMessaging(), async (remoteMessage) => {
         data.note ? String(data.note) : null,
         data.expires_at ? String(data.expires_at) : null,
         data.timestamp ? String(data.timestamp) : new Date().toISOString(),
-        { deferWidgetRefresh },
+        { deferWidgetRefresh: true },
       );
       // Reconcile full list with server (delta push can miss edge cases; iOS may coalesce alerts).
       const synced = await syncWidgetFriendsFromApiInBackground();

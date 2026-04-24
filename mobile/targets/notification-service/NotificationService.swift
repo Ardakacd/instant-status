@@ -132,6 +132,8 @@ class NotificationService: UNNotificationServiceExtension {
     /// Read the JSON array of friend status items from App Group UserDefaults.
     /// The RN side stores this as a JSON string via `setString`.
     private func readWidgetData(from defaults: UserDefaults) -> [[String: Any]] {
+        // Flush any cross-process writes (e.g. last snapshot from the app before force-quit).
+        defaults.synchronize()
         // RN ExtensionStorage.setString stores a plain string (not NSData).
         // Try string first, then fall back to data.
         if let jsonString = defaults.string(forKey: WidgetStorageKeys.widgetData),
@@ -158,6 +160,8 @@ class NotificationService: UNNotificationServiceExtension {
 
     private func isLoggedOut() -> Bool {
         guard let defaults = UserDefaults(suiteName: AppGroupConstants.id) else { return true }
+        // Match readWidgetData: flush App Group visibility across processes before gating.
+        defaults.synchronize()
         return defaults.string(forKey: WidgetStorageKeys.loggedOut) == "true"
     }
 
@@ -165,6 +169,19 @@ class NotificationService: UNNotificationServiceExtension {
         // Small delay lets UserDefaults cross-process sync settle before the widget
         // extension reads the data. Without this, the widget can read stale values.
         Thread.sleep(forTimeInterval: 0.05)
-        WidgetCenter.shared.reloadAllTimelines()
+        // Prefer kind-specific reload: reloadAllTimelines() asks WidgetKit to refresh
+        // every widget kind in the app — unnecessary budget cost when we only ship one.
+        // Run on the main queue (WidgetKit expectation; matches ExtensionStorage in the app).
+        let reload = {
+            WidgetCenter.shared.reloadTimelines(ofKind: "InstantStatusWidget")
+        }
+        if Thread.isMainThread {
+            reload()
+        } else {
+            DispatchQueue.main.sync(execute: reload)
+        }
+        // reloadTimelines is fire-and-forget XPC — keep the NSE alive briefly so the
+        // request is not torn down with the process (see didReceive → contentHandler).
+        Thread.sleep(forTimeInterval: 0.5)
     }
 }

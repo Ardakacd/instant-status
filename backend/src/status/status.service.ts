@@ -523,7 +523,11 @@ export class StatusService {
                 sound: "default",
                 badge: 1,
                 "mutable-content": 1, // Allows Notification Service Extension to update widget
-                "content-available": 1, // Wakes app in background for widget updates
+                // Note: content-available is intentionally NOT set here. The separate
+                // data-only background push below handles RN background wakeup. Having
+                // both mutable-content and content-available on the same push caused
+                // iOS to deliver it to the NSE multiple times, burning the WidgetKit
+                // reload budget.
               },
             },
           },

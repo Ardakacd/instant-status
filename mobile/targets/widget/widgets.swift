@@ -277,17 +277,22 @@ struct Provider: AppIntentTimelineProvider {
             .filter { $0 > now }
             .min()
 
-        // 2. Timeline policy: event-driven, not polling
-        // - If there's an upcoming expiry → refresh when it passes
-        // - If no expiry: avoid a single "now" entry with `.atEnd` only — on iOS 17+ that
-        //   can leave the on-screen view stale until a user action (e.g. in-widget ↻) even
-        //   when the app calls `reloadTimelines`. Use a long `.after` so we don't add
-        //   frequent OS wakeups; the app + reloadTimelines() still drive real-time updates.
+        // 2. Timeline policy: hybrid event-driven + polling
+        // - If there's an upcoming expiry → refresh when it passes (or 15 min, whichever is sooner)
+        // - If no expiry → poll every 15 minutes
+        //
+        // The 15-minute poll is essential because WidgetCenter.reloadTimelines() called from
+        // the Notification Service Extension does NOT trigger timeline() when the main app
+        // is killed. The NSE reliably writes fresh data to the App Group, so this poll
+        // picks it up. iOS may stretch the interval under system pressure, but it provides
+        // a reliable ceiling on staleness when push-driven reloads can't reach the widget.
+        let pollInterval: TimeInterval = 15 * 60 // 15 minutes
+        let nextPoll = now.addingTimeInterval(pollInterval)
         if let nextExpiry = nextExpiry {
-            return Timeline(entries: [entry], policy: .after(nextExpiry))
+            let nextRefresh = min(nextExpiry, nextPoll)
+            return Timeline(entries: [entry], policy: .after(nextRefresh))
         } else {
-            let far = Calendar.current.date(byAdding: .day, value: 1, to: now) ?? now.addingTimeInterval(86_400)
-            return Timeline(entries: [entry], policy: .after(far))
+            return Timeline(entries: [entry], policy: .after(nextPoll))
         }
     }
 }

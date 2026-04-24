@@ -2,7 +2,7 @@ diff --git a/node_modules/@bacons/apple-targets/ios/ExtensionStorageModule.swift
 index 56a949b..15020a6 100644
 --- a/node_modules/@bacons/apple-targets/ios/ExtensionStorageModule.swift
 +++ b/node_modules/@bacons/apple-targets/ios/ExtensionStorageModule.swift
-@@ -6,14 +6,20 @@ public class ExtensionStorageModule: Module {
+@@ -6,14 +6,26 @@ public class ExtensionStorageModule: Module {
          Name("ExtensionStorage")
          
          Function("remove") { (forKey: String, suiteName: String?) in
@@ -17,15 +17,21 @@ index 56a949b..15020a6 100644
 -                WidgetCenter.shared.reloadTimelines(ofKind: timeline)
 -            } else {
 -                WidgetCenter.shared.reloadAllTimelines()
-+            // Match in-widget `RefreshWidgetIntent` (MainActor) — reload from the RN
-+            // thread can be ignored or no-op visually if not on the main queue.
-+            DispatchQueue.main.async {
++            // Always hop to main (WidgetKit expectation). Use async — `main.sync` from the
++            // RN/JS thread can deadlock with the bridge when the main thread waits on JS,
++            // leaving widget reloads broken even after the user reopens the app.
++            let reload = {
 +                if let timeline = timeline {
 +                    WidgetCenter.shared.reloadTimelines(ofKind: timeline)
 +                } else {
 +                    WidgetCenter.shared.reloadAllTimelines()
 +                }
-             }
++            }
++            if Thread.isMainThread {
++                reload()
++            } else {
++                DispatchQueue.main.async(execute: reload)
++            }
          }
          
 @@ -31,7 +37,9 @@ public class ExtensionStorageModule: Module {

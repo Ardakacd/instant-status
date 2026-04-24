@@ -507,6 +507,14 @@ function AppNavigator() {
     const unsubForeground = messagingService.onMessage(async (msg) => {
       try {
         if (msg.data?.type === "status_update" && isMounted) {
+          // The backend sends two iOS pushes per status update: an alert push
+          // (mutable-content, with notification title/body) and a data-only
+          // background push (content-available). Both arrive at onMessage when
+          // the app is in the foreground. Skip the data-only duplicate — the
+          // alert push already handles the delta write + HomeScreen sync, and
+          // the NSE independently updates the widget.
+          if (!msg.notification) return;
+
           const optionLabel = msg.data.option_label;
           const showPushUi = await messagingService.hasPermission();
           if (showPushUi) {
@@ -526,10 +534,16 @@ function AppNavigator() {
             msg.data.note,
             msg.data.expires_at,
             msg.data.timestamp,
+            // Defer widget reload — HomeScreen's loadFriendsStatus (triggered by
+            // the event below) will write the full friend list and reload once.
+            // The NSE also independently writes delta data and reloads the widget.
+            // Avoiding a reload here preserves the WidgetKit daily budget.
+            { deferWidgetRefresh: true },
           );
-          // Reconcile with server truth as a fire-and-forget (same as background handler).
-          syncWidgetFriendsFromApiInBackground().catch(() => {});
-          // Notify HomeScreen to refresh friends list
+          // Notify HomeScreen to refresh friends list — it fetches from API,
+          // updates the UI, writes to widget storage, and triggers one widget reload.
+          // No separate syncWidgetFriendsFromApiInBackground call needed here;
+          // that was a duplicate API call + duplicate widget reload per push.
           emitFriendStatusUpdated();
         } else if (
           msg.data?.type === "friend_removed" &&
@@ -733,14 +747,21 @@ function AppNavigator() {
 }
 
 /**
- * When returning from background, refetch friends' statuses and push to widget storage
- * so the home-screen widget matches the server even if a push was missed.
+ * When returning from background OR on cold start, refetch friends' statuses
+ * and push to widget storage so the home-screen widget matches the server even
+ * if a push was missed.
  * (reloadWidget alone would only redraw stale App Group / AsyncStorage data.)
+ *
+ * Cold-start sync is critical for the force-kill case: after the user swipes up
+ * and reopens the app, iOS may throttle WidgetCenter.reloadTimelines() from the
+ * app process. An immediate sync on launch writes fresh data to App Group and
+ * triggers a reload — iOS is more likely to honour it when the app just launched.
  */
 function WidgetFriendsForegroundSync() {
   const { user } = useAuth();
   const appStateRef = useRef(AppState.currentState);
 
+  // Background → foreground sync.
   useEffect(() => {
     if (Platform.OS !== "ios" && Platform.OS !== "android") {
       return;
