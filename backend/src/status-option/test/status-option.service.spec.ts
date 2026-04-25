@@ -26,7 +26,7 @@ const makeSystemOption = (overrides: Partial<StatusOption> = {}): StatusOption =
     id: SYSTEM_OPT_ID,
     user_id: null,
     label: 'Available',
-    emoji: '✅',
+    emoji: '🟢',
     color: '#10B981',
     sort_order: 0,
     user: null,

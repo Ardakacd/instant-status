@@ -56,7 +56,7 @@ function makeStatusOption(overrides: Partial<StatusOption> = {}): StatusOption {
   opt.id = "opt-uuid-available";
   opt.user_id = null; // system preset
   opt.label = "Available";
-  opt.emoji = "✅";
+  opt.emoji = "🟢";
   opt.color = "#10B981";
   opt.sort_order = 0;
   return Object.assign(opt, overrides);

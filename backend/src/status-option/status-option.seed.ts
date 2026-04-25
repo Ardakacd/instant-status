@@ -22,6 +22,11 @@ export async function seedDefaultStatusOptions(
       { label: "Available", user_id: IsNull(), is_default: false },
       { is_default: true },
     );
+    // Keep system "Available" emoji in sync when we change the canonical default
+    await statusOptionRepository.update(
+      { label: "Available", user_id: IsNull() },
+      { emoji: "🟢" },
+    );
     logger.log("Default status options already exist, skipping seed");
     return;
   }
@@ -30,7 +35,7 @@ export async function seedDefaultStatusOptions(
     {
       user_id: null,
       label: "Available",
-      emoji: "✅",
+      emoji: "🟢",
       color: "#10B981",
       sort_order: 0,
       is_default: true,

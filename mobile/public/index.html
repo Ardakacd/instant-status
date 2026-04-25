@@ -1,9 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Instant Status - Know when your friends are available, busy, or focused. Real-time status sharing with home screen widgets." />
+    <meta
+      name="description"
+      content="Instant Status - Know when your friends are available, busy, or focused. Real-time status sharing with home screen widgets."
+    />
     <title>Instant Status - Real-time Status Sharing</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
@@ -13,25 +16,30 @@
     <meta name="theme-color" content="#10B981" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
-      *, *::before, *::after {
+      *,
+      *::before,
+      *::after {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
 
       :root {
-        --mint: #10B981;
-        --mint-light: #ECFDF5;
+        --mint: #10b981;
+        --mint-light: #ecfdf5;
         --mint-dark: #059669;
-        --text-primary: #2C2C2C;
-        --text-secondary: #6B7280;
-        --canvas-bg: #FFFFFF;
-        --canvas-card: #F3F4F6;
-        --canvas-subtle: #E5E7EB;
-        --accent: #F59E0B;
-        --lavender: #A78BFA;
+        --text-primary: #2c2c2c;
+        --text-secondary: #6b7280;
+        --canvas-bg: #ffffff;
+        --canvas-card: #f3f4f6;
+        --canvas-subtle: #e5e7eb;
+        --accent: #f59e0b;
+        --lavender: #a78bfa;
       }
 
       html {
@@ -39,7 +47,13 @@
       }
 
       body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
         color: var(--text-primary);
         background: var(--canvas-bg);
         line-height: 1.5;
@@ -54,30 +68,42 @@
         align-items: center;
         justify-content: center;
         padding: 80px 24px 60px;
-        background: linear-gradient(180deg, var(--mint-light) 0%, var(--canvas-bg) 100%);
+        background: linear-gradient(
+          180deg,
+          var(--mint-light) 0%,
+          var(--canvas-bg) 100%
+        );
         position: relative;
         overflow: hidden;
       }
 
       .hero::before {
-        content: '';
+        content: "";
         position: absolute;
         top: -200px;
         right: -200px;
         width: 600px;
         height: 600px;
-        background: radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(16, 185, 129, 0.08) 0%,
+          transparent 70%
+        );
         border-radius: 50%;
       }
 
       .hero::after {
-        content: '';
+        content: "";
         position: absolute;
         bottom: -100px;
         left: -150px;
         width: 400px;
         height: 400px;
-        background: radial-gradient(circle, rgba(167,139,250,0.06) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(167, 139, 250, 0.06) 0%,
+          transparent 70%
+        );
         border-radius: 50%;
       }
 
@@ -109,7 +135,7 @@
         padding: 8px 16px;
         border-radius: 100px;
         width: fit-content;
-        border: 1px solid rgba(16,185,129,0.15);
+        border: 1px solid rgba(16, 185, 129, 0.15);
       }
 
       .badge-dot {
@@ -121,8 +147,15 @@
       }
 
       @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(0.8); }
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(0.8);
+        }
       }
 
       .hero h1 {
@@ -134,7 +167,11 @@
       }
 
       .hero h1 span {
-        background: linear-gradient(135deg, var(--mint) 0%, var(--mint-dark) 100%);
+        background: linear-gradient(
+          135deg,
+          var(--mint) 0%,
+          var(--mint-dark) 100%
+        );
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -179,7 +216,7 @@
         background: var(--mint-dark);
         border-color: var(--mint-dark);
         transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(16,185,129,0.3);
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
       }
 
       .btn-secondary {
@@ -192,7 +229,7 @@
         border-color: var(--mint);
         color: var(--mint-dark);
         transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
       }
 
       .btn svg {
@@ -215,7 +252,9 @@
       .phone-frame {
         width: 100%;
         border-radius: 40px;
-        box-shadow: 0 32px 100px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.08);
+        box-shadow:
+          0 32px 100px rgba(0, 0, 0, 0.15),
+          0 8px 24px rgba(0, 0, 0, 0.08);
         border: 10px solid #1d1d1f;
         background: #1d1d1f;
         overflow: hidden;
@@ -233,10 +272,12 @@
         bottom: 60px;
         width: 320px;
         border-radius: 22px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 6px 16px rgba(0,0,0,0.1);
+        box-shadow:
+          0 20px 60px rgba(0, 0, 0, 0.18),
+          0 6px 16px rgba(0, 0, 0, 0.1);
         overflow: hidden;
         transform: rotate(3deg);
-        border: 1px solid rgba(255,255,255,0.2);
+        border: 1px solid rgba(255, 255, 255, 0.2);
       }
 
       .widget-float img {
@@ -298,7 +339,7 @@
 
       .feature-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 12px 32px rgba(0,0,0,0.06);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
         border-color: var(--canvas-subtle);
       }
 
@@ -313,9 +354,15 @@
         margin-bottom: 20px;
       }
 
-      .feature-icon.mint { background: var(--mint-light); }
-      .feature-icon.amber { background: #FEF3C7; }
-      .feature-icon.purple { background: #EDE9FE; }
+      .feature-icon.mint {
+        background: var(--mint-light);
+      }
+      .feature-icon.amber {
+        background: #fef3c7;
+      }
+      .feature-icon.purple {
+        background: #ede9fe;
+      }
 
       .feature-card h3 {
         font-size: 18px;
@@ -401,7 +448,9 @@
       .widget-showcase {
         width: 320px;
         border-radius: 24px;
-        box-shadow: 0 24px 64px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.06);
+        box-shadow:
+          0 24px 64px rgba(0, 0, 0, 0.12),
+          0 8px 20px rgba(0, 0, 0, 0.06);
         overflow: hidden;
       }
 
@@ -455,7 +504,11 @@
       /* ===== CTA ===== */
       .cta {
         padding: 100px 24px;
-        background: linear-gradient(180deg, var(--canvas-bg) 0%, var(--mint-light) 100%);
+        background: linear-gradient(
+          180deg,
+          var(--canvas-bg) 0%,
+          var(--mint-light) 100%
+        );
         text-align: center;
       }
 
@@ -629,7 +682,6 @@
     </style>
   </head>
   <body>
-
     <!-- HERO -->
     <section class="hero">
       <div class="hero-inner">
@@ -640,25 +692,44 @@
           </div>
           <h1>Know when your friends are <span>available</span></h1>
           <p class="hero-subtitle">
-            Share what you're up to with the people who matter. See your friends' status at a glance, right from your home screen.
+            Share what you're up to with the people who matter. See your
+            friends' status at a glance, right from your home screen.
           </p>
           <div class="hero-actions">
-            <a href="https://apps.apple.com/app/instant-status" class="btn btn-primary">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <a
+              href="https://apps.apple.com/app/instant-status"
+              class="btn btn-primary"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
               Download App
             </a>
-            <a href="#how-it-works" class="btn btn-secondary">
-              Learn more
-            </a>
+            <a href="#how-it-works" class="btn btn-secondary"> Learn more </a>
           </div>
         </div>
         <div class="hero-media">
           <div class="phone-mockup">
             <div class="phone-frame">
-<img src="/screenshots/home.png" alt="Instant Status app showing friends' real-time statuses" />
+              <img
+                src="/screenshots/home.png"
+                alt="Instant Status app showing friends' real-time statuses"
+              />
             </div>
             <div class="widget-float">
-<img src="/screenshots/widget.png" alt="Instant Status home screen widget" style="border-radius: 18px;" />
+              <img
+                src="/screenshots/widget.png"
+                alt="Instant Status home screen widget"
+                style="border-radius: 18px"
+              />
             </div>
           </div>
         </div>
@@ -682,7 +753,10 @@
           <div class="feature-card">
             <div class="feature-icon amber">&#128241;</div>
             <h3>Home screen widgets</h3>
-            <p>Check who's free without opening the app. Works on iOS and Android.</p>
+            <p>
+              Check who's free without opening the app. Works on iOS and
+              Android.
+            </p>
           </div>
           <div class="feature-card">
             <div class="feature-icon purple">&#128274;</div>
@@ -713,7 +787,9 @@
       <div class="how-inner">
         <p class="section-label">How it works</p>
         <h2 class="section-title">Takes about a minute</h2>
-        <p class="section-subtitle">Download, add your friends, set your status. That's it.</p>
+        <p class="section-subtitle">
+          Download, add your friends, set your status. That's it.
+        </p>
         <div class="steps">
           <div class="step">
             <div class="step-num">1</div>
@@ -726,7 +802,10 @@
             <div class="step-num">2</div>
             <div class="step-content">
               <h3>Connect with friends</h3>
-              <p>Share your invite link or code. Once they join, you see each other.</p>
+              <p>
+                Share your invite link or code. Once they join, you see each
+                other.
+              </p>
             </div>
           </div>
           <div class="step">
@@ -752,22 +831,38 @@
       <div class="widget-inner">
         <div class="widget-visual">
           <div class="widget-showcase">
-<img src="/screenshots/widget.png" alt="Instant Status widget showing friends' statuses on the home screen" />
+            <img
+              src="/screenshots/widget.png"
+              alt="Instant Status widget showing friends' statuses on the home screen"
+            />
           </div>
         </div>
         <div class="widget-text">
           <p class="section-label">Widgets</p>
           <h2>Your friends, on your home screen</h2>
           <p>
-            Add the widget and see who's free without opening the app. It stays up to date on its own.
+            Add the widget and see who's free without opening the app. It stays
+            up to date on its own.
           </p>
           <div class="widget-platforms">
             <span class="platform-badge">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83"/><path d="M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"/></svg>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83"
+                />
+                <path
+                  d="M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"
+                />
+              </svg>
               iOS
             </span>
             <span class="platform-badge">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 2.078a.674.674 0 0 0-.2.093L13.2 4.746l-1.2.7-4.1 2.575a.643.643 0 0 0-.3.55v6.488a.665.665 0 0 0 .3.559l4.1 2.56 1.2.746 4.123 2.575a.63.63 0 0 0 .654 0l4.123-2.575 1.2-.746 4.1-2.56a.665.665 0 0 0 .3-.559V8.571a.643.643 0 0 0-.3-.55L23.2 5.446l-1.2-.7-4.123-2.575a.654.654 0 0 0-.354-.093z" transform="scale(0.75) translate(4, 4)"/></svg>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M17.523 2.078a.674.674 0 0 0-.2.093L13.2 4.746l-1.2.7-4.1 2.575a.643.643 0 0 0-.3.55v6.488a.665.665 0 0 0 .3.559l4.1 2.56 1.2.746 4.123 2.575a.63.63 0 0 0 .654 0l4.123-2.575 1.2-.746 4.1-2.56a.665.665 0 0 0 .3-.559V8.571a.643.643 0 0 0-.3-.55L23.2 5.446l-1.2-.7-4.123-2.575a.654.654 0 0 0-.354-.093z"
+                  transform="scale(0.75) translate(4, 4)"
+                />
+              </svg>
               Android
             </span>
           </div>
@@ -781,11 +876,24 @@
         <h2>Try it out</h2>
         <p>Free to download. Takes a minute to set up.</p>
         <div class="cta-buttons">
-          <a href="https://apps.apple.com/app/instant-status" class="store-badge">
-            <img src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83" alt="Download on the App Store" />
+          <a
+            href="https://apps.apple.com/app/instant-status"
+            class="store-badge"
+          >
+            <img
+              src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
+              alt="Download on the App Store"
+            />
           </a>
-          <a href="https://play.google.com/store/apps/details?id=com.arda.instantstatusapp" class="store-badge">
-            <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" style="height: 52px;" />
+          <a
+            href="https://play.google.com/store/apps/details?id=com.arda.instantstatusapp"
+            class="store-badge"
+          >
+            <img
+              src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+              alt="Get it on Google Play"
+              style="height: 52px"
+            />
           </a>
         </div>
       </div>
@@ -793,8 +901,12 @@
 
     <!-- FOOTER -->
     <footer class="footer">
-      <p>&copy; 2026 Instant Status. All rights reserved. &nbsp;|&nbsp; <a href="/privacy">Privacy</a> &nbsp;|&nbsp; <a href="/terms">Terms</a> &nbsp;|&nbsp; <a href="mailto:support@instantstatus.app">Contact</a></p>
+      <p>
+        &copy; 2026 Instant Status. All rights reserved. &nbsp;|&nbsp;
+        <a href="/privacy">Privacy</a> &nbsp;|&nbsp;
+        <a href="/terms">Terms</a> &nbsp;|&nbsp;
+        <a href="mailto:support@instantstatus.app">Contact</a>
+      </p>
     </footer>
-
   </body>
 </html>

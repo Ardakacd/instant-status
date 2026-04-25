@@ -32,7 +32,7 @@ export class StatusOption {
   label: string; // e.g., "Available", "In a Meeting", "Gaming"
 
   @Column({ type: "varchar", length: 10 })
-  emoji: string; // e.g., "✅", "🤝", "🎮"
+  emoji: string; // e.g., "🟢", "🤝", "🎮"
 
   @Column({ type: "varchar", length: 7 })
   color: string; // e.g., "#10B981"

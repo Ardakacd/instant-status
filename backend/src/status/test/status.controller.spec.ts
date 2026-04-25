@@ -33,7 +33,7 @@ function makeStatusOption(overrides: Partial<StatusOption> = {}): StatusOption {
   opt.id = "cccccccc-0000-0000-0000-000000000001";
   opt.user_id = null;
   opt.label = "Available";
-  opt.emoji = "✅";
+  opt.emoji = "🟢";
   opt.color = "#10B981";
   opt.sort_order = 0;
   return Object.assign(opt, overrides);
