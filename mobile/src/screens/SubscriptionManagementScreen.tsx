@@ -34,7 +34,6 @@ export default function SubscriptionManagementScreen() {
   const { refreshUser } = useAuth();
   const {
     isPremium,
-    isSubscriptionActive,
     isInGracePeriod,
     willRenew,
     expirationDate,
@@ -566,7 +565,7 @@ export default function SubscriptionManagementScreen() {
               <Text style={[styles.actionRowText, { color: colors.interaction.primary }]}>Restore Purchases</Text>
             </TouchableOpacity>
 
-            {isSubscriptionActive && !hasLifetime && (
+            {isPremium && !hasLifetime && (
               <>
                 <View style={[styles.actionDivider, { backgroundColor: colors.text.secondary + "30" }]} />
                 <TouchableOpacity style={styles.actionRow} onPress={handleCancelMembership}>

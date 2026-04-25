@@ -8,9 +8,9 @@ import { StructuredLogger } from "../common/logger/structured-logger";
 import { InjectRepository } from "@nestjs/typeorm";
 import { EntityManager, Repository } from "typeorm";
 import { Connection } from "../entities/connection.entity";
-import { DeviceToken, Platform } from "../entities/device-token.entity";
+import { DeviceToken } from "../entities/device-token.entity";
 import { User } from "../entities/user.entity";
-import { isUserPremium, PREMIUM_GRACE_PERIOD_MS, CUSTOM_STATUS_POST_EXPIRY_RESET_MS } from "../utils/premium";
+import { isUserPremium, computePremiumGraceFlags } from "../utils/premium";
 import * as admin from "firebase-admin";
 import { getFirebaseAdmin } from "../config/firebase-admin.config";
 import { sendEachAndCleanup } from "../utils/fcm";
@@ -104,42 +104,10 @@ export class ConnectionsService {
    * Get the friend limit for a user based on their premium status
    */
   getFriendLimit(user: User): number {
-    return isUserPremium(user) || this.isInGracePeriod(user)
+    const { is_in_grace_period } = computePremiumGraceFlags(user);
+    return isUserPremium(user) || is_in_grace_period
       ? FRIEND_CAP.premium
       : FRIEND_CAP.free;
-  }
-
-  /**
-   * Check if a user is currently premium (uses shared isUserPremium)
-   */
-  isUserPremium(user: User): boolean {
-    return isUserPremium(user);
-  }
-
-  /**
-   * Check if user is in grace period after premium expiration
-   * Grace period: 3 days after expiration date
-   */
-  isInGracePeriod(user: User): boolean {
-    if (!user.premium_until) return false;
-
-    const now = new Date();
-    const expirationDate = new Date(user.premium_until);
-    return (
-      now >= expirationDate &&
-      now < new Date(expirationDate.getTime() + PREMIUM_GRACE_PERIOD_MS)
-    );
-  }
-
-  /**
-   * Check if user's custom status should be reset (24 hours after expiration)
-   */
-  shouldResetCustomStatus(user: User): boolean {
-    if (!user.premium_until) return false;
-
-    const now = new Date();
-    const expirationDate = new Date(user.premium_until);
-    return now >= new Date(expirationDate.getTime() + CUSTOM_STATUS_POST_EXPIRY_RESET_MS);
   }
 
   /**
@@ -169,8 +137,8 @@ export class ConnectionsService {
       }
 
       const currentCount = await this.getFriendCount(userId);
-      const isPremium = this.isUserPremium(user);
-      const isInGrace = this.isInGracePeriod(user);
+      const isPremium = isUserPremium(user);
+      const { is_in_grace_period: isInGrace } = computePremiumGraceFlags(user);
       const freeLimit = FRIEND_CAP.free;
       const premiumLimit = FRIEND_CAP.premium;
 

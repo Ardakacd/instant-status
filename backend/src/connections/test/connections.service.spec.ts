@@ -10,6 +10,7 @@ import { ConnectionsService } from "../connections.service";
 import { Connection } from "../../entities/connection.entity";
 import { DeviceToken } from "../../entities/device-token.entity";
 import { User } from "../../entities/user.entity";
+import { isUserPremium, computePremiumGraceFlags } from "../../utils/premium";
 
 // ---------------------------------------------------------------------------
 // Mock firebase-admin config — must happen before any import resolves it
@@ -255,57 +256,48 @@ describe("ConnectionsService", () => {
   });
 
   // =========================================================================
-  // isUserPremium
+  // Premium utils (shared — tested via connections context)
   // =========================================================================
 
-  describe("isUserPremium", () => {
-    it("returns true when premium_until is in the future", () => {
+  describe("premium utils (isUserPremium / computePremiumGraceFlags)", () => {
+    it("isUserPremium returns true when premium_until is in the future", () => {
       const user = makeUser({ premium_until: new Date(Date.now() + 1_000_000_000) });
-      expect(service.isUserPremium(user)).toBe(true);
+      expect(isUserPremium(user)).toBe(true);
     });
 
-    it("returns false when premium_until is null", () => {
+    it("isUserPremium returns false when premium_until is null", () => {
       const user = makeUser({ premium_until: null });
-      expect(service.isUserPremium(user)).toBe(false);
+      expect(isUserPremium(user)).toBe(false);
     });
 
-    it("returns false when premium_until is in the past", () => {
+    it("isUserPremium returns false when premium_until is in the past", () => {
       const user = makeUser({ premium_until: new Date(Date.now() - 1_000) });
-      expect(service.isUserPremium(user)).toBe(false);
+      expect(isUserPremium(user)).toBe(false);
     });
-  });
 
-  // =========================================================================
-  // isInGracePeriod
-  // =========================================================================
-
-  describe("isInGracePeriod", () => {
-    it("returns false when premium_until is null (never had premium)", () => {
+    it("grace period false when premium_until is null", () => {
       const user = makeUser({ premium_until: null });
-      expect(service.isInGracePeriod(user)).toBe(false);
+      expect(computePremiumGraceFlags(user).is_in_grace_period).toBe(false);
     });
 
-    it("returns false when premium is still active", () => {
+    it("grace period false when premium is still active", () => {
       const user = makeUser({ premium_until: new Date(Date.now() + 1_000_000_000) });
-      expect(service.isInGracePeriod(user)).toBe(false);
+      expect(computePremiumGraceFlags(user).is_in_grace_period).toBe(false);
     });
 
-    it("returns true when expired within the 3-day grace window", () => {
-      // Expired 1 hour ago
+    it("grace period true when expired within the 3-day window", () => {
       const user = makeUser({ premium_until: new Date(Date.now() - 60 * 60 * 1000) });
-      expect(service.isInGracePeriod(user)).toBe(true);
+      expect(computePremiumGraceFlags(user).is_in_grace_period).toBe(true);
     });
 
-    it("returns true when expired exactly at the start of the grace window", () => {
-      // Expired 2 days ago — still within 3-day window
+    it("grace period true when expired 2 days ago", () => {
       const user = makeUser({ premium_until: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) });
-      expect(service.isInGracePeriod(user)).toBe(true);
+      expect(computePremiumGraceFlags(user).is_in_grace_period).toBe(true);
     });
 
-    it("returns false when expired beyond the 3-day grace window", () => {
-      // Expired 4 days ago — past the grace window
+    it("grace period false when expired beyond 3-day window", () => {
       const user = makeUser({ premium_until: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000) });
-      expect(service.isInGracePeriod(user)).toBe(false);
+      expect(computePremiumGraceFlags(user).is_in_grace_period).toBe(false);
     });
   });
 
