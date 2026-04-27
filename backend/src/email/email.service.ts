@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { StructuredLogger } from "../common/logger/structured-logger";
 import { ConfigService } from "@nestjs/config";
-import { redactEmail } from "../utils/redact";
+import { redactEmail, redactUid } from "../utils/redact";
 import * as postmark from "postmark";
 
 function escapeHtml(text: string): string {
@@ -499,6 +499,214 @@ Didn't request this? If you didn't ask to reset your password, you can safely ig
 
 © ${new Date().getFullYear()} Instant Status. All rights reserved.
     `.trim();
+  }
+
+  /**
+   * Send a safety/abuse report email to the platform admin
+   */
+  async sendSafetyReport(payload: {
+    reporter: { id: string; email: string | null; name: string | null };
+    reportedUser?: { id: string; email: string | null; name: string | null } | null;
+    reason: string;
+    details?: string | null;
+    reportedStatus?: { note: string | null; optionLabel: string } | null;
+    timestamp: Date;
+  }): Promise<void> {
+    if (!this.client) {
+      throw new Error("Email service is not configured");
+    }
+
+    try {
+      await this.client.sendEmail({
+        From: "InstantStatus <no-reply@instantstatus.app>",
+        To: "support@instantstatus.app",
+        Subject: `[Instant Status Safety Report] ${payload.reason}`,
+        HtmlBody: this.getSafetyReportHtmlTemplate(payload),
+        TextBody: this.getSafetyReportTextTemplate(payload),
+        MessageStream: "outbound",
+      });
+
+      this.logger.log("Safety report email sent", {
+        event: "safety_report_sent",
+        reason: payload.reason,
+        reporterRedacted: redactUid(payload.reporter.id),
+        reportedUserRedacted: payload.reportedUser
+          ? redactUid(payload.reportedUser.id)
+          : null,
+      });
+    } catch (error: any) {
+      this.logger.error(`Failed to send safety report email: ${error.message}`, {
+        event: "safety_report_send_failed",
+        reason: payload.reason,
+        error: error.message,
+        stack: error.stack,
+      });
+      throw new Error("Failed to send safety report email");
+    }
+  }
+
+  /**
+   * HTML template for safety report email
+   */
+  private getSafetyReportHtmlTemplate(payload: {
+    reporter: { id: string; email: string | null; name: string | null };
+    reportedUser?: { id: string; email: string | null; name: string | null } | null;
+    reason: string;
+    details?: string | null;
+    reportedStatus?: { note: string | null; optionLabel: string } | null;
+    timestamp: Date;
+  }): string {
+    const reporterName = payload.reporter.name
+      ? escapeHtml(payload.reporter.name)
+      : "(no name)";
+    const reporterEmail = payload.reporter.email
+      ? escapeHtml(payload.reporter.email)
+      : "(no email)";
+
+    const reportedSection = payload.reportedUser
+      ? `
+        <tr>
+          <td style="padding: 8px 0; font-weight: 600; color: #1d1d1f; width: 160px;">Reported User ID</td>
+          <td style="padding: 8px 0; color: #86868b; font-family: monospace;">${escapeHtml(payload.reportedUser.id)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; font-weight: 600; color: #1d1d1f;">Reported Email</td>
+          <td style="padding: 8px 0; color: #86868b;">${payload.reportedUser.email ? escapeHtml(payload.reportedUser.email) : "(no email)"}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; font-weight: 600; color: #1d1d1f;">Reported Name</td>
+          <td style="padding: 8px 0; color: #86868b;">${payload.reportedUser.name ? escapeHtml(payload.reportedUser.name) : "(no name)"}</td>
+        </tr>
+      `
+      : `
+        <tr>
+          <td style="padding: 8px 0; font-weight: 600; color: #1d1d1f;">Reported User</td>
+          <td style="padding: 8px 0; color: #86868b;">(no specific user)</td>
+        </tr>
+      `;
+
+    const statusSection = payload.reportedStatus
+      ? `
+        <tr>
+          <td style="padding: 8px 0; font-weight: 600; color: #1d1d1f;">Status Option</td>
+          <td style="padding: 8px 0; color: #86868b;">${escapeHtml(payload.reportedStatus.optionLabel)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; font-weight: 600; color: #1d1d1f;">Status Note</td>
+          <td style="padding: 8px 0; color: #86868b;">${payload.reportedStatus.note ? escapeHtml(payload.reportedStatus.note) : "(none)"}</td>
+        </tr>
+      `
+      : "";
+
+    const detailsSection = payload.details
+      ? `
+        <div style="background-color: #f5f5f7; border-left: 4px solid #ff3b30; padding: 16px; margin: 20px 0; border-radius: 4px;">
+          <p style="font-size: 14px; font-weight: 600; color: #1d1d1f; margin: 0 0 8px 0;">Reporter Details</p>
+          <p style="font-size: 14px; color: #1d1d1f; margin: 0; white-space: pre-wrap;">${escapeHtml(payload.details)}</p>
+        </div>
+      `
+      : "";
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f7;">
+          <div style="background-color: #ffffff; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #ff3b30; font-size: 24px; font-weight: 700; margin: 0;">Safety Report</h1>
+              <p style="color: #86868b; font-size: 14px; margin: 8px 0 0 0;">${escapeHtml(payload.timestamp.toISOString())}</p>
+            </div>
+
+            <div style="background-color: #fff3f2; border: 1px solid #ff3b30; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px;">
+              <p style="margin: 0; font-size: 15px; font-weight: 700; color: #ff3b30;">Reason: ${escapeHtml(payload.reason)}</p>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse;">
+              <tbody>
+                <tr>
+                  <td style="padding: 8px 0; font-weight: 600; color: #1d1d1f; width: 160px;">Reporter ID</td>
+                  <td style="padding: 8px 0; color: #86868b; font-family: monospace;">${escapeHtml(payload.reporter.id)}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; font-weight: 600; color: #1d1d1f;">Reporter Email</td>
+                  <td style="padding: 8px 0; color: #86868b;">${reporterEmail}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; font-weight: 600; color: #1d1d1f;">Reporter Name</td>
+                  <td style="padding: 8px 0; color: #86868b;">${reporterName}</td>
+                </tr>
+                <tr><td colspan="2" style="padding: 4px 0;"><hr style="border: none; border-top: 1px solid #e5e7eb;"></td></tr>
+                ${reportedSection}
+                ${statusSection}
+              </tbody>
+            </table>
+
+            ${detailsSection}
+
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+            <p style="font-size: 12px; color: #86868b; margin: 0;">
+              This is an automated safety report from the Instant Status platform.
+            </p>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Plain text template for safety report email
+   */
+  private getSafetyReportTextTemplate(payload: {
+    reporter: { id: string; email: string | null; name: string | null };
+    reportedUser?: { id: string; email: string | null; name: string | null } | null;
+    reason: string;
+    details?: string | null;
+    reportedStatus?: { note: string | null; optionLabel: string } | null;
+    timestamp: Date;
+  }): string {
+    const lines: string[] = [
+      "[Instant Status Safety Report]",
+      "",
+      `Timestamp: ${payload.timestamp.toISOString()}`,
+      `Reason:    ${payload.reason}`,
+      "",
+      "--- Reporter ---",
+      `ID:    ${payload.reporter.id}`,
+      `Email: ${payload.reporter.email ?? "(no email)"}`,
+      `Name:  ${payload.reporter.name ?? "(no name)"}`,
+      "",
+      "--- Reported User ---",
+    ];
+
+    if (payload.reportedUser) {
+      lines.push(`ID:    ${payload.reportedUser.id}`);
+      lines.push(`Email: ${payload.reportedUser.email ?? "(no email)"}`);
+      lines.push(`Name:  ${payload.reportedUser.name ?? "(no name)"}`);
+    } else {
+      lines.push("(no specific user reported)");
+    }
+
+    if (payload.reportedStatus) {
+      lines.push("");
+      lines.push("--- Reported Status Snapshot ---");
+      lines.push(`Option: ${payload.reportedStatus.optionLabel}`);
+      lines.push(`Note:   ${payload.reportedStatus.note ?? "(none)"}`);
+    }
+
+    if (payload.details) {
+      lines.push("");
+      lines.push("--- Reporter Details ---");
+      lines.push(payload.details);
+    }
+
+    lines.push("");
+    lines.push("This is an automated safety report from the Instant Status platform.");
+
+    return lines.join("\n");
   }
 }
 

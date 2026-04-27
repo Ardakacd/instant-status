@@ -12,6 +12,7 @@ import { InviteCodeModule } from "./invite-code/invite-code.module";
 import { WebhooksModule } from "./webhooks/webhooks.module";
 import { DeviceTokenModule } from "./device-token/device-token.module";
 import { RedirectModule } from "./redirect/redirect.module";
+import { ReportsModule } from "./reports/reports.module";
 import { User } from "./entities/user.entity";
 import { Status } from "./entities/status.entity";
 import { StatusOption } from "./entities/status-option.entity";
@@ -76,6 +77,7 @@ import { HealthController } from "./health.controller";
     WebhooksModule,
     DeviceTokenModule,
     RedirectModule,
+    ReportsModule,
   ],
   controllers: [HealthController],
   providers: [

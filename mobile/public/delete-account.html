@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Support - Instant Status</title>
+  <title>Delete Account - Instant Status</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
@@ -96,44 +96,48 @@
     a { color: var(--mint-dark); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
+    ol, ul {
+      margin: 0 0 16px 22px;
+      color: var(--text-secondary);
+      font-size: 15px;
+    }
+
+    li { margin-bottom: 6px; }
+
     .contact-card {
       background: var(--mint-light);
       border-radius: 12px;
       padding: 24px;
       margin-bottom: 24px;
-      text-align: center;
     }
 
+    .contact-card p { margin-bottom: 8px; }
+
     .contact-card .email {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 600;
       color: var(--mint-dark);
       text-decoration: none;
-      display: inline-block;
-      margin-top: 8px;
     }
 
     .contact-card .email:hover { text-decoration: underline; }
 
-    .contact-card p {
-      color: var(--text-secondary);
+    .data-block {
+      background: var(--canvas-bg);
+      border: 1px solid var(--canvas-subtle);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+
+    .data-block h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
       margin-bottom: 8px;
     }
 
-    .faq-item {
-      margin-bottom: 24px;
-    }
-
-    .faq-item h3 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: var(--text-primary);
-    }
-
-    .faq-item p {
-      margin-bottom: 0;
-    }
+    .data-block ul { margin-bottom: 0; }
 
     .footer {
       padding: 24px;
@@ -154,47 +158,85 @@
   </div>
 
   <div class="container">
-    <h1>Support</h1>
-    <p class="subtitle">We're here to help. Reach out anytime.</p>
+    <h1>Delete your account</h1>
+    <p class="subtitle">You can permanently delete your Instant Status account and the data associated with it at any time.</p>
+
+    <h2>Delete from inside the app</h2>
+    <ol>
+      <li>Open Instant Status and sign in.</li>
+      <li>Go to the <strong>Profile</strong> tab.</li>
+      <li>Scroll to the bottom and tap <strong>Delete Account</strong>.</li>
+      <li>Confirm. Your account is removed immediately and you will be signed out.</li>
+    </ol>
+
+    <h2>Don't have the app installed?</h2>
+    <p>If you can no longer access the app, email us from the address registered with your account and we will process the deletion for you.</p>
 
     <div class="contact-card">
-      <p>Email us at</p>
-      <a class="email" href="mailto:support@instantstatus.app">support@instantstatus.app</a>
+      <p>Send a request to</p>
+      <a class="email" href="mailto:support@instantstatus.app?subject=Delete%20my%20account">support@instantstatus.app</a>
+      <p style="margin-top: 12px;">Subject: <strong>Delete my account</strong></p>
+      <p>We complete email-based deletion requests within 7 days.</p>
     </div>
 
-    <p>We typically respond within 24 hours.</p>
+    <h2>What gets deleted</h2>
+    <p>When your account is deleted, the following are removed immediately and permanently:</p>
 
-    <h2>Frequently Asked Questions</h2>
-
-    <div class="faq-item">
-      <h3>How do I add friends?</h3>
-      <p>Go to the Add Friends screen and share your invite code or link. Your friend enters the code or opens the link, and you're connected instantly.</p>
+    <div class="data-block">
+      <h3>Profile</h3>
+      <ul>
+        <li>Your name and email address</li>
+        <li>Your Firebase authentication record</li>
+        <li>Your profile preferences and settings</li>
+      </ul>
     </div>
 
-    <div class="faq-item">
-      <h3>How do I create a custom status?</h3>
-      <p>Tap the settings icon on the home screen to open Manage Statuses. From there you can create custom statuses with your own emoji, label, and color. Custom statuses require Instant Status Pro.</p>
+    <div class="data-block">
+      <h3>Activity</h3>
+      <ul>
+        <li>Your current and historical statuses, including custom notes</li>
+        <li>Custom status options you created</li>
+        <li>Friend connections (you are removed from your friends' lists)</li>
+        <li>Invite codes you created</li>
+      </ul>
     </div>
 
-    <div class="faq-item">
-      <h3>How do I set up the home screen widget?</h3>
-      <p>On iOS, long-press your home screen, tap the + button, and search for "Instant Status". On Android, long-press your home screen and select Widgets, then find Instant Status.</p>
+    <div class="data-block">
+      <h3>Devices</h3>
+      <ul>
+        <li>All push-notification tokens registered to your account</li>
+      </ul>
     </div>
 
-    <div class="faq-item">
-      <h3>How do I cancel my subscription?</h3>
-      <p>Go to Profile > Manage Subscription > Cancel Membership. This will take you to your device's subscription settings where you can manage or cancel your plan.</p>
+    <h2>What is retained</h2>
+    <p>A small amount of data is retained for legal, security, or operational reasons:</p>
+
+    <div class="data-block">
+      <h3>Anonymized payment records</h3>
+      <ul>
+        <li>Subscription transaction records (without personal identifiers) — retained up to 7 years to meet tax and accounting obligations.</li>
+      </ul>
     </div>
 
-    <div class="faq-item">
-      <h3>How do I delete my account?</h3>
-      <p>Go to Profile and scroll to the bottom. Tap "Delete Account" and confirm. This permanently removes your account, all your data, and your connections.</p>
+    <div class="data-block">
+      <h3>Backups</h3>
+      <ul>
+        <li>Encrypted database backups may contain your data for up to 30 days, after which they are permanently overwritten.</li>
+      </ul>
     </div>
 
-    <div class="faq-item">
-      <h3>I'm having trouble with notifications or widgets.</h3>
-      <p>Make sure notifications are enabled in your device settings for Instant Status. For widgets, try removing and re-adding the widget. If the issue persists, email us and we'll help.</p>
+    <div class="data-block">
+      <h3>Webhook event logs</h3>
+      <ul>
+        <li>Internal event identifiers used to prevent duplicate processing — retained up to 90 days. These contain no personal information.</li>
+      </ul>
     </div>
+
+    <h2>Subscriptions</h2>
+    <p>Deleting your account does not automatically cancel an active subscription. To stop billing, cancel your subscription through Google Play (Profile &gt; Manage Subscription) before deleting your account.</p>
+
+    <h2>Questions?</h2>
+    <p>If you have any questions about account deletion or data retention, contact <a href="mailto:support@instantstatus.app">support@instantstatus.app</a>.</p>
   </div>
 
   <footer class="footer">

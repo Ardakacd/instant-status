@@ -1,0 +1,36 @@
+This is the most common frustration for widget developers. If your widget isn't updating, it’s usually not a bug in your code, but rather iOS "throttling" your widget to save battery.
+
+In 2026, iOS is even stricter about how many times a widget can refresh. Here are the 4 main reasons why a widget update fails and how to fix them:
+
+1. You ran out of "Budget"
+Apple gives every widget a "budget" of about 40 to 70 refreshes per day.
+
+The Problem: If you try to refresh every 2 minutes, iOS will eventually "silence" your widget for the rest of the day.
+
+The Fix: Only call WidgetCenter.shared.reloadAllTimelines() when something actually changes (like a friend's status update). Avoid using timers that refresh too frequently.
+
+2. App Groups are disconnected
+This is the #1 technical reason. If your React Native code saves a new status to "Storage," but the Widget doesn't see it, the App Group is likely broken.
+
+The Fix: * Ensure both your Main App target and your Widget Extension target have the exact same "App Group" (e.g., group.com.yourname.app) enabled in Xcode.
+
+If they don't match, the Widget is reading an empty file while the App is writing to a different one.
+
+3. The "Force Quit" Trap
+If a user swipes up and force-closes your app, iOS interprets this as "The user doesn't want this app running."
+
+The Result: iOS often kills the background refresh bridge for that app's widgets until the user manually opens the app again.
+
+The Fix: You can't code around this, but you can add a "Tip" in your app's settings: "For the best widget experience, keep the app active in the background."
+
+4. Background Refresh is disabled
+If the user has Low Power Mode on, or if they turned off Background App Refresh in their iPhone Settings, your widget will stop updating.
+
+How to "Force" a Refresh during testing
+If you are developing and the widget feels stuck, try these steps in order:
+
+Restart the Simulator/Phone: This resets the WidgetKit "budget."
+
+Verify the Date: Since your code uses expiresAt, if your computer's clock is different from the phone's clock, the effectiveState logic might be thinking the status has already expired.
+
+Check Xcode Console: Look for [WidgetKit] Update failed errors. This usually means your Swift code crashed because of a nil value (like a missing friend name).

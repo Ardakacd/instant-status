@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
 import { messagingService } from "../services/messaging.service";
+import ReportSheet from "../components/ReportSheet";
 import { useAuth } from "../contexts/AuthContext";
 import { userService } from "../services/user.service";
 import { authService } from "../services/auth.service";
@@ -77,6 +78,7 @@ export default function ProfileScreen() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [openingPaywall, setOpeningPaywall] = useState(false);
+  const [reportSheetVisible, setReportSheetVisible] = useState(false);
   const { height: windowHeight } = useWindowDimensions();
   const [changePasswordKeyboardLift, setChangePasswordKeyboardLift] = useState(0);
 
@@ -625,6 +627,16 @@ export default function ProfileScreen() {
             <View style={[styles.divider, { backgroundColor: colors.text.secondary + "30" }]} />
             <TouchableOpacity
               style={styles.actionRow}
+              onPress={() => setReportSheetVisible(true)}
+              accessibilityLabel="Report a safety concern"
+              accessibilityRole="button"
+            >
+              <Ionicons name="flag-outline" size={20} color={colors.text.primary} />
+              <Text variant="primary">Report a safety concern</Text>
+            </TouchableOpacity>
+            <View style={[styles.divider, { backgroundColor: colors.text.secondary + "30" }]} />
+            <TouchableOpacity
+              style={styles.actionRow}
               onPress={handleDeleteAccount}
               disabled={deletingAccount}
             >
@@ -659,6 +671,12 @@ export default function ProfileScreen() {
 
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
+
+      {/* Report Sheet */}
+      <ReportSheet
+        visible={reportSheetVisible}
+        onClose={() => setReportSheetVisible(false)}
+      />
 
       {/* Change Password Modal */}
       <Modal

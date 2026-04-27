@@ -14,7 +14,7 @@
       "backgroundColor": "#10B981"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "appleTeamId": "FPQ5Q94QY6",
       "bundleIdentifier": "com.arda.instantstatusapp",
       "usesAppleSignIn": true,
@@ -147,6 +147,7 @@
         "expo-build-properties",
         {
           "ios": {
+            "deploymentTarget": "17.0",
             "useFrameworks": "static",
             "buildReactNativeFromSource": true,
             "forceStaticLinking": [

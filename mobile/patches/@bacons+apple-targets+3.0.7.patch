@@ -1,5 +1,5 @@
 diff --git a/node_modules/@bacons/apple-targets/ios/ExtensionStorageModule.swift b/node_modules/@bacons/apple-targets/ios/ExtensionStorageModule.swift
-index 56a949b..15020a6 100644
+index 56a949b..9a45aca 100644
 --- a/node_modules/@bacons/apple-targets/ios/ExtensionStorageModule.swift
 +++ b/node_modules/@bacons/apple-targets/ios/ExtensionStorageModule.swift
 @@ -6,14 +6,26 @@ public class ExtensionStorageModule: Module {
@@ -15,8 +15,6 @@ index 56a949b..15020a6 100644
          Function("reloadWidget") { (timeline: String?) in
 -            if let timeline = timeline {
 -                WidgetCenter.shared.reloadTimelines(ofKind: timeline)
--            } else {
--                WidgetCenter.shared.reloadAllTimelines()
 +            // Always hop to main (WidgetKit expectation). Use async — `main.sync` from the
 +            // RN/JS thread can deadlock with the bridge when the main thread waits on JS,
 +            // leaving widget reloads broken even after the user reopens the app.
@@ -29,12 +27,13 @@ index 56a949b..15020a6 100644
 +            }
 +            if Thread.isMainThread {
 +                reload()
-+            } else {
+             } else {
+-                WidgetCenter.shared.reloadAllTimelines()
 +                DispatchQueue.main.async(execute: reload)
-+            }
+             }
          }
          
-@@ -31,7 +37,9 @@ public class ExtensionStorageModule: Module {
+@@ -31,18 +43,22 @@ public class ExtensionStorageModule: Module {
              // Convert the incoming array of dictionaries directly to JSON data
              do {
                  let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
@@ -45,7 +44,11 @@ index 56a949b..15020a6 100644
                  return true
              } catch {
                  // If encoding fails for some reason, return false
-@@ -42,7 +50,9 @@ public class ExtensionStorageModule: Module {
+                 return false
+             }
+         }
+-        
++
          Function("setObject") { (forKey: String, data: [String: Any], suiteName: String?) -> Bool in
              do {
                  let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
@@ -56,13 +59,14 @@ index 56a949b..15020a6 100644
                  return true
              } catch {
                  // If encoding fails for some reason, return false
-@@ -53,11 +63,13 @@ public class ExtensionStorageModule: Module {
+@@ -53,11 +69,13 @@ public class ExtensionStorageModule: Module {
          Function("setInt") { (key: String, value: Int, group: String?) in
              let userDefaults = UserDefaults(suiteName: group)
              userDefaults?.set(value, forKey: key)
 +            userDefaults?.synchronize()
          }
- 
+-        
++
          Function("setString") { (key: String, value: String, group: String?) in
              let userDefaults = UserDefaults(suiteName: group)
              userDefaults?.set(value, forKey: key)

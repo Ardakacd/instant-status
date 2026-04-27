@@ -33,6 +33,14 @@
         "destination": "/support.html"
       },
       {
+        "source": "/delete-account",
+        "destination": "/delete-account.html"
+      },
+      {
+        "source": "/child-safety-standards",
+        "destination": "/child-safety-standards.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

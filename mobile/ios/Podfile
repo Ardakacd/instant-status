@@ -60,6 +60,86 @@ target 'InstantStatus' do
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
   
+    # >>> withFmtFix
+    fmt_cpp_flags = ['-DFMT_USE_CONSTEXPR=0', '-DFMT_USE_CONSTEVAL=0', '-Wno-invalid-constexpr']
+    fmt_defines = ['FMT_USE_CONSTEXPR=0', 'FMT_USE_CONSTEVAL=0']
+
+    apply_fmt_defines = lambda do |build_settings|
+      existing_cpp = build_settings['OTHER_CPLUSPLUSFLAGS']
+      cpp_flags =
+        case existing_cpp
+        when nil
+          ['$(inherited)']
+        when String
+          [existing_cpp]
+        else
+          existing_cpp
+        end
+
+      fmt_cpp_flags.each do |flag|
+        unless cpp_flags.include?(flag)
+          cpp_flags << flag
+        end
+      end
+
+      build_settings['OTHER_CPLUSPLUSFLAGS'] = cpp_flags
+
+      existing_defs = build_settings['GCC_PREPROCESSOR_DEFINITIONS']
+      defs =
+        case existing_defs
+        when nil
+          ['$(inherited)']
+        when String
+          [existing_defs]
+        else
+          existing_defs
+        end
+
+      fmt_defines.each do |definition|
+        unless defs.include?(definition)
+          defs << definition
+        end
+      end
+
+      build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs
+    end
+
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        apply_fmt_defines.call(config.build_settings)
+      end
+    end
+
+    updated_projects = {}
+    installer.aggregate_targets.each do |aggregate_target|
+      user_project = aggregate_target.user_project
+      aggregate_target.user_targets.each do |user_target|
+        user_target.build_configurations.each do |config|
+          apply_fmt_defines.call(config.build_settings)
+        end
+      end
+      updated_projects[user_project.path.to_s] = user_project
+    end
+
+    updated_projects.each_value(&:save)
+
+    # Ensure fmt honors externally forced FMT_USE_CONSTEVAL in C++20 builds.
+    fmt_base_h = File.join(installer.sandbox.root.to_s, 'fmt', 'include', 'fmt', 'base.h')
+    if File.exist?(fmt_base_h)
+      base_h_contents = File.read(fmt_base_h)
+      unless base_h_contents.include?('#if defined(FMT_USE_CONSTEVAL)')
+        base_h_contents = base_h_contents.sub(
+          '#if !defined(__cpp_lib_is_constant_evaluated)',
+          "#if defined(FMT_USE_CONSTEVAL)
+// Use the provided definition.
+#elif !defined(__cpp_lib_is_constant_evaluated)"
+        )
+        File.write(fmt_base_h, base_h_contents)
+      end
+    end
+# <<< withFmtFix
+
+  
     # Fix: folly/coro/Coroutine.h file not found (RN 0.74+)
     installer.pods_project.build_configurations.each do |config|
       config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(OTHER_CFLAGS)']

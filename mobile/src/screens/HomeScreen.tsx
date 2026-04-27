@@ -29,6 +29,7 @@ import { widgetStorageService } from "../services/widget-storage.service";
 import { connectionsService } from "../services/connections.service";
 import { subscribeFriendStatusUpdated } from "../utils/friend-status-events";
 import StatusChangeModal from "../components/StatusChangeModal";
+import ReportSheet from "../components/ReportSheet";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { toast } from "../utils/toast";
 import Sentry from "../../sentry";
@@ -81,6 +82,7 @@ export default function HomeScreen() {
   );
   const [connections, setConnections] = useState<Connection[]>([]);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
+  const [reportSheetVisible, setReportSheetVisible] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(-100)).current;
   const pendingFriendIdRef = React.useRef<string | null>(null);
   const refreshHintTimerRef = React.useRef<ReturnType<
@@ -1047,6 +1049,28 @@ export default function HomeScreen() {
                             Remove friend
                           </Text>
                         </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.friendModalActionRow,
+                            { backgroundColor: colors.canvas.card },
+                          ]}
+                          onPress={() => setReportSheetVisible(true)}
+                          activeOpacity={0.7}
+                          accessibilityLabel={`Report ${getDetailModalDisplayName(selectedFriend)}`}
+                          accessibilityRole="button"
+                        >
+                          <Ionicons
+                            name="flag-outline"
+                            size={18}
+                            color={colors.text.secondary}
+                          />
+                          <Text
+                            variant="primary"
+                            style={styles.friendModalActionText}
+                          >
+                            Report user
+                          </Text>
+                        </TouchableOpacity>
                       </View>
                     )}
                   </>
@@ -1056,6 +1080,16 @@ export default function HomeScreen() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {/* Report Sheet — shown from friend detail modal */}
+      <ReportSheet
+        visible={reportSheetVisible}
+        onClose={() => setReportSheetVisible(false)}
+        reportedUserId={selectedFriend?.user_id}
+        reportedUserName={
+          selectedFriend ? getDetailModalDisplayName(selectedFriend) : undefined
+        }
+      />
     </SafeAreaView>
   );
 }
