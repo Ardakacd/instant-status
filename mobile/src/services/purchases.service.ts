@@ -1,6 +1,17 @@
+import { Platform } from "react-native";
 import PurchasesUI, { PAYWALL_RESULT } from "react-native-purchases-ui";
 import Purchases, { CustomerInfo } from "react-native-purchases";
 import Sentry from "../../sentry";
+
+const PAYWALL_OFFERING_ID = Platform.OS === "android" ? "default_android" : "default";
+
+/**
+ * Pick the offering matching the current platform.
+ * Falls back to offerings.current if the platform-specific ID is not found.
+ */
+export function getPlatformOffering(offerings: { all: Record<string, any>; current: any }) {
+  return offerings.all[PAYWALL_OFFERING_ID] ?? offerings.current;
+}
 
 /**
  * Present the RevenueCat Paywall UI
@@ -11,8 +22,13 @@ import Sentry from "../../sentry";
  */
 export async function presentPaywall(): Promise<boolean> {
   try {
-    // Present paywall for current offering
-    const paywallResult: PAYWALL_RESULT = await PurchasesUI.presentPaywall();
+    const offerings = await Purchases.getOfferings();
+    const offering = getPlatformOffering(offerings);
+    if (!offering) {
+      throw new Error("No subscription plans are available right now. Please try again later.");
+    }
+
+    const paywallResult: PAYWALL_RESULT = await PurchasesUI.presentPaywall({ offering });
 
     switch (paywallResult) {
       case PAYWALL_RESULT.NOT_PRESENTED:
@@ -54,7 +70,7 @@ export function presentCustomerCenter(): void {
 export async function getOfferings() {
   try {
     const offerings = await Purchases.getOfferings();
-    if (!offerings.current) {
+    if (!getPlatformOffering(offerings)) {
       throw new Error("No subscription plans are available right now. Please try again later.");
     }
     return offerings;

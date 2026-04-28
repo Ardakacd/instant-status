@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { User } from "../types";
 import { authService } from "../services/auth.service";
+import { userService } from "../services/user.service";
 import Sentry from "../../sentry";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "../config/firebase";
-import { setOnSessionDead } from "../config/api";
+import { setOnSessionDead, getLoggingOut } from "../config/api";
 import Purchases from "react-native-purchases";
 import { widgetStorageService } from "../services/widget-storage.service";
 
@@ -42,12 +43,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Replaces the old verify + getMe + checkEmailVerification triple-call race.
    */
   async function refreshUser() {
+    if (getLoggingOut()) return;
     const firebaseUser = auth.currentUser;
     if (!firebaseUser) return;
 
     try {
       const idToken = await firebaseUser.getIdToken();
-      const result = await authService.syncWithBackend(idToken);
+      let result = await authService.syncWithBackend(idToken);
+
+      // For Sign in with Apple / Google, the OAuth provider already gave us a name.
+      // Apple guideline 4 explicitly forbids re-prompting for it; Google offers the
+      // same data, so we apply the same UX. If neither provider shared a name,
+      // fall back to email parts (real email) or a neutral placeholder.
+      if (result.onboarding) {
+        const isApple = firebaseUser.providerData.some(
+          (p) => p?.providerId === "apple.com",
+        );
+        const isGoogle = firebaseUser.providerData.some(
+          (p) => p?.providerId === "google.com",
+        );
+
+        if (isApple || isGoogle) {
+          const appleGivenName = (await AsyncStorage.getItem("apple_given_name") ?? "").trim();
+          const appleFamilyName = (await AsyncStorage.getItem("apple_family_name") ?? "").trim();
+
+          // Google: Firebase populates displayName from the Google profile.
+          const displayParts = (firebaseUser.displayName ?? "").trim().split(/\s+/);
+          const googleFirst = displayParts[0] ?? "";
+          const googleLast = displayParts.slice(1).join(" ");
+
+          const email = firebaseUser.email ?? "";
+          const isPrivateRelay = email.endsWith("@privaterelay.appleid.com");
+          const emailPrefix = email.split("@")[0] ?? "";
+          const emailParts = isPrivateRelay
+            ? []
+            : emailPrefix.split(/[._\-+]/).filter(Boolean);
+
+          const firstName =
+            appleGivenName || googleFirst || emailParts[0] || (isApple ? "Apple" : "Google");
+          const lastName =
+            appleFamilyName || googleLast || emailParts[1] || "User";
+
+          try {
+            await userService.updateMe({ first_name: firstName, last_name: lastName });
+            if (isApple) {
+              await AsyncStorage.removeItem("apple_given_name");
+              await AsyncStorage.removeItem("apple_family_name");
+            }
+            result = await authService.syncWithBackend(idToken);
+          } catch (updateError) {
+            Sentry.captureException(updateError);
+          }
+        }
+      }
 
       setUser(result.user);
       setOnboarding(result.onboarding);

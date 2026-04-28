@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import Purchases, { CustomerInfo } from "react-native-purchases";
 import { useAuth } from "../contexts/AuthContext";
 import { widgetStorageService } from "../services/widget-storage.service";
+import { getLoggingOut } from "../config/api";
+import { auth } from "../config/firebase";
 import Sentry from "../../sentry";
 
 export function useIsPremium() {
@@ -55,9 +57,13 @@ export function useIsPremium() {
       .then(updateDisplayFields)
       .catch((error) => { Sentry.captureException(error); });
 
-    // When RevenueCat detects a subscription change, resync with backend
+    // When RevenueCat detects a subscription change, resync with backend.
+    // Skip during logout: Purchases.logOut() also fires this listener, and refreshing
+    // here repopulates the user state milliseconds before Firebase signs out, briefly
+    // bouncing the user back to the home screen.
     const listener = (info: CustomerInfo) => {
       updateDisplayFields(info);
+      if (getLoggingOut() || !auth.currentUser) return;
       refreshUser();
     };
 

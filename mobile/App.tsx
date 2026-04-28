@@ -823,7 +823,7 @@ function App() {
     const apiKey =
       Platform.OS === "ios"
         ? __DEV__
-          ? process.env.EXPO_PUBLIC_RC_IOS_TEST_KEY
+          ? process.env.EXPO_PUBLIC_RC_IOS_KEY
           : process.env.EXPO_PUBLIC_RC_IOS_KEY
         : __DEV__
           ? process.env.EXPO_PUBLIC_RC_ANDROID_TEST_KEY

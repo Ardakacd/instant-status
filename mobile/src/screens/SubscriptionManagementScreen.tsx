@@ -15,6 +15,7 @@ import { useNavigation } from "@react-navigation/native";
 import { toast } from "../utils/toast";
 import {
   getOfferings,
+  getPlatformOffering,
   purchasePackage,
   restorePurchases,
   getCustomerInfo,
@@ -109,7 +110,7 @@ export default function SubscriptionManagementScreen() {
       setPurchasing(pkg.identifier);
 
       // Get current packages for comparison
-      const currentOffering = offerings?.current;
+      const currentOffering = offerings ? getPlatformOffering(offerings) : null;
       const allPkgs = (currentOffering?.availablePackages || []).filter(
         (p: any) => p && p.identifier && p.product,
       );
@@ -361,7 +362,7 @@ export default function SubscriptionManagementScreen() {
     );
   }
 
-  const currentOffering = offerings?.current;
+  const currentOffering = offerings ? getPlatformOffering(offerings) : null;
   const allPackages = (currentOffering?.availablePackages || []).filter(
     (pkg: any) => pkg && pkg.identifier && pkg.product,
   );
