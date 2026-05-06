@@ -3,7 +3,7 @@
     "name": "Instant Status",
     "slug": "instant-status",
     "scheme": "instant-status",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "automatic",
@@ -15,16 +15,14 @@
     },
     "ios": {
       "supportsTablet": false,
+      "buildNumber": "7",
       "appleTeamId": "FPQ5Q94QY6",
       "bundleIdentifier": "com.arda.instantstatusapp",
       "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": [
-          "fetch",
-          "remote-notification"
-        ]
+        "UIBackgroundModes": ["fetch", "remote-notification"]
       },
       "entitlements": {
         "aps-environment": "development",
@@ -32,9 +30,7 @@
           "group.com.arda.instantstatusapp"
         ]
       },
-      "associatedDomains": [
-        "applinks:instantstatus.app"
-      ]
+      "associatedDomains": ["applinks:instantstatus.app"]
     },
     "android": {
       "package": "com.arda.instantstatusapp",
@@ -49,10 +45,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "RECEIVE_BOOT_COMPLETED",
-        "POST_NOTIFICATIONS"
-      ],
+      "permissions": ["RECEIVE_BOOT_COMPLETED", "POST_NOTIFICATIONS"],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -74,10 +67,7 @@
               "pathPrefix": "/reset-password"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
       "splash": {
@@ -150,10 +140,7 @@
             "deploymentTarget": "17.0",
             "useFrameworks": "static",
             "buildReactNativeFromSource": true,
-            "forceStaticLinking": [
-              "RNFBApp",
-              "RNFBMessaging"
-            ]
+            "forceStaticLinking": ["RNFBApp", "RNFBMessaging"]
           }
         }
       ],
