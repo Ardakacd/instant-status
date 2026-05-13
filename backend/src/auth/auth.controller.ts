@@ -22,7 +22,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post("sync")
-  @Throttle({ default: { limit: 50, ttl: 60000 } }) // 50 req/min per IP – app startup safe
+  @Throttle({ default: { limit: 100, ttl: 60000 } }) // 100 req/min per IP — bootstrap endpoint, sized for shared NAT/CGNAT
   async sync(@Body() body: unknown) {
     const { idToken } = VerifyTokenDtoSchema.parse(body);
     return this.authService.syncAuthState(idToken);
@@ -31,7 +31,11 @@ export class AuthController {
   @Post("send-email-verification")
   @UseGuards(AuthGuard)
   @AllowUnverifiedEmail() // Must work before the user has verified their email
-  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 req/min – prevent abuse
+  // 10/min per IP — high enough not to block multiple users behind the same NAT
+  // (family WiFi, mobile carrier CGNAT). The real abuse defense is the per-UID
+  // 60s dedup window in AuthService.sendEmailVerification, which silently
+  // absorbs duplicate sends and protects Firebase's quota.
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async sendEmailVerification(@Request() req) {
     await this.authService.sendEmailVerification(req.user.firebase_uid);
     return { message: "Verification email sent successfully" };

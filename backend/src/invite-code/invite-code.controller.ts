@@ -51,7 +51,10 @@ export class InviteCodeController {
 
   @Post("redeem")
   @UseGuards(AuthGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 req/min – prevent brute force
+  // 20/min per IP — codes are 8-char alphanumeric (~1.4T combinations), so this
+  // bound has no meaningful effect on brute-force resistance; raised from 5 to
+  // avoid collisions during friend-onboarding bursts on shared NAT/CGNAT.
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   async redeemCode(@Request() req, @Body() body: unknown) {
     const { code } = RedeemCodeDtoSchema.parse(body);
     return this.inviteCodeService.redeemCode(req.user.id, code);

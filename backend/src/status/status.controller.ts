@@ -43,7 +43,7 @@ export class StatusController {
   ) {}
 
   @Patch()
-  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 updates/min per user
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 updates/min per IP
   async updateStatus(@Request() req, @Body() body: unknown) {
     const { option_id, note, expires_at } = UpdateStatusDtoSchema.parse(body);
 
@@ -121,7 +121,7 @@ export class StatusController {
   }
 
   @Get("friends")
-  @Throttle({ default: { limit: 120, ttl: 60000 } }) // 120 reads/min (widget + home + push can stack)
+  @Throttle({ default: { limit: 240, ttl: 60000 } }) // 240 reads/min per IP (widget + home + push can stack; sized for shared NAT/CGNAT)
   async getFriendsStatus(@Request() req) {
     return this.statusService.getFriendsStatus(req.user.id);
   }
