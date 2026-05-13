@@ -37,12 +37,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [noInternet, setNoInternet] = useState(false);
   const refreshUserRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  // Firebase JS SDK can fire onAuthStateChanged twice during signup; without
+  // dedup, parallel /auth/sync calls trigger parallel verification-email sends
+  // and burn Firebase's per-email quota.
+  const inFlightSyncRef = useRef<Promise<void> | null>(null);
 
   /**
    * Atomic sync: one API call returns user, onboarding, emailVerified.
    * Replaces the old verify + getMe + checkEmailVerification triple-call race.
    */
   async function refreshUser() {
+    if (inFlightSyncRef.current) return inFlightSyncRef.current;
+    const promise = doRefreshUser();
+    inFlightSyncRef.current = promise;
+    try {
+      await promise;
+    } finally {
+      inFlightSyncRef.current = null;
+    }
+  }
+
+  async function doRefreshUser() {
     if (getLoggingOut()) return;
     const firebaseUser = auth.currentUser;
     if (!firebaseUser) return;

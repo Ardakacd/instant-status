@@ -3,6 +3,8 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
   BadRequestException,
+  HttpException,
+  HttpStatus,
 } from "@nestjs/common";
 import { StructuredLogger } from "../common/logger/structured-logger";
 import { User } from "../entities/user.entity";
@@ -17,6 +19,13 @@ import { computePremiumGraceFlags, isUserPremium } from "../utils/premium";
 export class AuthService {
   private readonly logger = new StructuredLogger(AuthService.name);
   private firebaseAdmin: admin.app.App;
+
+  // Firebase generateEmailVerificationLink has tight per-email/per-IP quotas
+  // (5/hour-ish). This in-memory dedup window absorbs duplicate triggers from
+  // concurrent /auth/sync calls (Firebase JS SDK fires onAuthStateChanged
+  // multiple times during signup) and rapid resend taps before they hit Firebase.
+  private static readonly VERIFICATION_SEND_WINDOW_MS = 60_000;
+  private recentVerificationSends = new Map<string, number>();
 
   constructor(
     private userService: UserService,
@@ -289,6 +298,20 @@ export class AuthService {
    * Generate email verification link and send via Postmark
    */
   async sendEmailVerification(uid: string): Promise<void> {
+    // Pessimistic dedup: claim the slot before any Firebase call so two parallel
+    // invocations (e.g. duplicate /auth/sync from onAuthStateChanged) cannot both
+    // reach generateEmailVerificationLink and burn the Firebase quota.
+    const now = Date.now();
+    const lastSent = this.recentVerificationSends.get(uid);
+    if (lastSent && now - lastSent < AuthService.VERIFICATION_SEND_WINDOW_MS) {
+      this.logger.log(
+        `Skipping duplicate email verification send for ${redactUid(uid)} (sent ${now - lastSent}ms ago)`,
+      );
+      return;
+    }
+    this.recentVerificationSends.set(uid, now);
+    this.pruneRecentVerificationSends(now);
+
     try {
       // Get Firebase user
       const firebaseUser = await this.firebaseAdmin.auth().getUser(uid);
@@ -317,12 +340,35 @@ export class AuthService {
         verificationLink,
       );
     } catch (error: any) {
+      // Clear the dedup slot on validation errors so the user can retry immediately
+      // after fixing the issue (e.g. setting an email). Rate-limit and unknown
+      // errors keep the slot — a cooldown is the desired behaviour there.
       if (
         error instanceof BadRequestException ||
         error instanceof UnauthorizedException
       ) {
+        this.recentVerificationSends.delete(uid);
         throw error;
       }
+
+      // Firebase Admin SDK surfaces project-wide quota exhaustion as either
+      // code "auth/too-many-requests" or a raw message containing
+      // TOO_MANY_ATTEMPTS_TRY_LATER. Translate to 429 so the mobile cooldown
+      // engages instead of an opaque 500.
+      const message = String(error?.message ?? "");
+      const isFirebaseRateLimit =
+        error?.code === "auth/too-many-requests" ||
+        message.includes("TOO_MANY_ATTEMPTS_TRY_LATER");
+      if (isFirebaseRateLimit) {
+        this.logger.warn(
+          `Firebase rate limit hit for ${redactUid(uid)}: ${message}`,
+        );
+        throw new HttpException(
+          "Too many verification attempts. Please wait a few minutes and try again.",
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+
       this.logger.error(
         `Error sending email verification: ${error.message}`,
         error.stack,
@@ -330,6 +376,15 @@ export class AuthService {
       throw new InternalServerErrorException(
         "Failed to send verification email",
       );
+    }
+  }
+
+  private pruneRecentVerificationSends(now: number): void {
+    if (this.recentVerificationSends.size < 1000) return;
+    for (const [uid, ts] of this.recentVerificationSends) {
+      if (now - ts >= AuthService.VERIFICATION_SEND_WINDOW_MS) {
+        this.recentVerificationSends.delete(uid);
+      }
     }
   }
 
